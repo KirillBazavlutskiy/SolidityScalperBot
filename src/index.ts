@@ -9,19 +9,19 @@ import * as fs from "fs";
 const apiKey = "PmEpiESene4CCbHpmjHO8Uz7hKqc9u57bEla9ibkP14ZmXIdtf8QAsqBcFt15YKB";
 const secretKey = "5f97dmaPN48kNXYmcdEBtNKRwopfsaDWogJ9btKE1gCAIKO4z0q2IhLb4m1MfKxE";
 
-const soundFilePath = 'C:/Users/BAZIK/Documents/work/NodeJS/ScalperBot/dist/sounds/notification-sound.mp3';
+// const soundFilePath = './dist/sounds/notification-sound.mp3';
+//
+// const speaker = new Speaker({
+//     channels: 2,
+//     bitDepth: 16,
+//     sampleRate: 44100
+// });
+//
+// const audioFileStream = fs.createReadStream(soundFilePath);
 
-const speaker = new Speaker({
-    channels: 2,
-    bitDepth: 16,
-    sampleRate: 44100
-});
-
-const audioFileStream = fs.createReadStream(soundFilePath);
-
-export const PlaySound = () => {
-    audioFileStream.pipe(speaker);
-}
+// export const PlaySound = () => {
+//     audioFileStream.pipe(speaker);
+// }
 
 const client = Binance({
     apiKey: apiKey,
@@ -37,8 +37,8 @@ export const solidityFinderParams = {
 
 export const sfs = new SolidityFinderService(client);
 const bts = new BinanceTradesService(client);
-export const dls = new DocumentLogger('C:/Users/BAZIK/Documents/work/NodeJS/ScalperBot/src/Logs.txt');
-export const tls = new DocumentLogger('C:/Users/BAZIK/Documents/work/NodeJS/ScalperBot/src/TradeLogs.txt')
+export const dls = new DocumentLogger('./Logs/Logs.txt');
+export const tls = new DocumentLogger('./Logs/TradeLogs.txt')
 
 const fetchSolidity = async (): Promise<void> => {
     // PlaySound();

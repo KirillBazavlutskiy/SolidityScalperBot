@@ -26,27 +26,26 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.tls = exports.dls = exports.sfs = exports.solidityFinderParams = exports.PlaySound = void 0;
+exports.tls = exports.dls = exports.sfs = exports.solidityFinderParams = void 0;
 const binance_api_node_1 = __importDefault(require("binance-api-node"));
 const SolidityFinderService_1 = __importDefault(require("./services/SolidityFinderService/SolidityFinderService"));
 const TradingPairsService_1 = __importDefault(require("./services/TradingPairsListService/TradingPairsService"));
 const BinanceTradesService_1 = require("./services/BinanceTradesService/BinanceTradesService");
 const DocumentLogService_1 = __importStar(require("./services/DocumentLogService/DocumentLogService"));
-const speaker_1 = __importDefault(require("speaker"));
-const fs = __importStar(require("fs"));
 const apiKey = "PmEpiESene4CCbHpmjHO8Uz7hKqc9u57bEla9ibkP14ZmXIdtf8QAsqBcFt15YKB";
 const secretKey = "5f97dmaPN48kNXYmcdEBtNKRwopfsaDWogJ9btKE1gCAIKO4z0q2IhLb4m1MfKxE";
-const soundFilePath = 'C:/Users/BAZIK/Documents/work/NodeJS/ScalperBot/dist/sounds/notification-sound.mp3';
-const speaker = new speaker_1.default({
-    channels: 2,
-    bitDepth: 16,
-    sampleRate: 44100
-});
-const audioFileStream = fs.createReadStream(soundFilePath);
-const PlaySound = () => {
-    audioFileStream.pipe(speaker);
-};
-exports.PlaySound = PlaySound;
+// const soundFilePath = 'C:/Users/BAZIK/Documents/work/NodeJS/ScalperBot/dist/sounds/notification-sound.mp3';
+//
+// const speaker = new Speaker({
+//     channels: 2,
+//     bitDepth: 16,
+//     sampleRate: 44100
+// });
+//
+// const audioFileStream = fs.createReadStream(soundFilePath);
+// export const PlaySound = () => {
+//     audioFileStream.pipe(speaker);
+// }
 const client = (0, binance_api_node_1.default)({
     apiKey: apiKey,
     apiSecret: secretKey,
@@ -59,8 +58,8 @@ exports.solidityFinderParams = {
 };
 exports.sfs = new SolidityFinderService_1.default(client);
 const bts = new BinanceTradesService_1.BinanceTradesService(client);
-exports.dls = new DocumentLogService_1.DocumentLogger('C:/Users/BAZIK/Documents/work/NodeJS/ScalperBot/src/Logs.txt');
-exports.tls = new DocumentLogService_1.DocumentLogger('C:/Users/BAZIK/Documents/work/NodeJS/ScalperBot/src/TradeLogs.txt');
+exports.dls = new DocumentLogService_1.DocumentLogger('./Logs/Logs.txt');
+exports.tls = new DocumentLogService_1.DocumentLogger('./Logs/TradeLogs.txt');
 const fetchSolidity = async () => {
     // PlaySound();
     TradingPairsService_1.default.TPWithSolidity = await exports.sfs.FindAllSolidity(exports.solidityFinderParams.minVolume, exports.solidityFinderParams.ratioAccess, exports.solidityFinderParams.upToPriceAccess);
