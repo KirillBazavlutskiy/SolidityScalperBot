@@ -49,7 +49,6 @@ export class BinanceTradesService {
 
                 switch (TradeStatus) {
                     case "watching":
-                        DocumentLogService.MadeTheNewLog(`${solidityModel.symbol} | Up to price: ${upToPrice} | Spot Last Price: ${tradePrice} | Futures Last Price: ${futuresLastPrice}`, [], true);
                         if (upToPrice === 1) {
                             const lastSolidity = await sfs.FindSolidity(solidityModel.symbol, solidityFinderParams.ratioAccess, solidityFinderParams.upToPriceAccess);
                             let solidityStatus: SolidityStatus;
@@ -66,7 +65,7 @@ export class BinanceTradesService {
                             } else {
                                 solidityStatus = 'removed';
                                 TradeStatus = 'disabled';
-                                DocumentLogService.MadeTheNewLog(`${solidityModel.symbol} Solidity on has been removed!`, [ dls ], true);
+                                DocumentLogService.MadeTheNewLog(`${solidityModel.symbol} Solidity on ${solidityModel.solidity.price} has been removed!`, [ dls ], true);
                                 WebSocketSpot.close();
                             }
 
@@ -81,9 +80,13 @@ export class BinanceTradesService {
                                 DocumentLogService.MadeTheNewLog(`${solidityModel.symbol} | Solidity on ${solidityPrice} was reached! Waiting for price ${openOrderPrice} | Process Time: ${processTime.getSeconds()}s`, [ dls ], true);
                                 TradeStatus = 'broken';
                             }
+                        } else if ((upToPrice > 1 && solidityModel.solidity.type === 'asks') || (upToPrice < 1 && solidityModel.solidity.type === 'bids')) {
+                            DocumentLogService.MadeTheNewLog(`${solidityModel.symbol} Solidity on ${solidityModel.solidity.price} has been removed!`, [ dls ], true);
                         } else if (sfs.CalcUpToPrice(upToPrice) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
                             DocumentLogService.MadeTheNewLog(`${solidityModel.symbol} is too far!`, [ dls ], true);
                             WebSocketSpot.close();
+                        } else {
+                            DocumentLogService.MadeTheNewLog(`${solidityModel.symbol} | Up to price: ${upToPrice} | Spot Last Price: ${tradePrice} | Futures Last Price: ${futuresLastPrice}`, [], true);
                         }
                         break;
                     case "broken":
