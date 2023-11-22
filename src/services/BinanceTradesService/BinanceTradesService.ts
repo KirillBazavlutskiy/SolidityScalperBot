@@ -82,6 +82,8 @@ export class BinanceTradesService {
                             }
                         } else if ((upToPrice > 1 && solidityModel.solidity.type === 'asks') || (upToPrice < 1 && solidityModel.solidity.type === 'bids')) {
                             DocumentLogService.MadeTheNewLog(`${solidityModel.symbol} Solidity on ${solidityModel.solidity.price} has been removed!`, [ dls ], true);
+                            TradeStatus = 'disabled';
+                            WebSocketSpot.close();
                         } else if (sfs.CalcUpToPrice(upToPrice) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
                             DocumentLogService.MadeTheNewLog(`${solidityModel.symbol} is too far!`, [ dls ], true);
                             WebSocketSpot.close();
