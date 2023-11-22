@@ -1,0 +1,112 @@
+
+22/11/2023, 14:34:38 | Found solidity: 4
+22/11/2023, 14:34:41 | New Solidity on FETUSDT | Solidity Price: 0.5232 | Solidity Ratio: 27.080084013565074 | Up To Price: 1.0034403669724772 | Last Price: 0.525
+22/11/2023, 14:34:41 | New Solidity on SNXUSDT | Solidity Price: 3.51 | Solidity Ratio: 24.629061061513994 | Up To Price: 0.9931623931623933 | Last Price: 3.486
+22/11/2023, 14:34:41 | New Solidity on GASUSDT | Solidity Price: 7.7 | Solidity Ratio: 22.070204915903098 | Up To Price: 0.9862337662337662 | Last Price: 7.594
+22/11/2023, 14:34:41 | New Solidity on MATICUSDT | Solidity Price: 0.7682 | Solidity Ratio: 30.786094042831422 | Up To Price: 0.9912783129393387 | Last Price: 0.7615
+22/11/2023, 14:35:39 | Found solidity: 4
+22/11/2023, 14:36:40 | Found solidity: 4
+22/11/2023, 14:37:39 | Found solidity: 4
+22/11/2023, 14:38:40 | Found solidity: 4
+22/11/2023, 14:39:39 | Found solidity: 4
+22/11/2023, 14:40:39 | Found solidity: 4
+22/11/2023, 14:41:01 | FETUSDT | Solidity on 0.5232 was reached! Waiting for price 0.5231 | Process Time: 0s
+22/11/2023, 14:41:39 | Found solidity: 4
+22/11/2023, 14:42:38 | Found solidity: 4
+22/11/2023, 14:43:11 | FETUSDT is too far!
+22/11/2023, 14:43:11 | FETUSDT is too far!
+22/11/2023, 14:43:11 | FETUSDT is too far!
+22/11/2023, 14:43:12 | FETUSDT is too far!
+22/11/2023, 14:43:12 | FETUSDT is too far!
+22/11/2023, 14:43:12 | Websockets on FETUSDT has been disabled!
+22/11/2023, 14:43:39 | Found solidity: 4
+22/11/2023, 14:43:40 | New Solidity on FETUSDT | Solidity Price: 0.5232 | Solidity Ratio: 24.484977499185256 | Up To Price: 1.0070718654434252 | Last Price: 0.5269
+22/11/2023, 14:44:39 | Found solidity: 4
+22/11/2023, 14:45:38 | Found solidity: 3
+22/11/2023, 14:46:40 | Found solidity: 3
+22/11/2023, 14:47:39 | Found solidity: 3
+22/11/2023, 14:48:39 | Found solidity: 3
+22/11/2023, 14:49:38 | Found solidity: 2
+22/11/2023, 14:50:41 | Found solidity: 4
+22/11/2023, 14:50:43 | New Solidity on KLAYUSDT | Solidity Price: 0.195 | Solidity Ratio: 20.648696594122047 | Up To Price: 1.002051282051282 | Last Price: 0.1954
+22/11/2023, 14:50:43 | New Solidity on TIAUSDT | Solidity Price: 5.8282 | Solidity Ratio: 20.0479968818731 | Up To Price: 1.0037061185271612 | Last Price: 5.8498
+22/11/2023, 14:51:40 | Found solidity: 2
+22/11/2023, 14:52:42 | Found solidity: 3
+22/11/2023, 14:53:21 | SNXUSDT Solidity on 3.51 has been removed!
+22/11/2023, 14:53:22 | SNXUSDT Solidity on 3.51 has been removed!
+22/11/2023, 14:53:22 | Websockets on SNXUSDT has been disabled!
+22/11/2023, 14:53:22 | SNXUSDT Solidity on 3.51 has been removed!
+22/11/2023, 14:53:23 | SNXUSDT Solidity on 3.51 has been removed!
+22/11/2023, 14:53:23 | SNXUSDT Solidity on 3.51 has been removed!
+22/11/2023, 14:53:41 | Found solidity: 3
+22/11/2023, 14:54:39 | Found solidity: 2
+22/11/2023, 14:55:10 | KLAYUSDT Solidity on 0.195 has been removed!
+22/11/2023, 14:55:10 | KLAYUSDT Solidity on 0.195 has been removed!
+22/11/2023, 14:55:10 | KLAYUSDT Solidity on 0.195 has been removed!
+22/11/2023, 14:55:11 | Websockets on KLAYUSDT has been disabled!
+22/11/2023, 14:55:40 | Found solidity: 3
+22/11/2023, 18:03:34 | Found solidity: 4
+22/11/2023, 18:03:37 | New Solidity on IDUSDT | Solidity Price: 0.2355 | Solidity Ratio: 31.37172630369757 | Up To Price: 0.9880254777070064 | Last Price: 0.23268
+22/11/2023, 18:03:37 | New Solidity on CVCUSDT | Solidity Price: 0.112 | Solidity Ratio: 23.2599618909232 | Up To Price: 1.0008928571428573 | Last Price: 0.1121
+22/11/2023, 18:03:37 | New Solidity on OCEANUSDT | Solidity Price: 0.45 | Solidity Ratio: 24.305429292066247 | Up To Price: 1.013111111111111 | Last Price: 0.4559
+22/11/2023, 18:03:37 | New Solidity on TRXUSDT | Solidity Price: 0.10035 | Solidity Ratio: 29.738517680440996 | Up To Price: 0.997807673143996 | Last Price: 0.10013
+22/11/2023, 18:03:58 | CVCUSDT Solidity on 0.112 has been removed!
+22/11/2023, 18:03:59 | Websockets on CVCUSDT has been disabled!
+22/11/2023, 18:05:56 | Found solidity: 6
+22/11/2023, 18:05:58 | New Solidity on CVCUSDT | Solidity Price: 0.112 | Solidity Ratio: 20.755700218445146 | Up To Price: 1.0035714285714286 | Last Price: 0.1124
+22/11/2023, 18:05:58 | New Solidity on MATICUSDT | Solidity Price: 0.7682 | Solidity Ratio: 34.47884772290006 | Up To Price: 0.9890653475657382 | Last Price: 0.7598
+22/11/2023, 18:05:58 | New Solidity on TRXUSDT | Solidity Price: 0.10035 | Solidity Ratio: 27.44131110437441 | Up To Price: 0.9982062780269059 | Last Price: 0.10017
+22/11/2023, 18:05:58 | New Solidity on ORDIUSDT | Solidity Price: 21.367 | Solidity Ratio: 21.81526492486465 | Up To Price: 0.9966771189217016 | Last Price: 21.296
+22/11/2023, 18:05:59 | New Solidity on OCEANUSDT | Solidity Price: 0.45 | Solidity Ratio: 22.9698588660196 | Up To Price: 1.0146666666666666 | Last Price: 0.4566
+22/11/2023, 18:05:59 | New Solidity on IDUSDT | Solidity Price: 0.2355 | Solidity Ratio: 31.314634244709666 | Up To Price: 0.9924416135881104 | Last Price: 0.23372
+22/11/2023, 18:06:04 | ORDIUSDT Solidity on 21.367 has been removed! | Up to price: 1.0000468011419477
+22/11/2023, 18:06:05 | Websockets on ORDIUSDT has been disabled!
+22/11/2023, 18:06:05 | Solidity on ORDIUSDT has been moved to 21.453 | Ratio: 20.88756685947492!
+22/11/2023, 18:06:05 | ORDIUSDT | Solidity on 21.453 was reached! Waiting for price 21.454 | Process Time: 0s
+22/11/2023, 18:06:54 | Found solidity: 4
+22/11/2023, 18:06:56 | New Solidity on TIAUSDT | Solidity Price: 5.6601 | Solidity Ratio: 25.202381870848743 | Up To Price: 1.004929241532835 | Last Price: 5.688
+22/11/2023, 18:06:58 | CVCUSDT is out of websocket connection! Not on futures!
+22/11/2023, 18:06:59 | Websockets on CVCUSDT has been disabled!
+22/11/2023, 18:07:54 | Found solidity: 3
+22/11/2023, 18:07:56 | New Solidity on CVCUSDT | Solidity Price: 0.112 | Solidity Ratio: 21.51774733795832 | Up To Price: 1.0044642857142858 | Last Price: 0.1125
+22/11/2023, 18:08:55 | Found solidity: 2
+22/11/2023, 18:08:56 | CVCUSDT is out of websocket connection! Not on futures!
+22/11/2023, 18:08:57 | Websockets on CVCUSDT has been disabled!
+22/11/2023, 18:09:55 | Found solidity: 3
+22/11/2023, 18:09:57 | New Solidity on API3USDT | Solidity Price: 1.335 | Solidity Ratio: 21.12220939386949 | Up To Price: 0.998501872659176 | Last Price: 1.333
+22/11/2023, 18:10:55 | Found solidity: 5
+22/11/2023, 18:10:58 | New Solidity on FXSUSDT | Solidity Price: 6.94 | Solidity Ratio: 20.857979327239054 | Up To Price: 0.9997118155619595 | Last Price: 6.938
+22/11/2023, 18:11:16 | TIAUSDT Solidity on 5.6601 has been removed! | Up to price: 0.9999823324676242
+22/11/2023, 18:11:17 | Websockets on TIAUSDT has been disabled!
+22/11/2023, 18:11:55 | Found solidity: 2
+22/11/2023, 18:12:41 | FXSUSDT Solidity on 6.94 has been removed!
+22/11/2023, 18:12:42 | Websockets on FXSUSDT has been disabled!
+22/11/2023, 18:12:55 | Found solidity: 6
+22/11/2023, 18:12:57 | New Solidity on UNFIUSDT | Solidity Price: 10.567 | Solidity Ratio: 21.35229261165758 | Up To Price: 1.0022712217280212 | Last Price: 10.591
+22/11/2023, 18:12:57 | New Solidity on LQTYUSDT | Solidity Price: 1.336 | Solidity Ratio: 20.937722628168505 | Up To Price: 1.0089820359281436 | Last Price: 1.348
+22/11/2023, 18:12:57 | New Solidity on TIAUSDT | Solidity Price: 5.6293 | Solidity Ratio: 20.229516466094978 | Up To Price: 1.0057556001634307 | Last Price: 5.6617
+22/11/2023, 18:12:57 | New Solidity on GASUSDT | Solidity Price: 7.7 | Solidity Ratio: 24.523580871209255 | Up To Price: 0.9850649350649351 | Last Price: 7.585
+22/11/2023, 18:13:10 | API3USDT Solidity on 1.335 has been removed!
+22/11/2023, 18:13:11 | Websockets on API3USDT has been disabled!
+22/11/2023, 18:13:54 | Found solidity: 3
+22/11/2023, 18:14:05 | UNFIUSDT Solidity on 10.567 has been removed!
+22/11/2023, 18:14:05 | Websockets on UNFIUSDT has been disabled!
+22/11/2023, 18:14:55 | Found solidity: 2
+22/11/2023, 18:15:56 | Found solidity: 4
+22/11/2023, 18:15:58 | New Solidity on CVCUSDT | Solidity Price: 0.112 | Solidity Ratio: 22.574464173067977 | Up To Price: 1.0044642857142858 | Last Price: 0.1125
+22/11/2023, 18:15:58 | New Solidity on PHBUSDT | Solidity Price: 0.76 | Solidity Ratio: 23.897990672838542 | Up To Price: 0.9964473684210526 | Last Price: 0.7573
+22/11/2023, 18:16:23 | CVCUSDT Solidity on 0.112 has been removed!
+22/11/2023, 18:16:23 | CVCUSDT Solidity on 0.112 has been removed!
+22/11/2023, 18:16:23 | Websockets on CVCUSDT has been disabled!
+22/11/2023, 18:16:55 | Found solidity: 3
+22/11/2023, 18:16:58 | CVCUSDT is out of websocket connection! Not on futures!
+22/11/2023, 18:17:56 | Found solidity: 3
+22/11/2023, 18:17:58 | New Solidity on WOOUSDT | Solidity Price: 0.217 | Solidity Ratio: 48.508347988248595 | Up To Price: 1.0036866359447005 | Last Price: 0.2178
+22/11/2023, 18:18:56 | Found solidity: 3
+22/11/2023, 18:19:56 | Found solidity: 3
+22/11/2023, 18:20:55 | Found solidity: 4
+22/11/2023, 18:21:22 | TIAUSDT Solidity on 5.6293 has been removed! | Up to price: 0.9999111790098236
+22/11/2023, 18:21:22 | Solidity on TIAUSDT has been moved to 5.6039 | Ratio: 21.504516613981817!
+22/11/2023, 18:21:22 | TIAUSDT | Solidity on 5.6039 was reached! Waiting for price 5.603800000000001 | Process Time: 0s
+22/11/2023, 18:21:22 | Websockets on TIAUSDT has been disabled!
+22/11/2023, 18:21:56 | Found solidity: 3

@@ -31,6 +31,9 @@ export class BinanceTradesService {
         let TradeStatus: TradeStatus = 'watching';
         let TPSL: CalcTPSLOutput;
 
+        let minPriceFuturesInTrade = Number.MAX_VALUE;
+        let maxPriceFuturesInTrade = Number.MIN_VALUE;
+
         DocumentLogService.MadeTheNewLog(
             `New Solidity on ${solidityModel.symbol} | Solidity Price: ${solidityModel.solidity.price} | Solidity Ratio: ${solidityModel.solidity.ratio} | Up To Price: ${solidityModel.solidity.upToPrice} | Last Price: ${solidityModel.price}`,
             [ dls, tls ], true);
@@ -81,7 +84,7 @@ export class BinanceTradesService {
                                 TradeStatus = 'broken';
                             }
                         } else if ((upToPrice > 1 && solidityModel.solidity.type === 'asks') || (upToPrice < 1 && solidityModel.solidity.type === 'bids')) {
-                            DocumentLogService.MadeTheNewLog(`${solidityModel.symbol} Solidity on ${solidityModel.solidity.price} has been removed!`, [ dls ], true);
+                            DocumentLogService.MadeTheNewLog(`${solidityModel.symbol} Solidity on ${solidityModel.solidity.price} has been removed! | Up to price: ${upToPrice}`, [ dls ], true);
                             TradeStatus = 'disabled';
                             WebSocketSpot.close();
                         } else if (sfs.CalcUpToPrice(upToPrice) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
@@ -108,6 +111,8 @@ export class BinanceTradesService {
                 }
             });
 
+            const tradeType: TradeType = solidityModel.solidity.type === 'asks' ? 'long' : 'short';
+
             WebSocketFutures.on('message', (data) => {
                 const strData = data.toString();
                 const trade = JSON.parse(strData);
@@ -115,14 +120,19 @@ export class BinanceTradesService {
                 futuresWebsocketLastTradeTime = new Date();
 
                 if (TradeStatus === 'inTrade') {
-                    const status = this.CheckTPSL(futuresLastPrice, TPSL.TakeProfit, TPSL.StopLoss, solidityModel.solidity.type === 'asks' ? 'long' : 'short')
+                    if (futuresLastPrice > maxPriceFuturesInTrade) maxPriceFuturesInTrade = futuresLastPrice;
+                    else if (futuresLastPrice < minPriceFuturesInTrade) minPriceFuturesInTrade = futuresLastPrice;
+
+                    const status = this.CheckTPSL(futuresLastPrice, TPSL.TakeProfit, TPSL.StopLoss, tradeType);
                     switch (status) {
                         case "TP":
-                            DocumentLogService.MadeTheNewLog(`${solidityModel.symbol} | Take Profit price has been reached on price ${futuresLastPrice}!`, [ dls, tls ], true);
+                            DocumentLogService.MadeTheNewLog(`${solidityModel.symbol} | Take Profit price has been reached on price ${futuresLastPrice} | Max price: ${maxPriceFuturesInTrade} | Min Price: ${minPriceFuturesInTrade}`, [ dls, tls ], true);
+                            TradeStatus = 'disabled';
                             WebSocketSpot.close();
                             break;
                         case "SL":
-                            DocumentLogService.MadeTheNewLog(`${solidityModel.symbol} | Stop Loss price has been reached on price ${futuresLastPrice}!`, [ dls, tls ], true);
+                            DocumentLogService.MadeTheNewLog(`${solidityModel.symbol} | Stop Loss price has been reached on price ${futuresLastPrice} | Max price: ${maxPriceFuturesInTrade} | Min Price: ${minPriceFuturesInTrade}`, [ dls, tls ], true);
+                            TradeStatus = 'disabled';
                             WebSocketSpot.close();
                             break;
                     }

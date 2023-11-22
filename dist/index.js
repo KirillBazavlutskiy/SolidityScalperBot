@@ -34,7 +34,7 @@ const BinanceTradesService_1 = require("./services/BinanceTradesService/BinanceT
 const DocumentLogService_1 = __importStar(require("./services/DocumentLogService/DocumentLogService"));
 const apiKey = "PmEpiESene4CCbHpmjHO8Uz7hKqc9u57bEla9ibkP14ZmXIdtf8QAsqBcFt15YKB";
 const secretKey = "5f97dmaPN48kNXYmcdEBtNKRwopfsaDWogJ9btKE1gCAIKO4z0q2IhLb4m1MfKxE";
-// const soundFilePath = 'C:/Users/BAZIK/Documents/work/NodeJS/ScalperBot/dist/sounds/notification-sound.mp3';
+// const soundFilePath = './dist/sounds/notification-sound.mp3';
 //
 // const speaker = new Speaker({
 //     channels: 2,

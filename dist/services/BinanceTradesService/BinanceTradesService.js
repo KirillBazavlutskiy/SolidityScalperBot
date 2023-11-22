@@ -22,6 +22,8 @@ class BinanceTradesService {
             let futuresWebsocketLastTradeTime;
             let TradeStatus = 'watching';
             let TPSL;
+            let minPriceFuturesInTrade = Number.MAX_VALUE;
+            let maxPriceFuturesInTrade = Number.MIN_VALUE;
             DocumentLogService_1.default.MadeTheNewLog(`New Solidity on ${solidityModel.symbol} | Solidity Price: ${solidityModel.solidity.price} | Solidity Ratio: ${solidityModel.solidity.ratio} | Up To Price: ${solidityModel.solidity.upToPrice} | Last Price: ${solidityModel.price}`, [index_1.dls, index_1.tls], true);
             const WebSocketSpot = new ws_1.default(`wss://stream.binance.com:9443/ws/${solidityModel.symbol.toLowerCase()}@trade`);
             const WebSocketFutures = new ws_1.default(`wss://fstream.binance.com/ws/${solidityModel.symbol.toLowerCase()}@trade`);
@@ -34,7 +36,6 @@ class BinanceTradesService {
                     const upToPrice = tradePrice / solidityModel.solidity.price;
                     switch (TradeStatus) {
                         case "watching":
-                            DocumentLogService_1.default.MadeTheNewLog(`${solidityModel.symbol} | Up to price: ${upToPrice} | Spot Last Price: ${tradePrice} | Futures Last Price: ${futuresLastPrice}`, [], true);
                             if (upToPrice === 1) {
                                 const lastSolidity = await index_1.sfs.FindSolidity(solidityModel.symbol, index_1.solidityFinderParams.ratioAccess, index_1.solidityFinderParams.upToPriceAccess);
                                 let solidityStatus;
@@ -52,7 +53,7 @@ class BinanceTradesService {
                                 else {
                                     solidityStatus = 'removed';
                                     TradeStatus = 'disabled';
-                                    DocumentLogService_1.default.MadeTheNewLog(`${solidityModel.symbol} Solidity on has been removed!`, [index_1.dls], true);
+                                    DocumentLogService_1.default.MadeTheNewLog(`${solidityModel.symbol} Solidity on ${solidityModel.solidity.price} has been removed!`, [index_1.dls], true);
                                     WebSocketSpot.close();
                                 }
                                 if (solidityStatus === 'ready') {
@@ -66,9 +67,17 @@ class BinanceTradesService {
                                     TradeStatus = 'broken';
                                 }
                             }
+                            else if ((upToPrice > 1 && solidityModel.solidity.type === 'asks') || (upToPrice < 1 && solidityModel.solidity.type === 'bids')) {
+                                DocumentLogService_1.default.MadeTheNewLog(`${solidityModel.symbol} Solidity on ${solidityModel.solidity.price} has been removed! | Up to price: ${upToPrice}`, [index_1.dls], true);
+                                TradeStatus = 'disabled';
+                                WebSocketSpot.close();
+                            }
                             else if (index_1.sfs.CalcUpToPrice(upToPrice) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
                                 DocumentLogService_1.default.MadeTheNewLog(`${solidityModel.symbol} is too far!`, [index_1.dls], true);
                                 WebSocketSpot.close();
+                            }
+                            else {
+                                DocumentLogService_1.default.MadeTheNewLog(`${solidityModel.symbol} | Up to price: ${upToPrice} | Spot Last Price: ${tradePrice} | Futures Last Price: ${futuresLastPrice}`, [], true);
                             }
                             break;
                         case "broken":
@@ -87,20 +96,27 @@ class BinanceTradesService {
                             break;
                     }
                 });
+                const tradeType = solidityModel.solidity.type === 'asks' ? 'long' : 'short';
                 WebSocketFutures.on('message', (data) => {
                     const strData = data.toString();
                     const trade = JSON.parse(strData);
                     futuresLastPrice = parseFloat(trade.p);
                     futuresWebsocketLastTradeTime = new Date();
                     if (TradeStatus === 'inTrade') {
-                        const status = this.CheckTPSL(futuresLastPrice, TPSL.TakeProfit, TPSL.StopLoss, solidityModel.solidity.type === 'asks' ? 'long' : 'short');
+                        if (futuresLastPrice > maxPriceFuturesInTrade)
+                            maxPriceFuturesInTrade = futuresLastPrice;
+                        else if (futuresLastPrice < minPriceFuturesInTrade)
+                            minPriceFuturesInTrade = futuresLastPrice;
+                        const status = this.CheckTPSL(futuresLastPrice, TPSL.TakeProfit, TPSL.StopLoss, tradeType);
                         switch (status) {
                             case "TP":
-                                DocumentLogService_1.default.MadeTheNewLog(`${solidityModel.symbol} | Take Profit price has been reached on price ${futuresLastPrice}!`, [index_1.dls, index_1.tls], true);
+                                DocumentLogService_1.default.MadeTheNewLog(`${solidityModel.symbol} | Take Profit price has been reached on price ${futuresLastPrice} | Max price: ${maxPriceFuturesInTrade} | Min Price: ${minPriceFuturesInTrade}`, [index_1.dls, index_1.tls], true);
+                                TradeStatus = 'disabled';
                                 WebSocketSpot.close();
                                 break;
                             case "SL":
-                                DocumentLogService_1.default.MadeTheNewLog(`${solidityModel.symbol} | Stop Loss price has been reached on price ${futuresLastPrice}!`, [index_1.dls, index_1.tls], true);
+                                DocumentLogService_1.default.MadeTheNewLog(`${solidityModel.symbol} | Stop Loss price has been reached on price ${futuresLastPrice} | Max price: ${maxPriceFuturesInTrade} | Min Price: ${minPriceFuturesInTrade}`, [index_1.dls, index_1.tls], true);
+                                TradeStatus = 'disabled';
                                 WebSocketSpot.close();
                                 break;
                         }
