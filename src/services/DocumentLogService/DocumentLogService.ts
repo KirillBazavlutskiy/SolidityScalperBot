@@ -19,7 +19,7 @@ export class DocumentLogger {
 }
 
 export default class DocumentLogService {
-     static MadeTheNewLog = (newLine: string, writeInDocuments: DocumentLogger[] = [], showInConsole: boolean = false) => {
+     static MadeTheNewLog = (style: string[], newLine: string, writeInDocuments: DocumentLogger[] = [], showInConsole: boolean = false) => {
         const date = new Date();
         let strDate = date.toLocaleString('en-GB', {
             year: 'numeric',
@@ -33,7 +33,7 @@ export default class DocumentLogService {
 
         const newLogLine = `${strDate} | ${newLine}`;
 
-        if (showInConsole) console.log(`${strDate} | ${newLine}`);
+        if (showInConsole) console.log(style.join('%s'), `${strDate} | ${newLine}`);
         writeInDocuments.forEach(document => document.WriteLine(newLogLine))
     }
 }

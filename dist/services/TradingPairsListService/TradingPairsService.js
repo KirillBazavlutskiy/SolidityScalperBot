@@ -10,7 +10,7 @@ TradingPairsService.LogTPWithSolidity = () => {
     _a.TPWithSolidity.forEach(solidityModel => {
         console.log(`Symbol: ${solidityModel.symbol}\tLast Price: ${solidityModel.price}\n` +
             'Solidity:\n' +
-            `Limit Type: ${solidityModel.solidity.type}\tLimit price: ${solidityModel.solidity.price}\tLimit Volume: ${solidityModel.solidity.volume}\n` +
+            `Limit Type: ${solidityModel.solidity.type}\tLimit price: ${solidityModel.solidity.price}\tLimit Volume: ${solidityModel.solidity.quantity}\n` +
             `Solidity Ratio: ${solidityModel.solidity.ratio.toFixed(3)}\tUp to price: ${(solidityModel.solidity.upToPrice * 100).toFixed(2)}%\n`);
     });
 };

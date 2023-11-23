@@ -5,6 +5,7 @@ import {BinanceTradesService} from "./services/BinanceTradesService/BinanceTrade
 import DocumentLogService, {DocumentLogger} from "./services/DocumentLogService/DocumentLogService";
 import Speaker from "speaker";
 import * as fs from "fs";
+import {FontColor} from "./services/FontStyleObjects";
 
 const apiKey = "PmEpiESene4CCbHpmjHO8Uz7hKqc9u57bEla9ibkP14ZmXIdtf8QAsqBcFt15YKB";
 const secretKey = "5f97dmaPN48kNXYmcdEBtNKRwopfsaDWogJ9btKE1gCAIKO4z0q2IhLb4m1MfKxE";
@@ -43,7 +44,7 @@ export const tls = new DocumentLogger('./Logs/TradeLogs.txt')
 const fetchSolidity = async (): Promise<void> => {
     // PlaySound();
     TradingPairsService.TPWithSolidity = await sfs.FindAllSolidity(solidityFinderParams.minVolume, solidityFinderParams.ratioAccess, solidityFinderParams.upToPriceAccess);
-    DocumentLogService.MadeTheNewLog(`Found solidity: ${TradingPairsService.TPWithSolidity.length}`, [ dls ]);
+    DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `Found solidity: ${TradingPairsService.TPWithSolidity.length}`, [ dls ]);
     TradingPairsService.TPWithSolidity.forEach(tp => { if (!TradingPairsService.CheckTPInTrade(tp.symbol, true)) bts.TradeSymbol(tp) } );
 }
 

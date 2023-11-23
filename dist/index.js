@@ -32,6 +32,7 @@ const SolidityFinderService_1 = __importDefault(require("./services/SolidityFind
 const TradingPairsService_1 = __importDefault(require("./services/TradingPairsListService/TradingPairsService"));
 const BinanceTradesService_1 = require("./services/BinanceTradesService/BinanceTradesService");
 const DocumentLogService_1 = __importStar(require("./services/DocumentLogService/DocumentLogService"));
+const FontStyleObjects_1 = require("./services/FontStyleObjects");
 const apiKey = "PmEpiESene4CCbHpmjHO8Uz7hKqc9u57bEla9ibkP14ZmXIdtf8QAsqBcFt15YKB";
 const secretKey = "5f97dmaPN48kNXYmcdEBtNKRwopfsaDWogJ9btKE1gCAIKO4z0q2IhLb4m1MfKxE";
 // const soundFilePath = './dist/sounds/notification-sound.mp3';
@@ -63,7 +64,7 @@ exports.tls = new DocumentLogService_1.DocumentLogger('./Logs/TradeLogs.txt');
 const fetchSolidity = async () => {
     // PlaySound();
     TradingPairsService_1.default.TPWithSolidity = await exports.sfs.FindAllSolidity(exports.solidityFinderParams.minVolume, exports.solidityFinderParams.ratioAccess, exports.solidityFinderParams.upToPriceAccess);
-    DocumentLogService_1.default.MadeTheNewLog(`Found solidity: ${TradingPairsService_1.default.TPWithSolidity.length}`, [exports.dls]);
+    DocumentLogService_1.default.MadeTheNewLog([FontStyleObjects_1.FontColor.FgWhite], `Found solidity: ${TradingPairsService_1.default.TPWithSolidity.length}`, [exports.dls]);
     TradingPairsService_1.default.TPWithSolidity.forEach(tp => { if (!TradingPairsService_1.default.CheckTPInTrade(tp.symbol, true))
         bts.TradeSymbol(tp); });
 };

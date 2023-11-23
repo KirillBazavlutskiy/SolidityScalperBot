@@ -10,7 +10,7 @@ export interface SolidityModel {
 export interface SolidityTicket {
     type: LimitType;
     price: number;
-    volume: number;
+    quantity: number;
     ratio: number;
     upToPrice: number;
 }

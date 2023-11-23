@@ -8,7 +8,7 @@ class SolidityFinderService {
         this.client = client;
     }
 
-    CalcUpToPrice = (UpToPrice: number): number => {
+    CalcRatio = (UpToPrice: number): number => {
         if (UpToPrice < 1) {
             return 1 - UpToPrice;
         } else if (UpToPrice > 1) {
@@ -16,7 +16,7 @@ class SolidityFinderService {
         }
     }
 
-    CalcRealUpToPrice = (UpToPrice: number, LimitType: LimitType): number => {
+    CalcRealRatio = (UpToPrice: number, LimitType: LimitType): number => {
         if (LimitType === 'asks') {
             return 1 - UpToPrice;
         } else if (LimitType === 'bids') {
@@ -71,7 +71,7 @@ class SolidityFinderService {
             solidityType = 'asks';
         }
 
-        const solidityTicket: SolidityTicket = { type: solidityType, price: maxOrderPrice, volume: maxOrder, ratio: solidityRatio, upToPrice: upToPrice };
+        const solidityTicket: SolidityTicket = { type: solidityType, price: maxOrderPrice, quantity: maxOrder, ratio: solidityRatio, upToPrice: upToPrice };
 
         const solidityModel: SolidityModel = {
             symbol: symbol,
@@ -79,7 +79,7 @@ class SolidityFinderService {
             quoteVolume: "quoteVolume" in ticker ? parseFloat(ticker.quoteVolume) : 0,
         }
 
-        if (solidityTicket.ratio > ratioAccess && this.CalcUpToPrice(upToPrice) < upToPriceAccess) {
+        if (solidityTicket.ratio > ratioAccess && this.CalcRatio(upToPrice) < upToPriceAccess) {
             solidityModel.solidity = solidityTicket;
         }
 

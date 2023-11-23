@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 class SolidityFinderService {
     constructor(client) {
-        this.CalcUpToPrice = (UpToPrice) => {
+        this.CalcRatio = (UpToPrice) => {
             if (UpToPrice < 1) {
                 return 1 - UpToPrice;
             }
@@ -10,7 +10,7 @@ class SolidityFinderService {
                 return UpToPrice - 1;
             }
         };
-        this.CalcRealUpToPrice = (UpToPrice, LimitType) => {
+        this.CalcRealRatio = (UpToPrice, LimitType) => {
             if (LimitType === 'asks') {
                 return 1 - UpToPrice;
             }
@@ -55,13 +55,13 @@ class SolidityFinderService {
             if (orderBook.asks.findIndex(bid => parseFloat(bid.price) === maxOrderPrice) !== -1) {
                 solidityType = 'asks';
             }
-            const solidityTicket = { type: solidityType, price: maxOrderPrice, volume: maxOrder, ratio: solidityRatio, upToPrice: upToPrice };
+            const solidityTicket = { type: solidityType, price: maxOrderPrice, quantity: maxOrder, ratio: solidityRatio, upToPrice: upToPrice };
             const solidityModel = {
                 symbol: symbol,
                 price: price,
                 quoteVolume: "quoteVolume" in ticker ? parseFloat(ticker.quoteVolume) : 0,
             };
-            if (solidityTicket.ratio > ratioAccess && this.CalcUpToPrice(upToPrice) < upToPriceAccess) {
+            if (solidityTicket.ratio > ratioAccess && this.CalcRatio(upToPrice) < upToPriceAccess) {
                 solidityModel.solidity = solidityTicket;
             }
             return solidityModel;
