@@ -147,7 +147,7 @@ export class BinanceTradesService {
                        if (sfs.CalcRatio(solidityModel.solidity.quantity / bid[1]) < SOLIDITY_CHANGE_PER_UPDATE_THRESHOLD) {
                            solidityModel.solidity.quantity = bid[1];
                            solidityStatus = 'ready';
-                       } else if (upToPriceSpot == 1) {
+                       } else if (upToPriceSpot === 1) {
                            solidityModel.solidity.quantity = bid[1];
                            solidityStatus = 'ready';
                        } else {
@@ -168,7 +168,7 @@ export class BinanceTradesService {
                                TradeStatus = 'disabled';
                                WebSocketSpot.close();
 
-                               DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.symbol} Solidity on ${solidityModel.solidity.price} has been removed!`, [ dls ], true);
+                               DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.symbol} Solidity on ${solidityModel.solidity.price} has been removed. The quantity on ${bid[0]} is ${bid[1]}!`, [ dls ], true);
                            }
                        }
                    }
