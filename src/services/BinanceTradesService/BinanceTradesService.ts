@@ -81,12 +81,12 @@ export class BinanceTradesService {
                                 beep();
                             }
                         } else if ((upToPriceSpot > 1 && solidityModel.solidity.type === 'asks') || (upToPriceSpot < 1 && solidityModel.solidity.type === 'bids')) {
-                            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.symbol} Solidity on ${solidityModel.solidity.price} has been removed! | Up to price: ${upToPriceSpot}`, [ dls ], true);
                             TradeStatus = 'disabled';
                             WebSocketSpot.close();
+                            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.symbol} Solidity on ${solidityModel.solidity.price} has been removed! | Up to price: ${upToPriceSpot}`, [ dls ], true);
                         } else if (sfs.CalcRatio(upToPriceSpot) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
-                            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.symbol} is too far!`, [ dls ], true);
                             WebSocketSpot.close();
+                            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.symbol} is too far! Up to price: ${upToPriceSpot}`, [ dls ], true);
                         } else {
                             DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `${solidityModel.symbol} | Up to price: ${upToPriceSpot} | Spot Last Price: ${tradePrice} | Futures Last Price: ${futuresLastPrice}`, [], true);
                         }
@@ -98,11 +98,11 @@ export class BinanceTradesService {
                             const currentTime = new Date();
                             const futuresWebsocketFreezeTime: Date = new Date(currentTime.getTime() - futuresWebsocketLastTradeTime.getTime());
 
-                            DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${solidityModel.symbol} | Order Type: ${solidityModel.solidity.type === 'asks' ? 'long' : 'short'} | TP: ${TPSL.TakeProfit} LP: ${futuresLastPrice} SL: ${TPSL.StopLoss} | Futures Websocket Freeze Time: ${futuresWebsocketFreezeTime.getSeconds()}s`, [ dls, tls ], true);
                             TradeStatus = 'inTrade';
+                            DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${solidityModel.symbol} | Order Type: ${solidityModel.solidity.type === 'asks' ? 'long' : 'short'} | TP: ${TPSL.TakeProfit} LP: ${futuresLastPrice} SL: ${TPSL.StopLoss} | Futures Websocket Freeze Time: ${futuresWebsocketFreezeTime.getSeconds()}s`, [ dls, tls ], true);
                         } else if (sfs.CalcRatio(upToPriceSpot) > UP_TO_PRICE_ACCESS_FUTURES_THRESHOLD) {
-                            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.symbol} is too far!`, [ dls ], true);
                             WebSocketSpot.close();
+                            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.symbol} is too far!`, [ dls ], true);
                         }
                         break;
                 }
@@ -123,14 +123,14 @@ export class BinanceTradesService {
                     const status = this.CheckTPSL(futuresLastPrice, TPSL.TakeProfit, TPSL.StopLoss, tradeType);
                     switch (status) {
                         case "TP":
-                            DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${solidityModel.symbol} | Take Profit price has been reached on price ${futuresLastPrice} | Max price: ${maxPriceFuturesInTrade} | Min Price: ${minPriceFuturesInTrade}`, [ dls, tls ], true);
                             TradeStatus = 'disabled';
                             WebSocketSpot.close();
+                            DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${solidityModel.symbol} | Take Profit price has been reached on price ${futuresLastPrice} | Max price: ${maxPriceFuturesInTrade} | Min Price: ${minPriceFuturesInTrade}`, [ dls, tls ], true);
                             break;
                         case "SL":
-                            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.symbol} | Stop Loss price has been reached on price ${futuresLastPrice} | Max price: ${maxPriceFuturesInTrade} | Min Price: ${minPriceFuturesInTrade}`, [ dls, tls ], true);
                             TradeStatus = 'disabled';
                             WebSocketSpot.close();
+                            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.symbol} | Stop Loss price has been reached on price ${futuresLastPrice} | Max price: ${maxPriceFuturesInTrade} | Min Price: ${minPriceFuturesInTrade}`, [ dls, tls ], true);
                             break;
                     }
                 }
@@ -167,7 +167,6 @@ export class BinanceTradesService {
                                solidityStatus = 'removed';
                                TradeStatus = 'disabled';
                                WebSocketSpot.close();
-
                                DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.symbol} Solidity on ${solidityModel.solidity.price} has been removed. The quantity on ${bid[0]} is ${bid[1]}!`, [ dls ], true);
                            }
                        }
@@ -177,16 +176,16 @@ export class BinanceTradesService {
 
             setTimeout(() => {
                 if (futuresLastPrice === undefined) {
-                    DocumentLogService.MadeTheNewLog([FontColor.FgGray], `${solidityModel.symbol} is out of websocket connection! Not on futures!`, [ dls ], true);
                     WebSocketSpot.close();
+                    DocumentLogService.MadeTheNewLog([FontColor.FgGray], `${solidityModel.symbol} is out of websocket connection! Not on futures!`, [ dls ], true);
                 }
             }, 60000);
 
             WebSocketSpot.on('close', () => {
-                DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Websockets on ${solidityModel.symbol} has been disabled!`, [ dls ], true);
-                TradingPairsService.DeleteTPInTrade(solidityModel.symbol);
-                TradeStatus = 'disabled';
                 WebSocketFutures.close();
+                TradeStatus = 'disabled';
+                TradingPairsService.DeleteTPInTrade(solidityModel.symbol);
+                DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Websockets on ${solidityModel.symbol} has been disabled!`, [ dls ], true);
             });
         } catch (e) {
             dls.WriteLine(`${solidityModel.symbol} | ${e.message}`)
