@@ -13,6 +13,7 @@ import {
 import WebSocket from 'ws';
 import DocumentLogService from "../DocumentLogService/DocumentLogService";
 import {FontColor} from "../FontStyleObjects";
+import beep from 'beepbeep';
 
 
 export class BinanceTradesService {
@@ -75,11 +76,12 @@ export class BinanceTradesService {
 
                                 const processEndData = new Date();
                                 const processTime = new Date(processEndData.getTime() - processStartData.getTime());
-                                DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${solidityModel.symbol} | Solidity on ${solidityPrice} was reached! Waiting for price ${openOrderPrice} | Process Time: ${processTime.getSeconds()}s`, [ dls ], true);
                                 TradeStatus = 'broken';
+                                DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${solidityModel.symbol} | Solidity on ${solidityPrice} was reached! Waiting for price ${openOrderPrice} | Process Time: ${processTime.getSeconds()}s`, [ dls ], true);
+                                beep();
                             }
                         } else if ((upToPriceSpot > 1 && solidityModel.solidity.type === 'asks') || (upToPriceSpot < 1 && solidityModel.solidity.type === 'bids')) {
-                            DocumentLogService.MadeTheNewLog([FontColor.FgBlue], `${solidityModel.symbol} Solidity on ${solidityModel.solidity.price} has been removed! | Up to price: ${upToPriceSpot}`, [ dls ], true);
+                            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.symbol} Solidity on ${solidityModel.solidity.price} has been removed! | Up to price: ${upToPriceSpot}`, [ dls ], true);
                             TradeStatus = 'disabled';
                             WebSocketSpot.close();
                         } else if (sfs.CalcRatio(upToPriceSpot) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
@@ -141,6 +143,7 @@ export class BinanceTradesService {
 
                 Bids.forEach(async (bid) => {
                    if (bid[0] === solidityModel.solidity.price) {
+                       DocumentLogService.MadeTheNewLog([FontColor.FgBlue], `Solidity quantity on ${solidityModel.symbol} was changed to ${bid[1]}`, [ dls ], true);
                        if (sfs.CalcRatio(solidityModel.solidity.quantity / bid[1]) < SOLIDITY_CHANGE_PER_UPDATE_THRESHOLD) {
                            solidityModel.solidity.quantity = bid[1];
                            solidityStatus = 'ready';

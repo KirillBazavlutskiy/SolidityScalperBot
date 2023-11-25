@@ -9,6 +9,7 @@ const index_1 = require("../../index");
 const ws_1 = __importDefault(require("ws"));
 const DocumentLogService_1 = __importDefault(require("../DocumentLogService/DocumentLogService"));
 const FontStyleObjects_1 = require("../FontStyleObjects");
+const beepbeep_1 = __importDefault(require("beepbeep"));
 class BinanceTradesService {
     constructor(client) {
         this.TradeSymbol = async (solidityModel) => {
@@ -49,12 +50,13 @@ class BinanceTradesService {
                                         : solidityPrice - tickSizeSpot;
                                     const processEndData = new Date();
                                     const processTime = new Date(processEndData.getTime() - processStartData.getTime());
-                                    DocumentLogService_1.default.MadeTheNewLog([FontStyleObjects_1.FontColor.FgYellow], `${solidityModel.symbol} | Solidity on ${solidityPrice} was reached! Waiting for price ${openOrderPrice} | Process Time: ${processTime.getSeconds()}s`, [index_1.dls], true);
                                     TradeStatus = 'broken';
+                                    DocumentLogService_1.default.MadeTheNewLog([FontStyleObjects_1.FontColor.FgYellow], `${solidityModel.symbol} | Solidity on ${solidityPrice} was reached! Waiting for price ${openOrderPrice} | Process Time: ${processTime.getSeconds()}s`, [index_1.dls], true);
+                                    (0, beepbeep_1.default)();
                                 }
                             }
                             else if ((upToPriceSpot > 1 && solidityModel.solidity.type === 'asks') || (upToPriceSpot < 1 && solidityModel.solidity.type === 'bids')) {
-                                DocumentLogService_1.default.MadeTheNewLog([FontStyleObjects_1.FontColor.FgBlue], `${solidityModel.symbol} Solidity on ${solidityModel.solidity.price} has been removed! | Up to price: ${upToPriceSpot}`, [index_1.dls], true);
+                                DocumentLogService_1.default.MadeTheNewLog([FontStyleObjects_1.FontColor.FgRed], `${solidityModel.symbol} Solidity on ${solidityModel.solidity.price} has been removed! | Up to price: ${upToPriceSpot}`, [index_1.dls], true);
                                 TradeStatus = 'disabled';
                                 WebSocketSpot.close();
                             }
@@ -114,6 +116,7 @@ class BinanceTradesService {
                     const Bids = parsedData[solidityModel.solidity.type === 'asks' ? 'a' : 'b'];
                     Bids.forEach(async (bid) => {
                         if (bid[0] === solidityModel.solidity.price) {
+                            DocumentLogService_1.default.MadeTheNewLog([FontStyleObjects_1.FontColor.FgBlue], `Solidity quantity on ${solidityModel.symbol} was changed to ${bid[1]}`, [index_1.dls], true);
                             if (index_1.sfs.CalcRatio(solidityModel.solidity.quantity / bid[1]) < SOLIDITY_CHANGE_PER_UPDATE_THRESHOLD) {
                                 solidityModel.solidity.quantity = bid[1];
                                 solidityStatus = 'ready';

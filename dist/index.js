@@ -35,18 +35,7 @@ const DocumentLogService_1 = __importStar(require("./services/DocumentLogService
 const FontStyleObjects_1 = require("./services/FontStyleObjects");
 const apiKey = "PmEpiESene4CCbHpmjHO8Uz7hKqc9u57bEla9ibkP14ZmXIdtf8QAsqBcFt15YKB";
 const secretKey = "5f97dmaPN48kNXYmcdEBtNKRwopfsaDWogJ9btKE1gCAIKO4z0q2IhLb4m1MfKxE";
-// const soundFilePath = './dist/sounds/notification-sound.mp3';
-//
-// const speaker = new Speaker({
-//     channels: 2,
-//     bitDepth: 16,
-//     sampleRate: 44100
-// });
-//
-// const audioFileStream = fs.createReadStream(soundFilePath);
-// export const PlaySound = () => {
-//     audioFileStream.pipe(speaker);
-// }
+const soundFilePath = './dist/sounds/notification-sound.mp3';
 const client = (0, binance_api_node_1.default)({
     apiKey: apiKey,
     apiSecret: secretKey,
@@ -54,15 +43,14 @@ const client = (0, binance_api_node_1.default)({
 });
 exports.solidityFinderParams = {
     minVolume: 50000,
-    ratioAccess: 20,
-    upToPriceAccess: 0.015,
+    ratioAccess: 30,
+    upToPriceAccess: 0.012,
 };
 exports.sfs = new SolidityFinderService_1.default(client);
 const bts = new BinanceTradesService_1.BinanceTradesService(client);
 exports.dls = new DocumentLogService_1.DocumentLogger('./Logs/Logs.txt');
 exports.tls = new DocumentLogService_1.DocumentLogger('./Logs/TradeLogs.txt');
 const fetchSolidity = async () => {
-    // PlaySound();
     TradingPairsService_1.default.TPWithSolidity = await exports.sfs.FindAllSolidity(exports.solidityFinderParams.minVolume, exports.solidityFinderParams.ratioAccess, exports.solidityFinderParams.upToPriceAccess);
     DocumentLogService_1.default.MadeTheNewLog([FontStyleObjects_1.FontColor.FgWhite], `Found solidity: ${TradingPairsService_1.default.TPWithSolidity.length}`, [exports.dls]);
     TradingPairsService_1.default.TPWithSolidity.forEach(tp => { if (!TradingPairsService_1.default.CheckTPInTrade(tp.symbol, true))
