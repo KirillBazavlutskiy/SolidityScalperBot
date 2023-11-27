@@ -5,7 +5,7 @@ export interface CalcTPSLOutput {
 
 export type CheckTPSLOutput = 'InTrade' | 'TP' | 'SL';
 
-export type TradeStatus = 'watching' | 'broken' | 'inTrade' | 'disabled';
+export type TradeStatus = 'watching' | 'reached' | 'broken' | 'inTrade' | 'disabled';
 export type SolidityStatus = 'ready' | 'moved' | 'removed';
 export type TradeType = 'long' | 'short';
 
