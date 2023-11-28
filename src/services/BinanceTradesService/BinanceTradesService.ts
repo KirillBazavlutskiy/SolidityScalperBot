@@ -51,7 +51,7 @@ export class BinanceTradesService {
 
         DocumentLogService.MadeTheNewLog(
             [FontColor.FgGreen], `New Solidity on ${solidityModel.symbol} | Solidity Price: ${solidityModel.solidity.price} | Solidity Ratio: ${solidityModel.solidity.ratio} | Up To Price: ${solidityModel.solidity.upToPrice} | Last Price: ${solidityModel.price}`,
-            [ dls, tls ], true);
+            [ dls ], true);
 
         const WebSocketSpot: WebSocket = new WebSocket(`wss://stream.binance.com:9443/ws/${solidityModel.symbol.toLowerCase()}@trade`);
         const WebSocketFutures: WebSocket = new WebSocket(`wss://fstream.binance.com/ws/${solidityModel.symbol.toLowerCase()}@trade`);
@@ -72,14 +72,14 @@ export class BinanceTradesService {
                             if (solidityStatus === 'ready') {
                                 const processEndData = new Date();
                                 const processTime = new Date(processEndData.getTime() - processStartData.getTime());
-                                TradeStatus = 'broken';
-                                DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${solidityModel.symbol} | Solidity on ${solidityModel.solidity.price} was reached! Waiting for price ${solidityModel.solidity.price} | Process Time: ${processTime.getSeconds()}s`, [ dls ], true);
+                                TradeStatus = 'reached';
+                                DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${solidityModel.symbol} | Solidity on ${solidityModel.solidity.price} was reached! Waiting for price ${solidityModel.solidity.price} | Process Time: ${processTime.getSeconds()}s`, [ dls, tls ], true);
                                 beep();
                             }
                         } else if ((UpToPriceSpot > 1 && solidityModel.solidity.type === 'asks') || (UpToPriceSpot < 1 && solidityModel.solidity.type === 'bids')) {
                             TradeStatus = 'disabled';
                             WebSocketSpot.close();
-                            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.symbol} Solidity on ${solidityModel.solidity.price} has been removed! | Up to price: ${UpToPriceSpot}`, [ dls ], true);
+                            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.symbol} Solidity on ${solidityModel.solidity.price} has been removed! | Up to price: ${UpToPriceSpot} | Last Price: ${SpotLastPrice}`, [ dls ], true);
                         } else if (sfs.CalcRatio(UpToPriceSpot) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
                             WebSocketSpot.close();
                             DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.symbol} is too far! Up to price: ${UpToPriceSpot}`, [ dls ], true);
@@ -87,7 +87,8 @@ export class BinanceTradesService {
                             DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `${solidityModel.symbol} | Up to price: ${UpToPriceSpot} | Spot Last Price: ${SpotLastPrice} | Futures Last Price: ${futuresLastPrice}`, [], true);
                         }
                         break;
-                    case "broken":
+                    case "reached":
+                        solidityStatus = 'removed';
                         DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `${solidityModel.symbol} | Up to price: ${SpotLastPrice / solidityModel.solidity.price} | Spot Last Price: ${SpotLastPrice} | Futures Last Price: ${futuresLastPrice}`, [], true);
                         if (SpotLastPrice === solidityModel.solidity.price) {
                             TPSL = this.CalcTPSL(futuresLastPrice, solidityModel.solidity.type, 0.01, 0.003, tickSizeFutures);
@@ -137,13 +138,17 @@ export class BinanceTradesService {
                 const parsedData = JSON.parse(strData);
                 const Bids: StreamBid[] = parsedData[solidityModel.solidity.type === 'asks' ? 'a' : 'b'];
 
-                const solidityChangeIndex = Bids.findIndex(bid => bid[0] === solidityModel.solidity.price);
+                const solidityChangeIndex = Bids.findIndex(bid => bid[0] == solidityModel.solidity.price);
 
-                if (solidityChangeIndex !== -1) {
+                // DocumentLogService.MadeTheNewLog([FontColor.FgGray], ${solidityModel.symbol} | New book depth has been arrived, [], true);
+
+                if (solidityChangeIndex !== -1 && solidityStatus !== 'removed' && TradeStatus !== 'inTrade') {
                     const SolidityBid = Bids[solidityChangeIndex];
                     DocumentLogService.MadeTheNewLog([FontColor.FgBlue], `Solidity quantity on ${solidityModel.symbol} was changed to ${SolidityBid[1]}`, [ dls ], true);
                     solidityStatus = await this.CheckSolidity(solidityModel, SolidityBid, UpToPriceSpot);
-                    if (solidityStatus === 'removed') WebSocketSpot.close();
+                    if (solidityStatus === 'removed') {
+                        WebSocketSpot.close();
+                    }
                 }
             })
 
@@ -155,6 +160,7 @@ export class BinanceTradesService {
             }, 60000);
 
             WebSocketSpot.on('close', () => {
+                WebSocketSpotBookDepth.close();
                 WebSocketFutures.close();
                 TradeStatus = 'disabled';
                 TradingPairsService.DeleteTPInTrade(solidityModel.symbol);
