@@ -1,2 +1,3 @@
-**/Logs/Logs.txt
-**/Logs/TradeLogs.txt
+/node_modules
+/Logs
+/dist
