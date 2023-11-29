@@ -53,8 +53,8 @@ export class BinanceTradesService {
         const WebSocketFutures: WebSocket = new WebSocket(`wss://fstream.binance.com/ws/${solidityModel.symbol.toLowerCase()}@trade`);
         const WebSocketSpotBookDepth: WebSocket = new WebSocket(`wss://stream.binance.com:9443/ws/${solidityModel.symbol.toLowerCase()}@depth`)
 
-        try {
-            WebSocketSpot.on('message', async (data: Buffer) => {
+        WebSocketSpot.on('message', async (data: Buffer) => {
+            try {
                 const processStartData = new Date();
                 const strData = data.toString();
                 const trade = JSON.parse(strData);
@@ -80,7 +80,7 @@ export class BinanceTradesService {
                             WebSocketSpot.close();
                             DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.symbol} is too far! Up to price: ${UpToPriceSpot}`, [ dls ], true);
                         } else {
-                            DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `${solidityModel.symbol} | Up to price: ${UpToPriceSpot} | Spot Last Price: ${SpotLastPrice} | Futures Last Price: ${futuresLastPrice}`, [], true);
+                            DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `${solidityModel.symbol} | Up to price: ${UpToPriceSpot > 1 ? '-' : '+'}${(parseFloat(sfs.CalcRatio(UpToPriceSpot).toFixed(5)) * 100).toFixed(5)}% | Spot Last Price: ${SpotLastPrice}`, [], true);
                         }
                         break;
                     case "reached":
@@ -104,11 +104,15 @@ export class BinanceTradesService {
                         }
                         break;
                 }
-            });
+            } catch (e) {
+                DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error in spot websocket with ${solidityModel.symbol}! ${e.message}`);
+            }
+        });
 
-            const tradeType: TradeType = solidityModel.solidity.type === 'asks' ? 'long' : 'short';
+        const tradeType: TradeType = solidityModel.solidity.type === 'asks' ? 'long' : 'short';
 
-            WebSocketFutures.on('message', (data) => {
+        WebSocketFutures.on('message', (data) => {
+            try {
                 const strData = data.toString();
                 const trade = JSON.parse(strData);
                 futuresLastPrice = parseFloat(trade.p);
@@ -132,9 +136,13 @@ export class BinanceTradesService {
                             break;
                     }
                 }
-            });
+            } catch (e) {
+                DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error in futures websocket with ${solidityModel.symbol}! ${e.message}`);
+            }
+        });
 
-            WebSocketSpotBookDepth.on('message', async (data) => {
+        WebSocketSpotBookDepth.on('message', async (data) => {
+            try {
                 const strData = data.toString();
                 const parsedData = JSON.parse(strData);
                 const Bids: StreamBid[] = parsedData[solidityModel.solidity.type === 'asks' ? 'a' : 'b'];
@@ -151,25 +159,25 @@ export class BinanceTradesService {
                         WebSocketSpot.close();
                     }
                 }
-            })
+            } catch (e) {
+                DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error in spot depth websocket with ${solidityModel.symbol}! ${e.message}`);
+            }
+        })
 
-            setTimeout(() => {
-                if (futuresLastPrice === undefined) {
-                    WebSocketSpot.close();
-                    DocumentLogService.MadeTheNewLog([FontColor.FgGray], `${solidityModel.symbol} is out of websocket connection! Not on futures!`, [ dls ], true);
-                }
-            }, 60000);
+        setTimeout(() => {
+            if (futuresLastPrice === undefined) {
+                WebSocketSpot.close();
+                DocumentLogService.MadeTheNewLog([FontColor.FgGray], `${solidityModel.symbol} is out of websocket connection! Not on futures!`, [ dls ], true);
+            }
+        }, 60000);
 
-            WebSocketSpot.on('close', () => {
-                WebSocketSpotBookDepth.close();
-                WebSocketFutures.close();
-                TradeStatus = 'disabled';
-                TradingPairsService.DeleteTPInTrade(solidityModel.symbol);
-                DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Websockets on ${solidityModel.symbol} has been disabled!`, [ dls ], true);
-            });
-        } catch (e) {
-            dls.WriteLine(`${solidityModel.symbol} | ${e.message}`)
-        }
+        WebSocketSpot.on('close', () => {
+            WebSocketSpotBookDepth.close();
+            WebSocketFutures.close();
+            TradeStatus = 'disabled';
+            TradingPairsService.DeleteTPInTrade(solidityModel.symbol);
+            DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Websockets on ${solidityModel.symbol} has been disabled!`, [ dls ], true);
+        });
     };
 
     CheckSolidity = async (solidityModel: SolidityModel, SolidityBid: StreamBid, UpToPriceSpot: number): Promise<SolidityStatus> => {
@@ -191,6 +199,7 @@ export class BinanceTradesService {
                 if (lastSolidity.solidity.price === solidityModel.solidity.price) {
                     SolidityStatus = 'ready';
                     solidityModel = lastSolidity;
+                    DocumentLogService.MadeTheNewLog([FontColor.FgCyan], `Solidity on ${solidityModel.symbol} in ${solidityModel.solidity.price}!`, [ dls ], true);
                 } else {
                     SolidityStatus = 'moved';
                     solidityModel = lastSolidity;
