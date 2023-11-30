@@ -31,7 +31,7 @@ export const tls = new DocumentLogger('./Logs/TradeLogs.txt')
 const fetchSolidity = async (): Promise<void> => {
     TradingPairsService.TPWithSolidity = await sfs.FindAllSolidity(solidityFinderParams.minVolume, solidityFinderParams.ratioAccess, solidityFinderParams.upToPriceAccess);
     DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `Found solidity: ${TradingPairsService.TPWithSolidity.length}`, [ dls ]);
-    TradingPairsService.TPWithSolidity.forEach(tp => { if (!TradingPairsService.CheckTPInTrade(tp.symbol, true)) bts.TradeSymbol(tp) } );
+    TradingPairsService.TPWithSolidity.forEach(tp => { if (!TradingPairsService.CheckTPInTrade(tp, true)) bts.TradeSymbol(tp) } );
 }
 
 fetchSolidity()

@@ -1,6 +1,8 @@
 import {SolidityModel, SolidityTicket, LimitType} from "./SolidityFinderModels";
 import {Bid, Binance, DailyStatsResult} from "binance-api-node";
 import {dls} from "../../index";
+import DocumentLogService from "../DocumentLogService/DocumentLogService";
+import {FontColor} from "../FontStyleObjects";
 
 class SolidityFinderService {
     client: Binance;
@@ -40,50 +42,56 @@ class SolidityFinderService {
             .map(tradingPair => tradingPair.symbol);
     };
 
-    FindSolidity = async (symbol: string, ratioAccess: number, upToPriceAccess: number) => {
-        const orderBook = await this.client.book({ symbol });
-        const ticker = await this.client.dailyStats({ symbol });
-        const price = "lastPrice" in ticker ? parseFloat(ticker.lastPrice) : 0;
+    FindSolidity = async (symbol: string, ratioAccess: number, upToPriceAccess: number): Promise<SolidityModel | null> => {
+        try {
+            const orderBook = await this.client.book({ symbol });
+            const ticker = await this.client.dailyStats({ symbol });
 
-        const calculateMaxValue = (orders: Bid[]) => {
-            return orders.reduce((acc, order) => {
-                const volume = parseFloat(order.quantity);
-                acc.sum += volume;
-                if (acc.max < volume) {
-                    acc.max = volume;
-                    acc.maxPrice = parseFloat(order.price);
-                }
-                return acc;
-            }, { sum: 0, max: 0, maxPrice: 0 });
-        };
+            const price = "lastPrice" in ticker ? parseFloat(ticker.lastPrice) : 0;
 
-        const bindNAsks = [ ...orderBook.asks, ...orderBook.bids ];
+            const calculateMaxValue = (orders: Bid[]) => {
+                return orders.reduce((acc, order) => {
+                    const volume = parseFloat(order.quantity);
+                    acc.sum += volume;
+                    if (acc.max < volume) {
+                        acc.max = volume;
+                        acc.maxPrice = parseFloat(order.price);
+                    }
+                    return acc;
+                }, { sum: 0, max: 0, maxPrice: 0 });
+            };
 
-        const { sum: sumOrders, max: maxOrder, maxPrice: maxOrderPrice } = calculateMaxValue(bindNAsks);
+            const bindNAsks = [ ...orderBook.asks, ...orderBook.bids ];
 
-        const upToPrice = price / maxOrderPrice;
+            const { sum: sumOrders, max: maxOrder, maxPrice: maxOrderPrice } = calculateMaxValue(bindNAsks);
 
-        const solidityRatio = maxOrder / (sumOrders / 100);
+            const upToPrice = price / maxOrderPrice;
 
-        let solidityType: LimitType = 'bids';
+            const solidityRatio = maxOrder / (sumOrders / 100);
 
-        if (orderBook.asks.findIndex(bid => parseFloat(bid.price) === maxOrderPrice) !== -1) {
-            solidityType = 'asks';
+            let solidityType: LimitType = 'bids';
+
+            if (orderBook.asks.findIndex(bid => parseFloat(bid.price) === maxOrderPrice) !== -1) {
+                solidityType = 'asks';
+            }
+
+            const solidityTicket: SolidityTicket = { type: solidityType, price: maxOrderPrice, quantity: maxOrder, ratio: solidityRatio, upToPrice: upToPrice };
+
+            const solidityModel: SolidityModel = {
+                symbol: symbol,
+                price: price,
+                quoteVolume: "quoteVolume" in ticker ? parseFloat(ticker.quoteVolume) : 0,
+            }
+
+            if (solidityTicket.ratio > ratioAccess && this.CalcRatio(upToPrice) < upToPriceAccess) {
+                solidityModel.solidity = solidityTicket;
+            }
+
+            return solidityModel;
+        } catch (e) {
+            DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error with ${symbol}! ${e.message}`);
+            return null;
         }
-
-        const solidityTicket: SolidityTicket = { type: solidityType, price: maxOrderPrice, quantity: maxOrder, ratio: solidityRatio, upToPrice: upToPrice };
-
-        const solidityModel: SolidityModel = {
-            symbol: symbol,
-            price: price,
-            quoteVolume: "quoteVolume" in ticker ? parseFloat(ticker.quoteVolume) : 0,
-        }
-
-        if (solidityTicket.ratio > ratioAccess && this.CalcRatio(upToPrice) < upToPriceAccess) {
-            solidityModel.solidity = solidityTicket;
-        }
-
-        return solidityModel;
     };
 
     FindAllSolidity = async (minVolume: number, ratioAccess: number, upToPriceAccess: number) => {

@@ -32,6 +32,8 @@ export class BinanceTradesService {
         const UP_TO_PRICE_ACCESS_SPOT_THRESHOLD: number = solidityFinderParams.upToPriceAccess + 0.01;
         const UP_TO_PRICE_ACCESS_FUTURES_THRESHOLD: number = solidityFinderParams.upToPriceAccess - 0.01;
 
+        let OpenOrderPrice;
+
         let UpToPriceSpot: number = solidityModel.solidity.upToPrice;
 
         let solidityStatus: SolidityStatus;
@@ -61,6 +63,8 @@ export class BinanceTradesService {
 
                 const SpotLastPrice = parseFloat(trade.p);
                 UpToPriceSpot = SpotLastPrice / solidityModel.solidity.price;
+                solidityModel.solidity.upToPrice = UpToPriceSpot;
+                TradingPairsService.ChangeTPInTrade(solidityModel);
 
                 switch (TradeStatus) {
                     case "watching":
@@ -69,7 +73,12 @@ export class BinanceTradesService {
                                 const processEndData = new Date();
                                 const processTime = new Date(processEndData.getTime() - processStartData.getTime());
                                 TradeStatus = 'reached';
-                                DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${solidityModel.symbol} | Solidity on ${solidityModel.solidity.price} was reached! Waiting for price ${solidityModel.solidity.price} | Process Time: ${processTime.getSeconds()}s`, [ dls, tls ], true);
+
+                                OpenOrderPrice = solidityModel.solidity.type === 'asks'
+                                    ? solidityModel.solidity.price + tickSizeSpot
+                                    : solidityModel.solidity.price - tickSizeSpot;
+
+                                DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${solidityModel.symbol} | Solidity on ${solidityModel.solidity.price} was reached! Waiting for price ${OpenOrderPrice} | Process Time: ${processTime.getSeconds()}s`, [ dls, tls ], true);
                                 beep();
                             }
                         } else if ((UpToPriceSpot > 1 && solidityModel.solidity.type === 'asks') || (UpToPriceSpot < 1 && solidityModel.solidity.type === 'bids')) {
@@ -80,16 +89,12 @@ export class BinanceTradesService {
                             WebSocketSpot.close();
                             DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.symbol} is too far! Up to price: ${UpToPriceSpot}`, [ dls ], true);
                         } else {
-                            DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `${solidityModel.symbol} | Up to price: ${UpToPriceSpot > 1 ? '-' : '+'}${(parseFloat(sfs.CalcRatio(UpToPriceSpot).toFixed(5)) * 100).toFixed(5)}% | Spot Last Price: ${SpotLastPrice}`, [], true);
+                            TradingPairsService.LogTradingPairs();
                         }
                         break;
                     case "reached":
                         solidityStatus = 'removed';
                         DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `${solidityModel.symbol} | Up to price: ${SpotLastPrice / solidityModel.solidity.price} | Spot Last Price: ${SpotLastPrice} | Futures Last Price: ${futuresLastPrice}`, [], true);
-
-                        const OpenOrderPrice = solidityModel.solidity.type === 'asks'
-                            ? solidityModel.solidity.price + tickSizeSpot
-                            : solidityModel.solidity.price - tickSizeSpot;
 
                         if ((SpotLastPrice >= OpenOrderPrice && solidityModel.solidity.type === 'asks') || (SpotLastPrice <= OpenOrderPrice && solidityModel.solidity.type === 'bids')) {
                             TPSL = this.CalcTPSL(futuresLastPrice, solidityModel.solidity.type, 0.01, 0.003, tickSizeFutures);
@@ -211,6 +216,7 @@ export class BinanceTradesService {
             }
         }
 
+        TradingPairsService.ChangeTPInTrade(solidityModel);
         return SolidityStatus;
     }
 
