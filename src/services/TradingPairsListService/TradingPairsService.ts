@@ -8,15 +8,16 @@ class TradingPairsService {
     private static TPWithSolidityInTrade: SolidityModel[] = [];
 
     static LogTradingPairs = (): void => {
-        const TradingSymbols = this.TPWithSolidityInTrade.map(TradingPair => TradingPair.symbol);
+        const TradingSymbols = this.TPWithSolidityInTrade.map(TradingPair => TradingPair.symbol.padEnd(16, ' '));
         const TradingPairsUpToPrice = this.TPWithSolidityInTrade.map(TradingPair => this.ShowUpToPrice(TradingPair.solidity.upToPrice));
 
-        DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `\t${TradingSymbols.join('\t\t')}`, [], true);
-        DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `\t${TradingPairsUpToPrice.join('\t\t')}`, [], true);
+        DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `\t${TradingSymbols.join('\t')}\n` +
+                                                            `\t\t\t\t${TradingPairsUpToPrice.join('\t\t')}`
+        , [], true);
     }
 
     static ShowUpToPrice = (UpToPrice: number) => {
-        return `${UpToPrice > 1 ? '-' : '+'}${(parseFloat(sfs.CalcRatio(UpToPrice).toFixed(3)) * 100).toFixed(3)}%`;
+        return `${UpToPrice > 1 ? '-' : '+'}${(parseFloat(sfs.CalcRatio(UpToPrice).toFixed(4)) * 100).toFixed(4)}%`;
     }
 
     static ChangeTPInTrade = (solidityModel: SolidityModel) => {

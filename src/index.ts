@@ -18,8 +18,8 @@ const client = Binance({
 });
 
 export const solidityFinderParams = {
-    minVolume: 50000,
-    ratioAccess: 20,
+    minVolume: 200000,
+    ratioAccess: 22,
     upToPriceAccess: 0.012,
 }
 

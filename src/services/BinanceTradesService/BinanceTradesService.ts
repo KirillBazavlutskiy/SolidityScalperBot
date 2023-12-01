@@ -22,9 +22,17 @@ export class BinanceTradesService {
         this.client = client;
     }
 
-    TradeSymbol = async (solidityModel: SolidityModel): Promise<void> => {
-        const exchangeInfoSpot = await this.client.exchangeInfo();
-        const exchangeInfoFutures = await this.client.futuresExchangeInfo();
+    TradeSymbol = async (solidityModel: SolidityModel): Promise<void | 0> => {
+        let exchangeInfoSpot;
+        let exchangeInfoFutures;
+
+        try {
+            exchangeInfoSpot = await this.client.exchangeInfo();
+            exchangeInfoFutures = await this.client.futuresExchangeInfo();
+        } catch (e) {
+            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.symbol} is not on futures!`, [ dls], true);
+            return 0;
+        }
 
         let tickSizeSpot: number = this.FetchTickSize(exchangeInfoSpot, solidityModel.symbol);
         let tickSizeFutures: number = this.FetchTickSize(exchangeInfoFutures, solidityModel.symbol);
@@ -97,11 +105,12 @@ export class BinanceTradesService {
                         DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `${solidityModel.symbol} | Up to price: ${SpotLastPrice / solidityModel.solidity.price} | Spot Last Price: ${SpotLastPrice} | Futures Last Price: ${futuresLastPrice}`, [], true);
 
                         if ((SpotLastPrice >= OpenOrderPrice && solidityModel.solidity.type === 'asks') || (SpotLastPrice <= OpenOrderPrice && solidityModel.solidity.type === 'bids')) {
+                            TradeStatus = 'inTrade';
+
                             TPSL = this.CalcTPSL(futuresLastPrice, solidityModel.solidity.type, 0.01, 0.003, tickSizeFutures);
                             const currentTime = new Date();
                             const futuresWebsocketFreezeTime: Date = new Date(currentTime.getTime() - futuresWebsocketLastTradeTime.getTime());
 
-                            TradeStatus = 'inTrade';
                             DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${solidityModel.symbol} | Order Type: ${solidityModel.solidity.type === 'asks' ? 'long' : 'short'} | TP: ${TPSL.TakeProfit} LP: ${futuresLastPrice} SL: ${TPSL.StopLoss} | Futures Websocket Freeze Time: ${futuresWebsocketFreezeTime.getSeconds()}s`, [ dls, tls ], true);
                         } else if (sfs.CalcRatio(UpToPriceSpot) > UP_TO_PRICE_ACCESS_FUTURES_THRESHOLD) {
                             WebSocketSpot.close();
@@ -183,6 +192,10 @@ export class BinanceTradesService {
             TradingPairsService.DeleteTPInTrade(solidityModel.symbol);
             DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Websockets on ${solidityModel.symbol} has been disabled!`, [ dls ], true);
         });
+
+        WebSocketSpot.on('error', e => DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error in spot depth websocket with ${solidityModel.symbol}! ${e.message}`));
+        WebSocketFutures.on('error', e => DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error in spot depth websocket with ${solidityModel.symbol}! ${e.message}`));
+        WebSocketSpotBookDepth.on('error', e => DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error in spot depth websocket with ${solidityModel.symbol}! ${e.message}`));
     };
 
     CheckSolidity = async (solidityModel: SolidityModel, SolidityBid: StreamBid, UpToPriceSpot: number): Promise<SolidityStatus> => {

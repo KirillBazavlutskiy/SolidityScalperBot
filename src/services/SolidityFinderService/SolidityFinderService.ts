@@ -27,19 +27,23 @@ class SolidityFinderService {
     }
 
     FetchAllSymbols = async (minVolume: number) => {
-        const tickers = await this.client.dailyStats();
-        const futuresSymbolsInfo = await this.client.futuresExchangeInfo();
-        const futuresSymbols = futuresSymbolsInfo.symbols.map(symbolInfo => symbolInfo.symbol);
-        const tickersFixed: DailyStatsResult[] = JSON.parse(JSON.stringify(tickers));
+        try {
+            const tickers = await this.client.dailyStats();
+            const futuresSymbolsInfo = await this.client.futuresExchangeInfo();
+            const futuresSymbols = futuresSymbolsInfo.symbols.map(symbolInfo => symbolInfo.symbol);
+            const tickersFixed: DailyStatsResult[] = JSON.parse(JSON.stringify(tickers));
 
-        return tickersFixed
-            .filter(tradingPair => !(tradingPair.symbol.includes('BTC') || tradingPair.symbol.includes('ETH') || tradingPair.symbol.includes('USDC') || tradingPair.symbol.includes('FTT')))
-            .filter(tradingPair => futuresSymbols.includes(tradingPair.symbol))
-            .filter(tradingPair => {
-                return tradingPair.symbol.substring(tradingPair.symbol.length - 4, tradingPair.symbol.length) === "USDT"
-            })
-            .filter(tradingPair => parseFloat(tradingPair.quoteVolume) > minVolume)
-            .map(tradingPair => tradingPair.symbol);
+            return tickersFixed
+                .filter(tradingPair => !(tradingPair.symbol.includes('BTC') || tradingPair.symbol.includes('ETH') || tradingPair.symbol.includes('USDC') || tradingPair.symbol.includes('FTT')))
+                .filter(tradingPair => futuresSymbols.includes(tradingPair.symbol))
+                .filter(tradingPair => {
+                    return tradingPair.symbol.substring(tradingPair.symbol.length - 4, tradingPair.symbol.length) === "USDT"
+                })
+                .filter(tradingPair => parseFloat(tradingPair.quoteVolume) > minVolume)
+                .map(tradingPair => tradingPair.symbol);
+        } catch (e) {
+            throw e;
+        }
     };
 
     FindSolidity = async (symbol: string, ratioAccess: number, upToPriceAccess: number): Promise<SolidityModel | null> => {
@@ -95,23 +99,27 @@ class SolidityFinderService {
     };
 
     FindAllSolidity = async (minVolume: number, ratioAccess: number, upToPriceAccess: number) => {
-        const symbols = await this.FetchAllSymbols(minVolume);
         const symbolsWithSolidity: SolidityModel[] = [];
 
-        const symbolsGroupLength = 30;
+        try {
+            const symbols = await this.FetchAllSymbols(minVolume);
+            const symbolsGroupLength = 30;
 
-        for (let i = 0; i < symbols.length; i += symbolsGroupLength) {
-            const symbolsGroup =
-                symbols.length - i > symbolsGroupLength ? symbols.slice(i, i + symbolsGroupLength) : symbols.slice(i, symbols.length);
+            for (let i = 0; i < symbols.length; i += symbolsGroupLength) {
+                const symbolsGroup =
+                    symbols.length - i > symbolsGroupLength ? symbols.slice(i, i + symbolsGroupLength) : symbols.slice(i, symbols.length);
 
-            await Promise.all(
-                symbolsGroup.map(async (symbol) => {
-                    const solidityInfo = await this.FindSolidity(symbol, ratioAccess, upToPriceAccess);
-                    if (solidityInfo.solidity) {
-                        symbolsWithSolidity.push(solidityInfo);
-                    }
-                })
-            );
+                await Promise.all(
+                    symbolsGroup.map(async (symbol) => {
+                        const solidityInfo = await this.FindSolidity(symbol, ratioAccess, upToPriceAccess);
+                        if (solidityInfo.solidity) {
+                            symbolsWithSolidity.push(solidityInfo);
+                        }
+                    })
+                );
+            }
+        } catch (e) {
+            DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `Error with fetching symbols! ${e.message}`, [], true);
         }
 
         return symbolsWithSolidity;
