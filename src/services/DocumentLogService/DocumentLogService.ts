@@ -19,8 +19,11 @@ export class DocumentLogger {
 }
 
 export default class DocumentLogService {
-     static MadeTheNewLog = (style: string[], newLine: string, writeInDocuments: DocumentLogger[] = [], showInConsole: boolean = false) => {
-        const date = new Date();
+    static ShowTime = (DateTime?: number) => {
+        let date: Date;
+        if (DateTime) date = new Date(DateTime);
+        else date = new Date();
+
         let strDate = date.toLocaleString('en-GB', {
             year: 'numeric',
             month: '2-digit',
@@ -30,10 +33,16 @@ export default class DocumentLogService {
             second: '2-digit',
             hour12: false
         });
+        const milliseconds = date.getMilliseconds().toString().padStart(3, '0');
+        strDate += ':' + milliseconds;
 
-        const newLogLine = `${strDate} | ${newLine}`;
+        return strDate;
+    }
 
-        if (showInConsole) console.log(style.join('%s'), `${strDate} | ${newLine}`);
+     static MadeTheNewLog = (style: string[], newLine: string, writeInDocuments: DocumentLogger[] = [], showInConsole: boolean = false) => {
+        const newLogLine = `${this.ShowTime()} | ${newLine}`;
+
+        if (showInConsole) console.log(style.join('%s'), `${newLogLine}`);
         writeInDocuments.forEach(document => document.WriteLine(newLogLine))
     }
 }
