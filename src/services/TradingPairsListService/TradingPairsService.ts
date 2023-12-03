@@ -35,7 +35,9 @@ class TradingPairsService {
     }
 
     static CheckTPInTrade = (solidityModel: SolidityModel, addToList: boolean = false): boolean => {
-        if (!this.TPWithSolidityInTrade.includes(solidityModel)) {
+        const TradingPairIndex = this.TPWithSolidityInTrade.findIndex(TradingPair => TradingPair.symbol === solidityModel.symbol);
+
+        if (TradingPairIndex === -1) {
             if (addToList) this.ChangeTPInTrade(solidityModel);
             return false;
         } else {
