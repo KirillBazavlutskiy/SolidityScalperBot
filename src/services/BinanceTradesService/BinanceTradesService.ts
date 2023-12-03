@@ -114,7 +114,7 @@ export class BinanceTradesService {
                     // }
                     break;
                 case "reached":
-                    DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `${solidityModel.symbol} | Up to price: ${SpotLastPrice / solidityModel.solidity.price} | Spot Last Price: ${SpotLastPrice} | Futures Last Price: ${FuturesLastPrice}`, [], true);
+                    DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `${solidityModel.symbol} | Up to price: ${TradingPairsService.ShowUpToPrice(SpotLastPrice / solidityModel.solidity.price)} | Spot Last Price: ${SpotLastPrice} | Futures Last Price: ${FuturesLastPrice}`, [], true);
 
                     if ((SpotLastPrice >= OpenOrderPrice && solidityModel.solidity.type === 'asks') || (SpotLastPrice <= OpenOrderPrice && solidityModel.solidity.type === 'bids')) {
                         SolidityStatus = 'removed';
