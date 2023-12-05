@@ -75,65 +75,69 @@ export class BinanceTradesService {
         let isProcessingSpotTrades = false;
 
         const ProccessSpotTrade = async (data: Buffer) => {
-            const processStartData = new Date();
-            const strData = data.toString();
-            const trade = JSON.parse(strData);
+            try {
+                const processStartData = new Date();
+                const strData = data.toString();
+                const trade = JSON.parse(strData);
 
-            const SpotLastPrice = parseFloat(trade.p);
-            UpToPriceSpot = SpotLastPrice / solidityModel.solidity.price;
-            solidityModel.solidity.upToPrice = UpToPriceSpot;
-            solidityModel.price = SpotLastPrice;
-            TradingPairsService.ChangeTPInTrade(solidityModel);
+                const SpotLastPrice = parseFloat(trade.p);
+                UpToPriceSpot = SpotLastPrice / solidityModel.solidity.price;
+                solidityModel.solidity.upToPrice = UpToPriceSpot;
+                solidityModel.price = SpotLastPrice;
+                TradingPairsService.ChangeTPInTrade(solidityModel);
 
-            switch (TradeStatus) {
-                case "watching":
-                    if (UpToPriceSpot === 1) {
-                        if (SolidityStatus === 'ready') {
-                            TradeStatus = 'reached';
+                switch (TradeStatus) {
+                    case "watching":
+                        if (UpToPriceSpot === 1) {
+                            if (SolidityStatus === 'ready') {
+                                TradeStatus = 'reached';
 
-                            const processEndData = new Date();
-                            const processTime = new Date(processEndData.getTime() - processStartData.getTime());
+                                const processEndData = new Date();
+                                const processTime = new Date(processEndData.getTime() - processStartData.getTime());
 
-                            OpenOrderPrice = solidityModel.solidity.type === 'asks'
-                                ? solidityModel.solidity.price + tickSizeSpot
-                                : solidityModel.solidity.price - tickSizeSpot;
+                                OpenOrderPrice = solidityModel.solidity.type === 'asks'
+                                    ? solidityModel.solidity.price + tickSizeSpot
+                                    : solidityModel.solidity.price - tickSizeSpot;
 
-                            DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${solidityModel.symbol} | Solidity on ${solidityModel.solidity.price} was reached! Waiting for price ${OpenOrderPrice} | Process Time: ${processTime.getSeconds()}s`, [dls, tls], true);
+                                DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${solidityModel.symbol} | Solidity on ${solidityModel.solidity.price} was reached! Waiting for price ${OpenOrderPrice} | Process Time: ${processTime.getSeconds()}s`, [dls, tls], true);
+                            }
+                        } else if ((UpToPriceSpot > 1 && solidityModel.solidity.type === 'asks') || (UpToPriceSpot < 1 && solidityModel.solidity.type === 'bids')) {
+                            TradeStatus = 'disabled';
+                            WebSocketSpot.close();
+                            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.symbol} Solidity on ${solidityModel.solidity.price} has been removed! | Up to price: ${UpToPriceSpot} | Last Price: ${SpotLastPrice}`, [dls], true);
+                        } else if (sfs.CalcRatio(UpToPriceSpot) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
+                            TradeStatus = 'disabled';
+                            WebSocketSpot.close();
+                            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.symbol} is too far! Up to price: ${UpToPriceSpot}`, [dls], true);
                         }
-                    } else if ((UpToPriceSpot > 1 && solidityModel.solidity.type === 'asks') || (UpToPriceSpot < 1 && solidityModel.solidity.type === 'bids')) {
-                        TradeStatus = 'disabled';
-                        WebSocketSpot.close();
-                        DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.symbol} Solidity on ${solidityModel.solidity.price} has been removed! | Up to price: ${UpToPriceSpot} | Last Price: ${SpotLastPrice}`, [dls], true);
-                    } else if (sfs.CalcRatio(UpToPriceSpot) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
-                        TradeStatus = 'disabled';
-                        WebSocketSpot.close();
-                        DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.symbol} is too far! Up to price: ${UpToPriceSpot}`, [dls], true);
-                    }
-                    // else {
-                    //     TradingPairsService.LogTradingPairs();
-                    // }
-                    break;
-                case "reached":
-                    DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `${solidityModel.symbol} | Up to price: ${TradingPairsService.ShowUpToPrice(SpotLastPrice / solidityModel.solidity.price)} | Spot Last Price: ${SpotLastPrice} | Futures Last Price: ${FuturesLastPrice}`, [], true);
+                        // else {
+                        //     TradingPairsService.LogTradingPairs();
+                        // }
+                        break;
+                    case "reached":
+                        // DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `${solidityModel.symbol} | Up to price: ${TradingPairsService.ShowUpToPrice(SpotLastPrice / solidityModel.solidity.price)} | Spot Last Price: ${SpotLastPrice} | Futures Last Price: ${FuturesLastPrice}`, [], true);
 
-                    if ((SpotLastPrice >= OpenOrderPrice && solidityModel.solidity.type === 'asks') || (SpotLastPrice <= OpenOrderPrice && solidityModel.solidity.type === 'bids')) {
-                        SolidityStatus = 'removed';
-                        TradeStatus = 'inTrade';
-                        beep();
+                        if ((SpotLastPrice >= OpenOrderPrice && solidityModel.solidity.type === 'asks') || (SpotLastPrice <= OpenOrderPrice && solidityModel.solidity.type === 'bids')) {
+                            SolidityStatus = 'removed';
+                            TradeStatus = 'inTrade';
+                            beep();
 
-                        TPSL = this.CalcTPSL(FuturesLastPrice, solidityModel.solidity.type, TradeStopsOptions.TakeProfit, TradeStopsOptions.StopLoss, tickSizeFutures);
-                        const currentTime = new Date();
-                        const futuresWebsocketFreezeTime: Date = new Date(currentTime.getTime() - FuturesWebsocketLastTradeTime.getTime());
-                        FuturesOpenTradePrice = FuturesLastPrice;
-                        OpenTradeTime = new Date();
+                            TPSL = this.CalcTPSL(FuturesLastPrice, solidityModel.solidity.type, TradeStopsOptions.TakeProfit, TradeStopsOptions.StopLoss, tickSizeFutures);
+                            const currentTime = new Date();
+                            const futuresWebsocketFreezeTime: Date = new Date(currentTime.getTime() - FuturesWebsocketLastTradeTime.getTime());
+                            FuturesOpenTradePrice = FuturesLastPrice;
+                            OpenTradeTime = new Date();
 
-                        DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${solidityModel.symbol} | Order Type: ${solidityModel.solidity.type === 'asks' ? 'long' : 'short'} | TP: ${TPSL.TakeProfit} LP: ${FuturesLastPrice} SL: ${TPSL.StopLoss} | Futures Websocket Freeze Time: ${futuresWebsocketFreezeTime.getSeconds()}s`, [dls, tls], true);
-                    } else if (sfs.CalcRatio(UpToPriceSpot) > UP_TO_PRICE_ACCESS_FUTURES_THRESHOLD) {
-                        TradeStatus = 'disabled';
-                        WebSocketSpot.close();
-                        DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.symbol} is too far!`, [dls], true);
-                    }
-                    break;
+                            DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${solidityModel.symbol} | Order Type: ${solidityModel.solidity.type === 'asks' ? 'long' : 'short'} | TP: ${TPSL.TakeProfit} LP: ${FuturesLastPrice} SL: ${TPSL.StopLoss} | Futures Websocket Freeze Time: ${futuresWebsocketFreezeTime.getSeconds()}s`, [dls, tls], true);
+                        } else if (sfs.CalcRatio(UpToPriceSpot) > UP_TO_PRICE_ACCESS_FUTURES_THRESHOLD) {
+                            TradeStatus = 'disabled';
+                            WebSocketSpot.close();
+                            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.symbol} is too far!`, [dls], true);
+                        }
+                        break;
+                }
+            } catch (e) {
+                throw e;
             }
         }
 
@@ -141,9 +145,13 @@ export class BinanceTradesService {
             if (isProcessingSpotTrades) return;
             isProcessingSpotTrades = true;
 
-            while (messageSpotTradesQueue.length > 0) {
-                const message = messageSpotTradesQueue.shift();
-                await ProccessSpotTrade(message);
+            try {
+                while (messageSpotTradesQueue.length > 0) {
+                    const message = messageSpotTradesQueue.shift();
+                    await ProccessSpotTrade(message);
+                }
+            } catch (e) {
+                DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Error with spot trade message ${e.message}`, [dls], true);
             }
 
             isProcessingSpotTrades = false;
@@ -177,21 +185,25 @@ export class BinanceTradesService {
                     // console.log(`${solidityModel.symbol} | ${status}`);
 
                     const AddTradeData = () => {
-                        TradesHistoryDataService.AddTradeInfo({
-                            ...solidityModel,
-                            Stops: {
-                                TakeProfit: {
-                                    price: TPSL.TakeProfit,
-                                    upToPrice: TradeStopsOptions.TakeProfit
+                        try {
+                            TradesHistoryDataService.AddTradeInfo({
+                                ...solidityModel,
+                                Stops: {
+                                    TakeProfit: {
+                                        price: TPSL.TakeProfit,
+                                        upToPrice: TradeStopsOptions.TakeProfit
+                                    },
+                                    StopLoss: {
+                                        price: TPSL.StopLoss,
+                                        upToPrice: TradeStopsOptions.StopLoss
+                                    }
                                 },
-                                StopLoss: {
-                                    price: TPSL.StopLoss,
-                                    upToPrice: TradeStopsOptions.StopLoss
-                                }
-                            },
-                            Profit: tradingPairsService.ShowUpToPrice(FuturesOpenTradePrice / FuturesLastPrice),
-                            DealTime: DocumentLogService.ShowTime(TradeTime),
-                        });
+                                Profit: tradingPairsService.ShowUpToPrice(FuturesOpenTradePrice / FuturesLastPrice),
+                                DealTime: DocumentLogService.ShowTime(TradeTime),
+                            });
+                        } catch (e) {
+                            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Error with spot trade message ${e.message}`, [dls], true);
+                        }
                     }
                     switch (status) {
                         case "TP":
