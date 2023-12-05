@@ -62,6 +62,7 @@ export class BinanceTradesService {
         let maxPriceFuturesInTrade = Number.MIN_VALUE;
 
         let OpenTradeTime: Date;
+        let TradeType: TradeType = solidityModel.solidity.type === 'asks' ? 'long' : 'short';
 
         DocumentLogService.MadeTheNewLog(
             [FontColor.FgGreen], `New Solidity on ${solidityModel.symbol} | Solidity Price: ${solidityModel.solidity.price} | Solidity Ratio: ${solidityModel.solidity.ratio} | Up To Price: ${solidityModel.solidity.upToPrice} | Last Price: ${solidityModel.price}`,
@@ -114,7 +115,7 @@ export class BinanceTradesService {
                     // }
                     break;
                 case "reached":
-                    DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `${solidityModel.symbol} | Up to price: ${TradingPairsService.ShowUpToPrice(SpotLastPrice / solidityModel.solidity.price)} | Spot Last Price: ${SpotLastPrice} | Futures Last Price: ${FuturesLastPrice}`, [], true);
+                    DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `${solidityModel.symbol} | Up to price: ${UpToPriceSpot} | Spot Last Price: ${SpotLastPrice} | Futures Last Price: ${FuturesLastPrice}`, [], true);
 
                     if ((SpotLastPrice >= OpenOrderPrice && solidityModel.solidity.type === 'asks') || (SpotLastPrice <= OpenOrderPrice && solidityModel.solidity.type === 'bids')) {
                         SolidityStatus = 'removed';
@@ -127,7 +128,7 @@ export class BinanceTradesService {
                         FuturesOpenTradePrice = FuturesLastPrice;
                         OpenTradeTime = new Date();
 
-                        DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${solidityModel.symbol} | Order Type: ${solidityModel.solidity.type === 'asks' ? 'long' : 'short'} | TP: ${TPSL.TakeProfit} LP: ${FuturesLastPrice} SL: ${TPSL.StopLoss} | Futures Websocket Freeze Time: ${futuresWebsocketFreezeTime.getSeconds()}s`, [dls, tls], true);
+                        DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${solidityModel.symbol} | Order Type: ${TradeType} | TP: ${TPSL.TakeProfit} LP: ${FuturesLastPrice} SL: ${TPSL.StopLoss} | Futures Websocket Freeze Time: ${futuresWebsocketFreezeTime.getSeconds()}s`, [dls, tls], true);
                     } else if (sfs.CalcRatio(UpToPriceSpot) > UP_TO_PRICE_ACCESS_FUTURES_THRESHOLD) {
                         TradeStatus = 'disabled';
                         WebSocketSpot.close();
@@ -189,7 +190,7 @@ export class BinanceTradesService {
                                     upToPrice: TradeStopsOptions.StopLoss
                                 }
                             },
-                            Profit: tradingPairsService.ShowUpToPrice(FuturesOpenTradePrice / FuturesLastPrice),
+                            Profit: tradingPairsService.ShowProfit(FuturesOpenTradePrice / FuturesLastPrice, TradeType),
                             DealTime: DocumentLogService.ShowTime(TradeTime),
                         });
                     }
