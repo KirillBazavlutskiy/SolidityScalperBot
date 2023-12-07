@@ -1,16 +1,16 @@
 export type LimitType = 'bids' | 'asks';
 
 export interface SolidityModel {
-    symbol: string;
-    price: number;
-    quoteVolume: number;
-    solidity?: SolidityTicket;
+    Symbol: string;
+    Price: number;
+    QuoteVolume: number;
+    Solidity?: SolidityTicket;
 }
 
 export interface SolidityTicket {
-    type: LimitType;
-    price: number;
-    quantity: number;
-    ratio: number;
-    upToPrice: number;
+    Type: LimitType;
+    Price: number;
+    Quantity: number;
+    Ratio: number;
+    UpToPrice: number;
 }

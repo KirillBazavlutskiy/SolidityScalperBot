@@ -10,15 +10,15 @@ class TradingPairsService {
     private static TPWithSolidityInTrade: SolidityModel[] = [];
 
     static LogTradingPairs = (): void => {
-        const TradingSymbols = this.TPWithSolidityInTrade.map(TradingPair => TradingPair.symbol.padEnd(16, ' '));
-        const TradingPairsUpToPrice = this.TPWithSolidityInTrade.map(TradingPair => this.ShowProfit(TradingPair.solidity.upToPrice));
+        const TradingSymbols = this.TPWithSolidityInTrade.map(TradingPair => TradingPair.Symbol.padEnd(16, ' '));
+        const TradingPairsUpToPrice = this.TPWithSolidityInTrade.map(TradingPair => this.ShowProfit(TradingPair.Solidity.UpToPrice));
 
         DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `\t${TradingSymbols.join('\t')}\n` +
                                                             `\t\t\t\t${TradingPairsUpToPrice.join('\t\t')}`
         , [], true);
     }
 
-    static ShowProfit = (UpToPrice: number, TradeType?: TradeType) => {
+    static ShowProfit = (UpToPrice: number, stringWithPercent: boolean = true, TradeType?: TradeType) => {
         let Profit: string;
         if (TradeType !== undefined) {
             switch (TradeType) {
@@ -30,13 +30,13 @@ class TradingPairsService {
                     break;
             }
         } else {
-            Profit = `${UpToPrice > 1 ? '-' : '+'}${(parseFloat(sfs.CalcRatio(UpToPrice).toFixed(4)) * 100).toFixed(4)}%`;
+            Profit = `${UpToPrice > 1 ? '-' : '+'}${(parseFloat(sfs.CalcRatio(UpToPrice).toFixed(4)) * 100).toFixed(4)}${stringWithPercent && '%'}`;
         }
         return Profit;
     }
 
     static ChangeTPInTrade = (solidityModel: SolidityModel) => {
-        const TradingPairIndex = this.TPWithSolidityInTrade.findIndex(TradingPair => TradingPair.symbol === solidityModel.symbol);
+        const TradingPairIndex = this.TPWithSolidityInTrade.findIndex(TradingPair => TradingPair.Symbol === solidityModel.Symbol);
 
         if (TradingPairIndex === -1) {
             this.TPWithSolidityInTrade.push(solidityModel);
@@ -46,11 +46,11 @@ class TradingPairsService {
     }
 
     static DeleteTPInTrade = (symbol: string) => {
-        this.TPWithSolidityInTrade = this.TPWithSolidityInTrade.filter(e => e.symbol !== symbol);
+        this.TPWithSolidityInTrade = this.TPWithSolidityInTrade.filter(e => e.Symbol !== symbol);
     }
 
     static CheckTPInTrade = (solidityModel: SolidityModel, addToList: boolean = false): boolean => {
-        const TradingPairIndex = this.TPWithSolidityInTrade.findIndex(TradingPair => TradingPair.symbol === solidityModel.symbol);
+        const TradingPairIndex = this.TPWithSolidityInTrade.findIndex(TradingPair => TradingPair.Symbol === solidityModel.Symbol);
 
         if (TradingPairIndex === -1) {
             if (addToList) this.ChangeTPInTrade(solidityModel);

@@ -1,8 +1,8 @@
 import {SolidityModel} from "../SolidityFinderService/SolidityFinderModels";
 
 export interface StopParams {
-    price: number;
-    upToPrice: number;
+    Price: number;
+    UpToPrice: number;
 }
 
 export interface TradeModel extends SolidityModel{
@@ -10,6 +10,11 @@ export interface TradeModel extends SolidityModel{
         TakeProfit: StopParams;
         StopLoss: StopParams;
     }
-    Profit: string;
-    DealTime: string;
+    Profit: number;
+    InDealTime: string;
+    TradeTime: Date;
+    Edges: {
+        MaxPrice: number;
+        MinPrice: number;
+    }
 }

@@ -79,16 +79,16 @@ class SolidityFinderService {
                 solidityType = 'asks';
             }
 
-            const solidityTicket: SolidityTicket = { type: solidityType, price: maxOrderPrice, quantity: maxOrder, ratio: solidityRatio, upToPrice: upToPrice };
+            const solidityTicket: SolidityTicket = { Type: solidityType, Price: maxOrderPrice, Quantity: maxOrder, Ratio: solidityRatio, UpToPrice: upToPrice };
 
             const solidityModel: SolidityModel = {
-                symbol: symbol,
-                price: price,
-                quoteVolume: "quoteVolume" in ticker ? parseFloat(ticker.quoteVolume) : 0,
+                Symbol: symbol,
+                Price: price,
+                QuoteVolume: "quoteVolume" in ticker ? parseFloat(ticker.quoteVolume) : 0,
             }
 
-            if (solidityTicket.ratio > ratioAccess && this.CalcRatio(upToPrice) < upToPriceAccess) {
-                solidityModel.solidity = solidityTicket;
+            if (solidityTicket.Ratio > ratioAccess && this.CalcRatio(upToPrice) < upToPriceAccess) {
+                solidityModel.Solidity = solidityTicket;
             }
 
             return solidityModel;
@@ -112,7 +112,7 @@ class SolidityFinderService {
                 await Promise.all(
                     symbolsGroup.map(async (symbol) => {
                         const solidityInfo = await this.FindSolidity(symbol, ratioAccess, upToPriceAccess);
-                        if (solidityInfo.solidity) {
+                        if (solidityInfo.Solidity) {
                             symbolsWithSolidity.push(solidityInfo);
                         }
                     })
