@@ -72,10 +72,7 @@ export class BinanceTradesService {
         const WebSocketFutures: WebSocket = new WebSocket(`wss://fstream.binance.com/ws/${solidityModel.Symbol.toLowerCase()}@trade`);
         const WebSocketSpotBookDepth: WebSocket = new WebSocket(`wss://stream.binance.com:9443/ws/${solidityModel.Symbol.toLowerCase()}@depth@1000ms`);
 
-        const messageSpotTradesQueue: Buffer[] = [];
-        let isProcessingSpotTrades = false;
-
-        const ProccessSpotTrade = async (data: Buffer) => {
+        const ProcessSpotTrade = async (data: Buffer) => {
             try {
                 const processStartData = new Date();
                 const strData = data.toString();
@@ -142,30 +139,28 @@ export class BinanceTradesService {
             }
         }
 
-        const ProcessSpotTradeQueue = async () => {
-            if (isProcessingSpotTrades) return;
-            isProcessingSpotTrades = true;
-
+        const ProcessSpotBookDepthUpdate = async (data: Buffer) => {
             try {
-                while (messageSpotTradesQueue.length > 0) {
-                    const message = messageSpotTradesQueue.shift();
-                    await ProccessSpotTrade(message);
+                const strData = data.toString();
+                const parsedData = JSON.parse(strData);
+                const Bids: StreamBid[] = parsedData[solidityModel.Solidity.Type === 'asks' ? 'a' : 'b'];
+
+                const solidityChangeIndex = Bids.findIndex(bid => bid[0] == solidityModel.Solidity.Price);
+
+                // DocumentLogService.MadeTheNewLog([FontColor.FgGray], `${solidityModel.symbol} | New book depth has been arrived`, [], true);
+
+                if (solidityChangeIndex !== -1 && SolidityStatus !== 'removed' && TradeStatus !== 'inTrade') {
+                    const SolidityBid = Bids[solidityChangeIndex];
+                    // DocumentLogService.MadeTheNewLog([FontColor.FgBlue], `Solidity quantity on ${solidityModel.symbol} was changed to ${SolidityBid[1]}`, [ ], true);
+                    SolidityStatus = await this.CheckSolidity(solidityModel, SolidityBid, UpToPriceSpot);
+                    if (SolidityStatus === 'removed') {
+                        WebSocketSpot.close();
+                    }
                 }
             } catch (e) {
-                DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Error with spot trade message ${e.message}`, [dls], true);
+                throw e;
             }
-
-            isProcessingSpotTrades = false;
-        };
-
-        WebSocketSpot.on('message', (data: Buffer) => {
-            messageSpotTradesQueue.push(data);
-            if (!isProcessingSpotTrades) {
-                ProcessSpotTradeQueue();
-            }
-        });
-
-        const tradeType: TradeType = solidityModel.Solidity.Type === 'asks' ? 'long' : 'short';
+        }
 
         WebSocketFutures.on('message', (data) => {
             try {
@@ -182,7 +177,7 @@ export class BinanceTradesService {
                     const TradeTime = EndTradeTime.getTime() - OpenTradeTime.getTime();
 
                     // console.log(FuturesLastPrice, TPSL.TakeProfit, TPSL.StopLoss, tradeType);
-                    const status = this.CheckTPSL(FuturesLastPrice, TPSL.TakeProfit, TPSL.StopLoss, tradeType);
+                    const status = this.CheckTPSL(FuturesLastPrice, TPSL.TakeProfit, TPSL.StopLoss, TradeType);
                     // console.log(`${solidityModel.symbol} | ${status}`);
 
                     const AddTradeData = () => {
@@ -231,26 +226,56 @@ export class BinanceTradesService {
             }
         });
 
-        WebSocketSpotBookDepth.on('message', async (data) => {
+        // Websocket Spot
+        const messageSpotTradesQueue: Buffer[] = [];
+        let isProcessingSpotTrades = false;
+        const ProcessSpotTradeQueue = async () => {
+            if (isProcessingSpotTrades) return;
+            isProcessingSpotTrades = true;
+
             try {
-                const strData = data.toString();
-                const parsedData = JSON.parse(strData);
-                const Bids: StreamBid[] = parsedData[solidityModel.Solidity.Type === 'asks' ? 'a' : 'b'];
-
-                const solidityChangeIndex = Bids.findIndex(bid => bid[0] == solidityModel.Solidity.Price);
-
-                // DocumentLogService.MadeTheNewLog([FontColor.FgGray], `${solidityModel.symbol} | New book depth has been arrived`, [], true);
-
-                if (solidityChangeIndex !== -1 && SolidityStatus !== 'removed' && TradeStatus !== 'inTrade') {
-                    const SolidityBid = Bids[solidityChangeIndex];
-                    // DocumentLogService.MadeTheNewLog([FontColor.FgBlue], `Solidity quantity on ${solidityModel.symbol} was changed to ${SolidityBid[1]}`, [ ], true);
-                    SolidityStatus = await this.CheckSolidity(solidityModel, SolidityBid, UpToPriceSpot);
-                    if (SolidityStatus === 'removed') {
-                        WebSocketSpot.close();
-                    }
+                while (messageSpotTradesQueue.length > 0) {
+                    const message = messageSpotTradesQueue.shift();
+                    await ProcessSpotTrade(message);
                 }
             } catch (e) {
-                DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error in spot depth websocket with ${solidityModel.Symbol}! ${e.message}`);
+                DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Error with spot trade message ${e.message}`, [dls], true);
+            }
+
+            isProcessingSpotTrades = false;
+        };
+
+        WebSocketSpot.on('message', (data: Buffer) => {
+            messageSpotTradesQueue.push(data);
+            if (!isProcessingSpotTrades) {
+                ProcessSpotTradeQueue();
+            }
+        });
+
+        // Websocket Spot Book Depth
+        const messageSpotBookDepthQueue: Buffer[] = [];
+        let isProcessingSpotBookDepth = false;
+
+        const ProcessSpotBookDepthQueue = async () => {
+            if (isProcessingSpotBookDepth) return;
+            isProcessingSpotBookDepth = true;
+
+            try {
+                while (messageSpotBookDepthQueue.length > 0) {
+                    const message = messageSpotBookDepthQueue.shift();
+                    await ProcessSpotBookDepthUpdate(message);
+                }
+            } catch (e) {
+                DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Error with spot book depth update ${e.message}`, [dls], true);
+            }
+
+            isProcessingSpotTrades = false;
+        };
+
+        WebSocketSpotBookDepth.on('message', (data) => {
+            messageSpotBookDepthQueue.push(data);
+            if (!isProcessingSpotBookDepth) {
+                ProcessSpotBookDepthQueue();
             }
         })
 
