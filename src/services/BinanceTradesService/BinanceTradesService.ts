@@ -57,6 +57,7 @@ export class BinanceTradesService {
 
         let TradeStatus: TradeStatus = 'watching';
         let TPSL: CalcTPSLOutput;
+        let StopLossBreakpoint;
 
         let minPriceFuturesInTrade = Number.MAX_VALUE;
         let maxPriceFuturesInTrade = Number.MIN_VALUE;
@@ -121,6 +122,8 @@ export class BinanceTradesService {
                             beep();
 
                             TPSL = this.CalcTPSL(FuturesLastPrice, solidityModel.Solidity.Type, TradeStopsOptions.TakeProfit, TradeStopsOptions.StopLoss, tickSizeFutures);
+                            StopLossBreakpoint = FuturesLastPrice;
+
                             const currentTime = new Date();
                             const futuresWebsocketFreezeTime: Date = new Date(currentTime.getTime() - FuturesWebsocketLastTradeTime.getTime());
                             FuturesOpenTradePrice = FuturesLastPrice;
@@ -176,9 +179,7 @@ export class BinanceTradesService {
                     const EndTradeTime = new Date();
                     const TradeTime = EndTradeTime.getTime() - OpenTradeTime.getTime();
 
-                    // console.log(FuturesLastPrice, TPSL.TakeProfit, TPSL.StopLoss, tradeType);
                     const status = this.CheckTPSL(FuturesLastPrice, TPSL.TakeProfit, TPSL.StopLoss, TradeType);
-                    // console.log(`${solidityModel.symbol} | ${status}`);
 
                     const AddTradeData = () => {
                         try {
@@ -219,6 +220,15 @@ export class BinanceTradesService {
                             DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} | Stop Loss price has been reached on price ${FuturesLastPrice} | Max price: ${maxPriceFuturesInTrade} | Min Price: ${minPriceFuturesInTrade}`, [ dls, tls ], true);
                             AddTradeData();
                             break;
+                    }
+
+                    const TrailingStopLossPosition = FuturesLastPrice - StopLossBreakpoint;
+                    if (TrailingStopLossPosition > 0 && TradeType === 'long') {
+                        StopLossBreakpoint += TrailingStopLossPosition;
+                        TPSL.StopLoss += TrailingStopLossPosition;
+                    } else if (TrailingStopLossPosition < 0 && TradeType === 'short') {
+                        StopLossBreakpoint += TrailingStopLossPosition;
+                        TPSL.StopLoss += TrailingStopLossPosition;
                     }
                 }
             } catch (e) {
