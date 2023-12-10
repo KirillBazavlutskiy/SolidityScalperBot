@@ -122,7 +122,7 @@ export class BinanceTradesService {
                             beep();
 
                             TPSL = this.CalcTPSL(FuturesLastPrice, solidityModel.Solidity.Type, TradeStopsOptions.TakeProfit, TradeStopsOptions.StopLoss, tickSizeFutures);
-                            StopLossBreakpoint = FuturesLastPrice;
+                            StopLossBreakpoint = this.FindClosestLimitOrder(FuturesLastPrice / sfs.CalcRealRatio(0.002, solidityModel.Solidity.Type), tickSizeFutures);
 
                             const currentTime = new Date();
                             const futuresWebsocketFreezeTime: Date = new Date(currentTime.getTime() - FuturesWebsocketLastTradeTime.getTime());
