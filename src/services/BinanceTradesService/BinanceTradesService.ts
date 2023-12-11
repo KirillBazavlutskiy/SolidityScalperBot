@@ -1,4 +1,13 @@
-import {Bid, Binance, ExchangeInfo, FuturesOrderType_LT, OrderBook, OrderType_LT, WSTrade} from "binance-api-node";
+import {
+    Bid,
+    Binance,
+    ExchangeInfo,
+    FuturesOrder,
+    FuturesOrderType_LT,
+    OrderBook,
+    OrderType_LT,
+    WSTrade
+} from "binance-api-node";
 import {SolidityModel, LimitType} from "../SolidityFinderService/SolidityFinderModels";
 import TradingPairsService from "../TradingPairsListService/TradingPairsService";
 import {dls, sfs, SolidityFinderOption, tcs, tls, TradeStopsOptions} from "../../index";
@@ -17,7 +26,6 @@ import beep from 'beepbeep';
 import {TradesHistoryDataService} from "../TradesHistoryDataService/TradesHistoryDataService";
 import tradingPairsService from "../TradingPairsListService/TradingPairsService";
 import {Mutex} from "async-mutex";
-import {TelegramControllerService} from "../../TelegramControlerService/TelegramControlerService";
 
 
 export class BinanceTradesService {
@@ -42,6 +50,8 @@ export class BinanceTradesService {
 
         let tickSizeSpot: number = this.FetchTickSize(exchangeInfoSpot, solidityModel.Symbol);
         let tickSizeFutures: number = this.FetchTickSize(exchangeInfoFutures, solidityModel.Symbol);
+
+        let minQuantityFutures = this.FetchMinQuantityFutures(exchangeInfoFutures, solidityModel.Symbol);
 
         const UP_TO_PRICE_ACCESS_SPOT_THRESHOLD: number = SolidityFinderOption.upToPriceAccess + 0.01;
         const UP_TO_PRICE_ACCESS_FUTURES_THRESHOLD: number = SolidityFinderOption.upToPriceAccess - 0.01;
@@ -73,6 +83,28 @@ export class BinanceTradesService {
         const WebSocketSpot: WebSocket = new WebSocket(`wss://stream.binance.com:9443/ws/${solidityModel.Symbol.toLowerCase()}@trade`);
         const WebSocketFutures: WebSocket = new WebSocket(`wss://fstream.binance.com/ws/${solidityModel.Symbol.toLowerCase()}@trade`);
         const WebSocketSpotBookDepth: WebSocket = new WebSocket(`wss://stream.binance.com:9443/ws/${solidityModel.Symbol.toLowerCase()}@depth@1000ms`);
+
+        const MakeOrder = (type: 'open' | 'close'): Promise<FuturesOrder> => {
+            if (type === 'open') {
+                return this.client.futuresOrder({
+                    symbol: solidityModel.Symbol,
+                    side: solidityModel.Solidity.Type === 'asks' ? 'BUY' : 'SELL',
+                    type: "LIMIT",
+                    quantity: minQuantityFutures,
+                    price: FuturesLastPrice.toString(),
+                    timeInForce: 'FOK',
+                })
+            } else {
+                return this.client.futuresOrder({
+                    symbol: solidityModel.Symbol,
+                    side: solidityModel.Solidity.Type === 'asks' ? 'SELL' : 'BUY',
+                    type: "LIMIT",
+                    quantity: minQuantityFutures,
+                    price: FuturesLastPrice.toString(),
+                    timeInForce: 'FOK',
+                })
+            }
+        }
 
         const ProcessSpotTrade = async (data: Buffer) => {
             try {
@@ -130,7 +162,10 @@ export class BinanceTradesService {
                             FuturesOpenTradePrice = FuturesLastPrice;
                             OpenTradeTime = new Date();
 
+                            await MakeOrder('open');
+                            tcs.SendMessage(`${solidityModel.Symbol}\nOrder was opened!`);
                             DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${solidityModel.Symbol} | Order Type: ${TradeType} | TP: ${TPSL.TakeProfit} LP: ${FuturesLastPrice} SL: ${TPSL.StopLoss} | Futures Websocket Freeze Time: ${futuresWebsocketFreezeTime.getSeconds()}s`, [dls, tls], true);
+
                         } else if (sfs.CalcRatio(UpToPriceSpot) > UP_TO_PRICE_ACCESS_FUTURES_THRESHOLD) {
                             TradeStatus = 'disabled';
                             WebSocketSpot.close();
@@ -184,6 +219,7 @@ export class BinanceTradesService {
 
                     const AddTradeData = () => {
                         try {
+                            MakeOrder('close');
                             TradesHistoryDataService.AddTradeInfo({
                                 ...solidityModel,
                                 Stops: {
@@ -213,7 +249,7 @@ export class BinanceTradesService {
                             TradeStatus = 'disabled';
                             WebSocketSpot.close();
                             DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${solidityModel.Symbol} | Take Profit price has been reached on price ${FuturesLastPrice} | Max price: ${maxPriceFuturesInTrade} | Min Price: ${minPriceFuturesInTrade}`, [ dls, tls ], true);
-                            tcs.SendMessage(`${solidityModel.Symbol}\nOrder was closed by Take Profit! Profit: ${tradingPairsService.ShowProfit(FuturesOpenTradePrice / FuturesLastPrice, false, TradeType)}`);
+                            tcs.SendMessage(`${solidityModel.Symbol}\nOrder was closed by Take Profit!\nProfit: ${tradingPairsService.ShowProfit(FuturesOpenTradePrice / FuturesLastPrice, false, TradeType)}`);
                             AddTradeData();
                             break;
                         case "SL":
@@ -221,10 +257,10 @@ export class BinanceTradesService {
                             WebSocketSpot.close();
                             if (parseFloat(tradingPairsService.ShowProfit(FuturesOpenTradePrice / FuturesLastPrice, false, TradeType)) > 0) {
                                 DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${solidityModel.Symbol} | Order has been closed on price ${FuturesLastPrice} | Max price: ${maxPriceFuturesInTrade} | Min Price: ${minPriceFuturesInTrade}`, [ dls, tls ], true);
-                                tcs.SendMessage(`${solidityModel.Symbol}\nOrder was closed by Stop Loss! Profit: ${tradingPairsService.ShowProfit(FuturesOpenTradePrice / FuturesLastPrice, false, TradeType)}`);
+                                tcs.SendMessage(`${solidityModel.Symbol}\nOrder was closed by Stop Loss!]\nProfit: ${tradingPairsService.ShowProfit(FuturesOpenTradePrice / FuturesLastPrice, false, TradeType)}`);
                             } else {
                                 DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} | Stop Loss price has been reached on price ${FuturesLastPrice} | Max price: ${maxPriceFuturesInTrade} | Min Price: ${minPriceFuturesInTrade}`, [ dls, tls ], true);
-                                tcs.SendMessage(`${solidityModel.Symbol}\nOrder was closed by Stop Loss! Profit: ${tradingPairsService.ShowProfit(FuturesOpenTradePrice / FuturesLastPrice, false, TradeType)}`);
+                                tcs.SendMessage(`${solidityModel.Symbol}\nOrder was closed by Stop Loss!\nProfit: ${tradingPairsService.ShowProfit(FuturesOpenTradePrice / FuturesLastPrice, false, TradeType)}`);
                             }
                             AddTradeData();
                             break;
@@ -395,6 +431,17 @@ export class BinanceTradesService {
         }
     }
 
+    FetchMinQuantityFutures = (exchangeInfo: ExchangeInfo<FuturesOrderType_LT>, symbol) => {
+        for (const pair of exchangeInfo.symbols) {
+            if (pair.symbol === symbol) {
+                for (const filter of pair.filters) {
+                    if (filter.filterType === 'LOT_SIZE') {
+                        return filter.minQty;
+                    }
+                }
+            }
+        }
+    }
     FindClosestLimitOrder = (price: number, tickSize: number): number => {
         const numIndex = tickSize.toString().lastIndexOf('1');
         const floatLenght = numIndex === 0 ? 0 : numIndex - 1;
