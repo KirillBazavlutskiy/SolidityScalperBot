@@ -50,6 +50,7 @@ export class BinanceTradesService {
         let tickSizeFutures: number = this.FetchTickSize(exchangeInfoFutures, solidityModel.Symbol);
 
         let minNotionalFutures = parseFloat(this.FetchMinNotionalFutures(exchangeInfoFutures, solidityModel.Symbol));
+        let quantityPrecisionFutures: number = exchangeInfoFutures.quantityPrecision;
 
         const UP_TO_PRICE_ACCESS_SPOT_THRESHOLD: number = SolidityFinderOption.upToPriceAccess + 0.01;
         const UP_TO_PRICE_ACCESS_FUTURES_THRESHOLD: number = SolidityFinderOption.upToPriceAccess - 0.01;
@@ -63,6 +64,8 @@ export class BinanceTradesService {
         let FuturesOpenTradePrice: number;
         let FuturesLastPrice: number;
         let FuturesWebsocketLastTradeTime: Date;
+
+        let orderQuantity;
 
         let TradeStatus: TradeStatus = 'watching';
         let TPSL: CalcTPSLOutput;
@@ -85,11 +88,12 @@ export class BinanceTradesService {
         const MakeOrder = (type: 'open' | 'close'): Promise<FuturesOrder> => {
             if (minNotionalFutures < 10) {
                 if (type === 'open') {
+                    orderQuantity = minNotionalFutures / FuturesLastPrice + minNotionalFutures;
                     return this.client.futuresOrder({
                         symbol: solidityModel.Symbol,
                         side: solidityModel.Solidity.Type === 'asks' ? 'BUY' : 'SELL',
                         type: "LIMIT",
-                        quantity: (minNotionalFutures / FuturesLastPrice + minNotionalFutures).toString(),
+                        quantity: orderQuantity.toFixed(quantityPrecisionFutures),
                         price: FuturesLastPrice.toString(),
                         timeInForce: 'FOK',
                     })
@@ -98,7 +102,7 @@ export class BinanceTradesService {
                         symbol: solidityModel.Symbol,
                         side: solidityModel.Solidity.Type === 'asks' ? 'SELL' : 'BUY',
                         type: "LIMIT",
-                        quantity: (minNotionalFutures / FuturesLastPrice + minNotionalFutures).toString(),
+                        quantity: orderQuantity.toFixed(quantityPrecisionFutures),
                         price: FuturesLastPrice.toString(),
                         timeInForce: 'FOK',
                     })
@@ -236,7 +240,7 @@ export class BinanceTradesService {
                                 }
                             });
                         } catch (e) {
-                            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Error with spot trade message ${e.message}`, [dls], true);
+                            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Error with futures trade message ${e.message}`, [dls], true);
                         }
                     }
                     switch (status) {
