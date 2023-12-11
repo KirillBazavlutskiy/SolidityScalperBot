@@ -46,12 +46,10 @@ export class BinanceTradesService {
             return 0;
         }
 
-        const mutex = new Mutex();
-
         let tickSizeSpot: number = this.FetchTickSize(exchangeInfoSpot, solidityModel.Symbol);
         let tickSizeFutures: number = this.FetchTickSize(exchangeInfoFutures, solidityModel.Symbol);
 
-        let minQuantityFutures = this.FetchMinQuantityFutures(exchangeInfoFutures, solidityModel.Symbol);
+        let minNotionalFutures = parseFloat(this.FetchMinNotionalFutures(exchangeInfoFutures, solidityModel.Symbol));
 
         const UP_TO_PRICE_ACCESS_SPOT_THRESHOLD: number = SolidityFinderOption.upToPriceAccess + 0.01;
         const UP_TO_PRICE_ACCESS_FUTURES_THRESHOLD: number = SolidityFinderOption.upToPriceAccess - 0.01;
@@ -85,24 +83,26 @@ export class BinanceTradesService {
         const WebSocketSpotBookDepth: WebSocket = new WebSocket(`wss://stream.binance.com:9443/ws/${solidityModel.Symbol.toLowerCase()}@depth@1000ms`);
 
         const MakeOrder = (type: 'open' | 'close'): Promise<FuturesOrder> => {
-            if (type === 'open') {
-                return this.client.futuresOrder({
-                    symbol: solidityModel.Symbol,
-                    side: solidityModel.Solidity.Type === 'asks' ? 'BUY' : 'SELL',
-                    type: "LIMIT",
-                    quantity: minQuantityFutures,
-                    price: FuturesLastPrice.toString(),
-                    timeInForce: 'FOK',
-                })
-            } else {
-                return this.client.futuresOrder({
-                    symbol: solidityModel.Symbol,
-                    side: solidityModel.Solidity.Type === 'asks' ? 'SELL' : 'BUY',
-                    type: "LIMIT",
-                    quantity: minQuantityFutures,
-                    price: FuturesLastPrice.toString(),
-                    timeInForce: 'FOK',
-                })
+            if (minNotionalFutures < 10) {
+                if (type === 'open') {
+                    return this.client.futuresOrder({
+                        symbol: solidityModel.Symbol,
+                        side: solidityModel.Solidity.Type === 'asks' ? 'BUY' : 'SELL',
+                        type: "LIMIT",
+                        quantity: (minNotionalFutures / FuturesLastPrice + minNotionalFutures).toString(),
+                        price: FuturesLastPrice.toString(),
+                        timeInForce: 'FOK',
+                    })
+                } else {
+                    return this.client.futuresOrder({
+                        symbol: solidityModel.Symbol,
+                        side: solidityModel.Solidity.Type === 'asks' ? 'SELL' : 'BUY',
+                        type: "LIMIT",
+                        quantity: (minNotionalFutures / FuturesLastPrice + minNotionalFutures).toString(),
+                        price: FuturesLastPrice.toString(),
+                        timeInForce: 'FOK',
+                    })
+                }
             }
         }
 
@@ -142,13 +142,8 @@ export class BinanceTradesService {
                             WebSocketSpot.close();
                             DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} is too far! Up to price: ${UpToPriceSpot}`, [dls], true);
                         }
-                        // else {
-                        //     TradingPairsService.LogTradingPairs();
-                        // }
                         break;
                     case "reached":
-                        // DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `${solidityModel.symbol} | Up to price: ${TradingPairsService.ShowUpToPrice(SpotLastPrice / solidityModel.solidity.price)} | Spot Last Price: ${SpotLastPrice} | Futures Last Price: ${FuturesLastPrice}`, [], true);
-
                         if ((SpotLastPrice >= OpenOrderPrice && solidityModel.Solidity.Type === 'asks') || (SpotLastPrice <= OpenOrderPrice && solidityModel.Solidity.Type === 'bids')) {
                             SolidityStatus = 'removed';
                             TradeStatus = 'inTrade';
@@ -431,12 +426,12 @@ export class BinanceTradesService {
         }
     }
 
-    FetchMinQuantityFutures = (exchangeInfo: ExchangeInfo<FuturesOrderType_LT>, symbol) => {
+    FetchMinNotionalFutures = (exchangeInfo: ExchangeInfo<FuturesOrderType_LT>, symbol) => {
         for (const pair of exchangeInfo.symbols) {
             if (pair.symbol === symbol) {
                 for (const filter of pair.filters) {
-                    if (filter.filterType === 'LOT_SIZE') {
-                        return filter.minQty;
+                    if (filter.filterType === 'MIN_NOTIONAL') {
+                        return filter.notional;
                     }
                 }
             }
