@@ -31,6 +31,8 @@ export const dls = new DocumentLogger('./Logs/Logs.txt');
 export const tls = new DocumentLogger('./Logs/TradeLogs.txt')
 export const tcs = new TelegramControllerService(TelegramBotKey);
 
+tcs.SendMessage('Bot has started!');
+
 const fetchSolidity = async (): Promise<void> => {
     if (tcs.GetTradeStatus()) {
         TradingPairsService.TPWithSolidity = await sfs.FindAllSolidity(SolidityFinderOption.minVolume, SolidityFinderOption.ratioAccess, SolidityFinderOption.upToPriceAccess);

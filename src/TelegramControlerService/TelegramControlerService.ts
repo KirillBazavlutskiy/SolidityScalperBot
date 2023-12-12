@@ -1,9 +1,11 @@
 import TelegramBot, { InlineKeyboardMarkup, Message, CallbackQuery } from 'node-telegram-bot-api';
+import fs from "fs";
 
 export class TelegramControllerService {
     private Bot: TelegramBot;
     private chatId: number;
-    private TradingAccess: boolean = false;
+    private TradingAccess: boolean = true;
+    private dataPath = './data/TelegramUsers.json';
 
     constructor(token: string) {
         this.Bot = new TelegramBot(token, { polling: true });
@@ -26,7 +28,11 @@ export class TelegramControllerService {
 
     private onStart = (msg: Message) => {
         const chatId = msg.chat.id;
-        this.Bot.sendMessage(chatId, 'Choose action:', { reply_markup: this.CreateKeyBoard() });
+        this.Bot.sendMessage(chatId, 'Hello! Now you subscribed for live trades!', { reply_markup: this.CreateKeyBoard() });
+        const subscribedUsersJson = fs.readFileSync(this.dataPath, 'utf-8');
+        const subscribedUsers: number[] = JSON.parse(subscribedUsersJson);
+
+        fs.writeFileSync(this.dataPath, JSON.stringify([ ...subscribedUsers, chatId ]), 'utf-8');
     }
 
     private onMessage = (msg: Message) => {
@@ -39,11 +45,11 @@ export class TelegramControllerService {
 
         if (data === 'startSearching') {
             this.TradingAccess = true;
-            this.Bot.sendMessage(chatId, 'Bot was started!', { reply_markup: this.CreateKeyBoard() });
+            this.Bot.sendMessage(chatId, 'Bot started searching!', { reply_markup: this.CreateKeyBoard() });
             this.chatId = chatId;
         } else if (data === 'stopSearching') {
             this.TradingAccess = false;
-            this.Bot.sendMessage(chatId, 'Bot was stopped!', { reply_markup: this.CreateKeyBoard() });
+            this.Bot.sendMessage(chatId, 'Bot stopped searching!', { reply_markup: this.CreateKeyBoard() });
         }
     }
 
@@ -52,6 +58,11 @@ export class TelegramControllerService {
     }
 
     SendMessage = (message: string) => {
-        this.Bot.sendMessage(this.chatId, message, { reply_markup: this.CreateKeyBoard() });
+        const subscribedUsersJson = fs.readFileSync(this.dataPath, 'utf-8');
+        const subscribedUsers: number[] = JSON.parse(subscribedUsersJson);
+
+        subscribedUsers.forEach(userId => {
+            this.Bot.sendMessage(userId, message, { reply_markup: this.CreateKeyBoard() });
+        })
     }
 }
