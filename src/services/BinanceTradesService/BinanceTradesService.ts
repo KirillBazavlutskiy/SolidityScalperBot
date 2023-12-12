@@ -88,23 +88,22 @@ export class BinanceTradesService {
         const MakeOrder = (type: 'open' | 'close'): Promise<FuturesOrder> => {
             if (minNotionalFutures < 10) {
                 if (type === 'open') {
-                    orderQuantity = minNotionalFutures / FuturesLastPrice + minNotionalFutures;
                     return this.client.futuresOrder({
                         symbol: solidityModel.Symbol,
                         side: solidityModel.Solidity.Type === 'asks' ? 'BUY' : 'SELL',
-                        type: "LIMIT",
-                        quantity: orderQuantity.toFixed(quantityPrecisionFutures),
-                        price: FuturesLastPrice.toString(),
-                        timeInForce: 'FOK',
+                        type: "MARKET",
+                        quantity: orderQuantity,
+                        // price: FuturesLastPrice.toString(),
+                        // timeInForce: 'FOK',
                     })
                 } else {
                     return this.client.futuresOrder({
                         symbol: solidityModel.Symbol,
                         side: solidityModel.Solidity.Type === 'asks' ? 'SELL' : 'BUY',
-                        type: "LIMIT",
-                        quantity: orderQuantity.toFixed(quantityPrecisionFutures),
-                        price: FuturesLastPrice.toString(),
-                        timeInForce: 'FOK',
+                        type: "MARKET",
+                        quantity: orderQuantity,
+                        // price: FuturesLastPrice.toString(),
+                        // timeInForce: 'FOK',
                     })
                 }
             }
@@ -161,9 +160,10 @@ export class BinanceTradesService {
                             FuturesOpenTradePrice = FuturesLastPrice;
                             OpenTradeTime = new Date();
 
-                            await MakeOrder('open');
-                            tcs.SendMessage(`${solidityModel.Symbol}\nOrder was opened!`);
+                            orderQuantity = (11 / FuturesLastPrice).toFixed(quantityPrecisionFutures);
+                            tcs.SendMessage(`${solidityModel.Symbol}\nOrder was opened! ${orderQuantity}`);
                             DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${solidityModel.Symbol} | Order Type: ${TradeType} | TP: ${TPSL.TakeProfit} LP: ${FuturesLastPrice} SL: ${TPSL.StopLoss} | Futures Websocket Freeze Time: ${futuresWebsocketFreezeTime.getSeconds()}s`, [dls, tls], true);
+                            await MakeOrder('open');
 
                         } else if (sfs.CalcRatio(UpToPriceSpot) > UP_TO_PRICE_ACCESS_FUTURES_THRESHOLD) {
                             TradeStatus = 'disabled';
