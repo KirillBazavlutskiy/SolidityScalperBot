@@ -65,11 +65,17 @@ export class BinanceTradesService {
         let FuturesLastPrice: number;
         let FuturesWebsocketLastTradeTime: Date;
 
-        let orderQuantity: string   ;
+        let orderQuantity: string;
+        let orderQuantityNominal: number;
+
+        let OpenOrderAccess: boolean = false;
 
         let TradeStatus: TradeStatus = 'watching';
         let TPSL: CalcTPSLOutput;
         let StopLossBreakpoint;
+
+        let StopLossStopLimitOrderId;
+        let TakeProfitStopLimitOrderId;
 
         let minPriceFuturesInTrade = Number.MAX_VALUE;
         let maxPriceFuturesInTrade = Number.MIN_VALUE;
@@ -85,36 +91,42 @@ export class BinanceTradesService {
         const WebSocketFutures: WebSocket = new WebSocket(`wss://fstream.binance.com/ws/${solidityModel.Symbol.toLowerCase()}@trade`);
         const WebSocketSpotBookDepth: WebSocket = new WebSocket(`wss://stream.binance.com:9443/ws/${solidityModel.Symbol.toLowerCase()}@depth@1000ms`);
 
-        const PlaceMarketOrder = (): Promise<FuturesOrder> => {
-            return this.client.futuresOrder({
+        const PlaceMarketOrder = async () => {
+            await this.client.futuresOrder({
                 symbol: solidityModel.Symbol,
                 side: TradeType === 'long' ? 'BUY' : 'SELL',
                 type: "MARKET",
                 quantity: orderQuantity,
-                // price: FuturesLastPrice.toString(),
-                // timeInForce: 'FOK',
             })
         }
 
-        const PlaceTakeProfitLimit = () => {
-            return this.client.futuresOrder({
+        const PlaceTakeProfitLimit = async () => {
+            const { orderId } = await this.client.futuresOrder({
                 symbol: solidityModel.Symbol,
                 side: TradeType === 'long' ? 'SELL' : 'BUY',
                 type: 'LIMIT',
                 price: TPSL.TakeProfit.toString(),
                 quantity: orderQuantity,
                 timeInForce: 'GTC',
-            })
+            });
+            TakeProfitStopLimitOrderId = orderId;
         }
 
-        const PlaceStopLossLimit = () => {
-            return this.client.futuresOrder({
+        const PlaceStopLossLimit = async () => {
+            if (StopLossStopLimitOrderId !== undefined) {
+                await this.client.futuresCancelOrder({
+                    symbol: solidityModel.Symbol,
+                    orderId: StopLossStopLimitOrderId,
+                })
+            }
+            const { orderId } = await this.client.futuresOrder({
                 symbol: solidityModel.Symbol,
                 side: TradeType === 'long' ? 'SELL' : 'BUY',
                 type: 'STOP_MARKET',
                 stopPrice: TPSL.StopLoss.toString(),
                 quantity: orderQuantity,
-            })
+            });
+            StopLossStopLimitOrderId = orderId;
         }
 
         const ProcessSpotTrade = async (data: Buffer) => {
@@ -169,11 +181,17 @@ export class BinanceTradesService {
                             OpenTradeTime = new Date();
 
                             orderQuantity = parseFloat((11 / FuturesLastPrice).toFixed(quantityPrecisionFutures)) > 0 ? (11 / FuturesLastPrice).toFixed(quantityPrecisionFutures) :'1';
-                            tcs.SendMessage(`${solidityModel.Symbol}\nOrder was opened! ${orderQuantity}`);
+                            orderQuantityNominal = parseFloat(orderQuantity) * FuturesLastPrice;
+                            OpenOrderAccess = orderQuantityNominal <= 20;
+
+                            tcs.SendMessage(`${solidityModel.Symbol}\nOrder was opened!\nOrder Type: ${TradeType}\nTP: ${TPSL.TakeProfit}\nLP: ${FuturesLastPrice}\nSL: ${TPSL.StopLoss}`);
                             DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${solidityModel.Symbol} | Order Type: ${TradeType} | TP: ${TPSL.TakeProfit} LP: ${FuturesLastPrice} SL: ${TPSL.StopLoss} | Futures Websocket Freeze Time: ${futuresWebsocketFreezeTime.getSeconds()}s`, [dls, tls], true);
-                            PlaceMarketOrder();
-                            PlaceStopLossLimit();
-                            PlaceTakeProfitLimit();
+
+                            if (OpenOrderAccess) {
+                                PlaceMarketOrder();
+                                PlaceTakeProfitLimit();
+                                PlaceStopLossLimit();
+                            }
 
                         } else if (sfs.CalcRatio(UpToPriceSpot) > UP_TO_PRICE_ACCESS_FUTURES_THRESHOLD) {
                             TradeStatus = 'disabled';
@@ -227,6 +245,7 @@ export class BinanceTradesService {
                     const status = this.CheckTPSL(FuturesLastPrice, TPSL.TakeProfit, TPSL.StopLoss, TradeType);
 
                     const AddTradeData = () => {
+                        if (OpenOrderAccess) setTimeout(() => { this.client.futuresCancelAllOpenOrders({ symbol: solidityModel.Symbol }) }, 120);
                         try {
                             TradesHistoryDataService.AddTradeInfo({
                                 ...solidityModel,
@@ -278,9 +297,12 @@ export class BinanceTradesService {
                     if (TrailingStopLossPosition > 0 && TradeType === 'long') {
                         StopLossBreakpoint += TrailingStopLossPosition;
                         TPSL.StopLoss += TrailingStopLossPosition;
+
+                        if (OpenOrderAccess) PlaceStopLossLimit();
                     } else if (TrailingStopLossPosition < 0 && TradeType === 'short') {
                         StopLossBreakpoint += TrailingStopLossPosition;
                         TPSL.StopLoss += TrailingStopLossPosition;
+                        if (OpenOrderAccess) PlaceStopLossLimit();
                     }
                 }
             } catch (e) {
