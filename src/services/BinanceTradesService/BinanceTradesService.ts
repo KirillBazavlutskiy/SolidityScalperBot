@@ -49,6 +49,9 @@ export class BinanceTradesService {
         let tickSizeSpot: number = this.FetchTickSize(exchangeInfoSpot, solidityModel.Symbol);
         let tickSizeFutures: number = this.FetchTickSize(exchangeInfoFutures, solidityModel.Symbol);
 
+        let multiplierDecimalSpot: number = this.FetchMultiplierDecimal(exchangeInfoSpot, solidityModel.Symbol)
+        let multiplierDecimalFutures: number = this.FetchMultiplierDecimal(exchangeInfoFutures, solidityModel.Symbol)
+
         let minNotionalFutures = parseFloat(this.FetchMinNotionalFutures(exchangeInfoFutures, solidityModel.Symbol));
         let quantityPrecisionFutures: number = exchangeInfoFutures.quantityPrecision;
 
@@ -155,6 +158,7 @@ export class BinanceTradesService {
                                     : solidityModel.Solidity.Price - tickSizeSpot;
 
                                 DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${solidityModel.Symbol} | Solidity on ${solidityModel.Solidity.Price} was reached! Waiting for price ${OpenOrderPrice} | Process Time: ${processTime.getSeconds()}s`, [dls, tls], true);
+                                tcs.SendMessage(`${solidityModel.Symbol}\nSolidity on ${solidityModel.Solidity.Price} was reached! Waiting for price ${this.FindClosestLimitOrder(OpenOrderPrice, multiplierDecimalFutures)}\nTrade Type: ${TradeType}`)
                             }
                         } else if ((UpToPriceSpot > 1 && solidityModel.Solidity.Type === 'asks') || (UpToPriceSpot < 1 && solidityModel.Solidity.Type === 'bids')) {
                             TradeStatus = 'disabled';
@@ -173,7 +177,7 @@ export class BinanceTradesService {
                             beep();
 
                             TPSL = this.CalcTPSL(FuturesLastPrice, solidityModel.Solidity.Type, TradeStopsOptions.TakeProfit, TradeStopsOptions.StopLoss, tickSizeFutures);
-                            StopLossBreakpoint = this.FindClosestLimitOrder(FuturesLastPrice / sfs.CalcRealRatio(0.006, solidityModel.Solidity.Type), tickSizeFutures);
+                            StopLossBreakpoint = this.FindClosestLimitOrder(FuturesLastPrice / sfs.CalcRealRatio(0.006, solidityModel.Solidity.Type), multiplierDecimalFutures);
 
                             const currentTime = new Date();
                             const futuresWebsocketFreezeTime: Date = new Date(currentTime.getTime() - FuturesWebsocketLastTradeTime.getTime());
@@ -419,15 +423,15 @@ export class BinanceTradesService {
     }
 
 
-    CalcTPSL = (currentPrice: number, limitType: LimitType, upToPriceTP: number, upToPriceSL: number, tickSize: number): CalcTPSLOutput => {
+    CalcTPSL = (currentPrice: number, limitType: LimitType, upToPriceTP: number, upToPriceSL: number, multiplierDecimalFutures: number): CalcTPSLOutput => {
         let currentUpToPriceTP: number = sfs.CalcRealRatio(upToPriceTP, limitType === 'asks' ? 'bids' : 'asks');
         let currentUpToPriceSL: number = sfs.CalcRealRatio(upToPriceSL, limitType);
 
         let currentTakeProfit: number = currentPrice * currentUpToPriceTP;
         let currentStopLoss: number = currentPrice * currentUpToPriceSL;
 
-        const fixedTakeProfit = this.FindClosestLimitOrder(currentTakeProfit, tickSize);
-        const fixedStopLoss = this.FindClosestLimitOrder(currentStopLoss, tickSize);
+        const fixedTakeProfit = this.FindClosestLimitOrder(currentTakeProfit, multiplierDecimalFutures);
+        const fixedStopLoss = this.FindClosestLimitOrder(currentStopLoss, multiplierDecimalFutures);
 
         return {
             TakeProfit: fixedTakeProfit,
@@ -461,7 +465,7 @@ export class BinanceTradesService {
         }
     }
 
-    FetchMinNotionalFutures = (exchangeInfo: ExchangeInfo<FuturesOrderType_LT>, symbol) => {
+    FetchMinNotionalFutures = (exchangeInfo: ExchangeInfo<FuturesOrderType_LT>, symbol: string) => {
         for (const pair of exchangeInfo.symbols) {
             if (pair.symbol === symbol) {
                 for (const filter of pair.filters) {
@@ -472,9 +476,21 @@ export class BinanceTradesService {
             }
         }
     }
-    FindClosestLimitOrder = (price: number, tickSize: number): number => {
-        const numIndex = tickSize.toString().lastIndexOf('1');
-        const floatLenght = numIndex === 0 ? 0 : numIndex - 1;
-        return parseFloat(price.toFixed(floatLenght));
+
+    FetchMultiplierDecimal = (exchangeInfo: ExchangeInfo<OrderType_LT> | ExchangeInfo<FuturesOrderType_LT>, symbol: string) => {
+        for (const pair of exchangeInfo.symbols) {
+            if (pair.symbol === symbol) {
+                for (const filter of pair.filters) {
+                    if (filter.filterType === 'PERCENT_PRICE') {
+                        return filter.multiplierDecimal;
+                    }
+                }
+            }
+        }
+    }
+
+    FindClosestLimitOrder = (price: number, multiplierDecimal: number): number => {
+        const numMultiplier = 10 * multiplierDecimal;
+        return parseFloat((Math.round(price * numMultiplier) / numMultiplier).toFixed(multiplierDecimal));
     }
 }
