@@ -187,7 +187,7 @@ export class BinanceTradesService {
                             orderQuantityNominal = parseFloat(orderQuantity) * FuturesLastPrice;
                             OpenOrderAccess = orderQuantityNominal <= 20;
 
-                            tcs.SendMessage(`${solidityModel.Symbol}\nOrder was opened!\nOrder Type: ${TradeType}\nTP: ${TPSL.TakeProfit}\nLP: ${FuturesLastPrice}\nSL: ${TPSL.StopLoss}`);
+                            tcs.SendMessage(`${solidityModel.Symbol}\nOrder Type: ${TradeType}\nNominal Quantity: ${orderQuantityNominal}\nTP: ${TPSL.TakeProfit}\nLP: ${FuturesLastPrice}\nSL: ${TPSL.StopLoss}`);
                             DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${solidityModel.Symbol} | Order Type: ${TradeType} | TP: ${TPSL.TakeProfit} LP: ${FuturesLastPrice} SL: ${TPSL.StopLoss} | Futures Websocket Freeze Time: ${futuresWebsocketFreezeTime.getSeconds()}s`, [dls, tls], true);
 
                             if (OpenOrderAccess) {
