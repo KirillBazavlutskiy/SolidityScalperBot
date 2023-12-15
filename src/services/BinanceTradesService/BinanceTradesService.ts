@@ -113,22 +113,20 @@ export class BinanceTradesService {
         }
 
         const PlaceStopLossLimit = async () => {
-            if (TradeStatus !== "disabled") {
-                if (StopLossStopLimitOrderId !== undefined) {
-                    await this.client.futuresCancelOrder({
-                        symbol: solidityModel.Symbol,
-                        orderId: StopLossStopLimitOrderId,
-                    })
-                }
-                const { orderId } = await this.client.futuresOrder({
+            if (StopLossStopLimitOrderId !== undefined) {
+                await this.client.futuresCancelOrder({
                     symbol: solidityModel.Symbol,
-                    side: TradeType === 'long' ? 'SELL' : 'BUY',
-                    type: 'STOP_MARKET',
-                    stopPrice: TPSL.StopLoss.toString(),
-                    quantity: orderQuantity,
-                });
-                StopLossStopLimitOrderId = orderId;
+                    orderId: StopLossStopLimitOrderId,
+                })
             }
+            const { orderId } = await this.client.futuresOrder({
+                symbol: solidityModel.Symbol,
+                side: TradeType === 'long' ? 'SELL' : 'BUY',
+                type: 'STOP_MARKET',
+                stopPrice: TPSL.StopLoss.toString(),
+                quantity: orderQuantity,
+            });
+            StopLossStopLimitOrderId = orderId;
         }
 
         const ProcessSpotTrade = async (data: Buffer) => {
@@ -298,12 +296,12 @@ export class BinanceTradesService {
                         StopLossBreakpoint += TrailingStopLossPosition;
                         TPSL.StopLoss += TrailingStopLossPosition;
 
-                        if (OpenOrderAccess) PlaceStopLossLimit();
+                        if (OpenOrderAccess && TradeStatus === 'inTrade') PlaceStopLossLimit();
                     } else if (TrailingStopLossPosition < 0 && TradeType === 'short') {
                         StopLossBreakpoint += TrailingStopLossPosition;
                         TPSL.StopLoss += TrailingStopLossPosition;
 
-                        if (OpenOrderAccess) PlaceStopLossLimit();
+                        if (OpenOrderAccess && TradeStatus === 'inTrade') PlaceStopLossLimit();
                     }
                 }
             } catch (e) {
