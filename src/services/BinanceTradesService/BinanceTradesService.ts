@@ -55,7 +55,7 @@ export class BinanceTradesService {
         const UP_TO_PRICE_ACCESS_SPOT_THRESHOLD: number = SolidityFinderOption.upToPriceAccess + 0.01;
         const UP_TO_PRICE_ACCESS_FUTURES_THRESHOLD: number = SolidityFinderOption.upToPriceAccess - 0.01;
 
-        let OpenOrderPrice;
+        let OpenOrderPrice: number;
 
         let UpToPriceSpot: number = solidityModel.Solidity.UpToPrice;
 
@@ -150,9 +150,9 @@ export class BinanceTradesService {
                                 const processEndData = new Date();
                                 const processTime = new Date(processEndData.getTime() - processStartData.getTime());
 
-                                OpenOrderPrice = solidityModel.Solidity.Type === 'asks'
+                                OpenOrderPrice = this.FindClosestLimitOrder(solidityModel.Solidity.Type === 'asks'
                                     ? solidityModel.Solidity.Price + tickSizeSpot
-                                    : solidityModel.Solidity.Price - tickSizeSpot;
+                                    : solidityModel.Solidity.Price - tickSizeSpot, tickSizeSpot);
 
                                 DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${solidityModel.Symbol} | Solidity on ${solidityModel.Solidity.Price} was reached! Waiting for price ${OpenOrderPrice} | Process Time: ${processTime.getSeconds()}s`, [dls, tls], true);
                                 tcs.SendMessage(`${solidityModel.Symbol} | Solidity on ${solidityModel.Solidity.Price} was reached! Waiting for price ${OpenOrderPrice}!`);
@@ -214,11 +214,8 @@ export class BinanceTradesService {
 
                 const solidityChangeIndex = Bids.findIndex(bid => bid[0] == solidityModel.Solidity.Price);
 
-                // DocumentLogService.MadeTheNewLog([FontColor.FgGray], `${solidityModel.symbol} | New book depth has been arrived`, [], true);
-
                 if (solidityChangeIndex !== -1 && SolidityStatus !== 'removed' && TradeStatus !== 'inTrade') {
                     const SolidityBid = Bids[solidityChangeIndex];
-                    // DocumentLogService.MadeTheNewLog([FontColor.FgBlue], `Solidity quantity on ${solidityModel.symbol} was changed to ${SolidityBid[1]}`, [ ], true);
                     SolidityStatus = await this.CheckSolidity(solidityModel, SolidityBid, UpToPriceSpot);
                     if (SolidityStatus === 'removed') {
                         WebSocketSpot.close();
