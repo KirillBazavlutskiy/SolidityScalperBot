@@ -49,9 +49,6 @@ export class BinanceTradesService {
         let tickSizeSpot: number = this.FetchTickSize(exchangeInfoSpot, solidityModel.Symbol);
         let tickSizeFutures: number = this.FetchTickSize(exchangeInfoFutures, solidityModel.Symbol);
 
-        let multiplierDecimalSpot: number = this.FetchMultiplierDecimal(exchangeInfoSpot, solidityModel.Symbol)
-        let multiplierDecimalFutures: number = this.FetchMultiplierDecimal(exchangeInfoFutures, solidityModel.Symbol)
-
         let minNotionalFutures = parseFloat(this.FetchMinNotionalFutures(exchangeInfoFutures, solidityModel.Symbol));
         let quantityPrecisionFutures: number = exchangeInfoFutures.quantityPrecision;
 
@@ -477,23 +474,11 @@ export class BinanceTradesService {
         }
     }
 
-    FetchMultiplierDecimal = (exchangeInfo: ExchangeInfo<OrderType_LT> | ExchangeInfo<FuturesOrderType_LT>, symbol: string) => {
-        for (const pair of exchangeInfo.symbols) {
-            if (pair.symbol === symbol) {
-                for (const filter of pair.filters) {
-                    if (filter.filterType === 'PERCENT_PRICE') {
-                        return filter.multiplierDecimal;
-                    }
-                }
-            }
-        }
-    }
-
     FindClosestLimitOrder = (price: number, tickSize: number): number => {
-        const numIndex = tickSize.toString().lastIndexOf('1');
+        const numIndex = tickSize.toFixed(15).lastIndexOf("1");
         const floatLenght = numIndex === 0 ? 0 : numIndex - 1;
 
-        const floatMultiplier = floatLenght * 10
+        const floatMultiplier = 10 ** floatLenght;
         return Math.round(price * floatMultiplier) / floatMultiplier;
     }
 }
