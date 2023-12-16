@@ -92,7 +92,7 @@ export class BinanceTradesService {
         const WebSocketSpotBookDepth: WebSocket = new WebSocket(`wss://stream.binance.com:9443/ws/${solidityModel.Symbol.toLowerCase()}@depth@1000ms`);
 
         const PlaceMarketOrder = async () => {
-            await this.client.futuresOrder({
+            return await this.client.futuresOrder({
                 symbol: solidityModel.Symbol,
                 side: TradeType === 'long' ? 'BUY' : 'SELL',
                 type: "MARKET",
@@ -173,9 +173,6 @@ export class BinanceTradesService {
                             TradeStatus = 'inTrade';
                             beep();
 
-                            TPSL = this.CalcTPSL(FuturesLastPrice, solidityModel.Solidity.Type, TradeStopsOptions.TakeProfit, TradeStopsOptions.StopLoss, tickSizeFutures);
-                            StopLossBreakpoint = this.FindClosestLimitOrder(FuturesLastPrice / sfs.CalcRealRatio(0.006, solidityModel.Solidity.Type), tickSizeFutures);
-
                             const currentTime = new Date();
                             const futuresWebsocketFreezeTime: Date = new Date(currentTime.getTime() - FuturesWebsocketLastTradeTime.getTime());
                             FuturesOpenTradePrice = FuturesLastPrice;
@@ -189,7 +186,13 @@ export class BinanceTradesService {
                             DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${solidityModel.Symbol} | Order Type: ${TradeType} | TP: ${TPSL.TakeProfit} LP: ${FuturesLastPrice} SL: ${TPSL.StopLoss} | Futures Websocket Freeze Time: ${futuresWebsocketFreezeTime.getSeconds()}s`, [dls, tls], true);
 
                             if (OpenOrderAccess) {
-                                PlaceMarketOrder();
+                                const { price } = await PlaceMarketOrder();
+
+                                FuturesOpenTradePrice = parseFloat(price);
+
+                                TPSL = this.CalcTPSL(FuturesOpenTradePrice, solidityModel.Solidity.Type, TradeStopsOptions.TakeProfit, TradeStopsOptions.StopLoss, tickSizeFutures);
+                                StopLossBreakpoint = this.FindClosestLimitOrder(FuturesOpenTradePrice / sfs.CalcRealRatio(0.006, solidityModel.Solidity.Type), tickSizeFutures);
+
                                 PlaceTakeProfitLimit();
                                 PlaceStopLossLimit();
                             }
