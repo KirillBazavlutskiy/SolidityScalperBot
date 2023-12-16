@@ -17,4 +17,5 @@ export interface TradeModel extends SolidityModel{
         MaxPrice: number;
         MinPrice: number;
     }
+    SolidityQuantityHistory: number[]
 }
