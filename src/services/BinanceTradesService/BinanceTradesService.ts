@@ -92,7 +92,7 @@ export class BinanceTradesService {
         const WebSocketSpotBookDepth: WebSocket = new WebSocket(`wss://stream.binance.com:9443/ws/${solidityModel.Symbol.toLowerCase()}@depth@1000ms`);
 
         const PlaceMarketOrder = async () => {
-            return await this.client.futuresOrder({
+            await this.client.futuresOrder({
                 symbol: solidityModel.Symbol,
                 side: TradeType === 'long' ? 'BUY' : 'SELL',
                 type: "MARKET",
@@ -113,12 +113,12 @@ export class BinanceTradesService {
         }
 
         const PlaceStopLossLimit = async () => {
-            if (StopLossStopLimitOrderId !== undefined) {
-                await this.client.futuresCancelOrder({
-                    symbol: solidityModel.Symbol,
-                    orderId: StopLossStopLimitOrderId,
-                })
-            }
+            // if (StopLossStopLimitOrderId !== undefined) {
+            //     await this.client.futuresCancelOrder({
+            //         symbol: solidityModel.Symbol,
+            //         orderId: StopLossStopLimitOrderId,
+            //     })
+            // }
             const { orderId } = await this.client.futuresOrder({
                 symbol: solidityModel.Symbol,
                 side: TradeType === 'long' ? 'SELL' : 'BUY',
@@ -173,6 +173,9 @@ export class BinanceTradesService {
                             TradeStatus = 'inTrade';
                             beep();
 
+                            TPSL = this.CalcTPSL(FuturesLastPrice, solidityModel.Solidity.Type, TradeStopsOptions.TakeProfit, TradeStopsOptions.StopLoss, tickSizeFutures);
+                            StopLossBreakpoint = this.FindClosestLimitOrder(FuturesLastPrice / sfs.CalcRealRatio(0.006, solidityModel.Solidity.Type), tickSizeFutures);
+
                             const currentTime = new Date();
                             const futuresWebsocketFreezeTime: Date = new Date(currentTime.getTime() - FuturesWebsocketLastTradeTime.getTime());
                             FuturesOpenTradePrice = FuturesLastPrice;
@@ -182,17 +185,11 @@ export class BinanceTradesService {
                             orderQuantityNominal = parseFloat(orderQuantity) * FuturesLastPrice;
                             OpenOrderAccess = orderQuantityNominal <= 20;
 
-                            tcs.SendMessage(`${solidityModel.Symbol}\nOrder was opened!\nOrder Type: ${TradeType}\nTP: ${TPSL.TakeProfit}\nLP: ${FuturesLastPrice}\nSL: ${TPSL.StopLoss}`);
+                            tcs.SendMessage(`${solidityModel.Symbol}\nOrder Type: ${TradeType}\nNominal Quantity: ${orderQuantityNominal}\nTP: ${TPSL.TakeProfit}\nLP: ${FuturesLastPrice}\nSL: ${TPSL.StopLoss}`);
                             DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${solidityModel.Symbol} | Order Type: ${TradeType} | TP: ${TPSL.TakeProfit} LP: ${FuturesLastPrice} SL: ${TPSL.StopLoss} | Futures Websocket Freeze Time: ${futuresWebsocketFreezeTime.getSeconds()}s`, [dls, tls], true);
 
                             if (OpenOrderAccess) {
-                                const { price } = await PlaceMarketOrder();
-
-                                FuturesOpenTradePrice = parseFloat(price);
-
-                                TPSL = this.CalcTPSL(FuturesOpenTradePrice, solidityModel.Solidity.Type, TradeStopsOptions.TakeProfit, TradeStopsOptions.StopLoss, tickSizeFutures);
-                                StopLossBreakpoint = this.FindClosestLimitOrder(FuturesOpenTradePrice / sfs.CalcRealRatio(0.006, solidityModel.Solidity.Type), tickSizeFutures);
-
+                                PlaceMarketOrder();
                                 PlaceTakeProfitLimit();
                                 PlaceStopLossLimit();
                             }
@@ -294,18 +291,18 @@ export class BinanceTradesService {
                             break;
                     }
 
-                    const TrailingStopLossPosition = FuturesLastPrice - StopLossBreakpoint;
-                    if (TrailingStopLossPosition > 0 && TradeType === 'long') {
-                        StopLossBreakpoint += TrailingStopLossPosition;
-                        TPSL.StopLoss += TrailingStopLossPosition;
+                    // const TrailingStopLossPosition = FuturesLastPrice - StopLossBreakpoint;
+                    // if (TrailingStopLossPosition > 0 && TradeType === 'long') {
+                    //     StopLossBreakpoint += TrailingStopLossPosition;
+                    //     TPSL.StopLoss += TrailingStopLossPosition;
 
-                        if (OpenOrderAccess && TradeStatus === 'inTrade') PlaceStopLossLimit();
-                    } else if (TrailingStopLossPosition < 0 && TradeType === 'short') {
-                        StopLossBreakpoint += TrailingStopLossPosition;
-                        TPSL.StopLoss += TrailingStopLossPosition;
+                    //     if (OpenOrderAccess && TradeStatus === 'inTrade') PlaceStopLossLimit();
+                    // } else if (TrailingStopLossPosition < 0 && TradeType === 'short') {
+                    //     StopLossBreakpoint += TrailingStopLossPosition;
+                    //     TPSL.StopLoss += TrailingStopLossPosition;
 
-                        if (OpenOrderAccess && TradeStatus === 'inTrade') PlaceStopLossLimit();
-                    }
+                    //     if (OpenOrderAccess && TradeStatus === 'inTrade') PlaceStopLossLimit();
+                    // }
                 }
             } catch (e) {
                 DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error in futures websocket with ${solidityModel.Symbol}! ${e.message}`);
