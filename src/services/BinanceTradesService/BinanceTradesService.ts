@@ -76,6 +76,7 @@ export class BinanceTradesService {
         let TPSL: CalcTPSLOutput;
         let StopLossBreakpoint;
 
+        let MarketOrderId;
         let StopLossStopLimitOrderId;
         let TakeProfitStopLimitOrderId;
 
@@ -184,9 +185,17 @@ export class BinanceTradesService {
                             OpenOrderAccess = orderQuantityNominal <= 20;
 
                             if (OpenOrderAccess) {
-                                const { price } = await PlaceMarketOrder();
-                                FuturesOpenTradePrice = parseFloat(price);
-                                console.log(price)
+                                const order = await PlaceMarketOrder();
+                                MarketOrderId = order.orderId;
+
+                                await new Promise(resolve => setTimeout(resolve, 150));
+
+                                const orderCheck = await this.client.futuresGetOrder({
+                                    symbol: 'BLZUSDT',
+                                    orderId: MarketOrderId,
+                                });
+
+                                FuturesOpenTradePrice = parseFloat(orderCheck.cumQuote) / parseFloat(orderCheck.executedQty);
 
                                 TPSL = this.CalcTPSL(FuturesOpenTradePrice, solidityModel.Solidity.Type, TradeStopsOptions.TakeProfit, TradeStopsOptions.StopLoss, tickSizeFutures);
                                 StopLossBreakpoint = this.FindClosestLimitOrder(FuturesOpenTradePrice / sfs.CalcRealRatio(0.006, solidityModel.Solidity.Type), tickSizeFutures);
