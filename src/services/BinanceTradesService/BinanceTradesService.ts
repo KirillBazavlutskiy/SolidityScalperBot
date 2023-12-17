@@ -186,6 +186,7 @@ export class BinanceTradesService {
                             if (OpenOrderAccess) {
                                 const { price } = await PlaceMarketOrder();
                                 FuturesOpenTradePrice = parseFloat(price);
+                                console.log(price)
 
                                 TPSL = this.CalcTPSL(FuturesOpenTradePrice, solidityModel.Solidity.Type, TradeStopsOptions.TakeProfit, TradeStopsOptions.StopLoss, tickSizeFutures);
                                 StopLossBreakpoint = this.FindClosestLimitOrder(FuturesOpenTradePrice / sfs.CalcRealRatio(0.006, solidityModel.Solidity.Type), tickSizeFutures);
