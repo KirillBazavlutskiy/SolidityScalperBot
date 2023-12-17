@@ -10,10 +10,18 @@ class SolidityFinderService {
         this.client = client;
     }
 
-    CalcRatio = (UpToPrice: number): number => {
-        if (UpToPrice < 1) {
+    CalcRatioChange = (ratio: number) => {
+        if (ratio > 1) {
+            return ratio - 1;
+        } else if (ratio < 1) {
+            return 1 - ratio;
+        }
+    }
+
+    CalcSimplifiedRatio = (UpToPrice: number, LimitType: LimitType): number => {
+        if (LimitType === 'asks') {
             return 1 - UpToPrice;
-        } else if (UpToPrice > 1) {
+        } else if (LimitType === 'bids') {
             return UpToPrice - 1;
         }
     }
@@ -87,7 +95,7 @@ class SolidityFinderService {
                 QuoteVolume: "quoteVolume" in ticker ? parseFloat(ticker.quoteVolume) : 0,
             }
 
-            if (solidityTicket.Ratio > ratioAccess && this.CalcRatio(upToPrice) < upToPriceAccess) {
+            if (solidityTicket.Ratio > ratioAccess && this.CalcSimplifiedRatio(upToPrice, solidityModel.Solidity.Type) < upToPriceAccess) {
                 solidityModel.Solidity = solidityTicket;
             }
 

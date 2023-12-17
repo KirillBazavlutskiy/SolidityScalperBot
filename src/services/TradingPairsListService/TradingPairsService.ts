@@ -30,7 +30,7 @@ class TradingPairsService {
                     break;
             }
         } else {
-            Profit = `${UpToPrice > 1 ? '-' : '+'}${(parseFloat(sfs.CalcRatio(UpToPrice).toFixed(4)) * 100).toFixed(4)}${stringWithPercent && '%'}`;
+            Profit = `${UpToPrice > 1 ? '-' : '+'}${(parseFloat(sfs.CalcSimplifiedRatio(UpToPrice).toFixed(4)) * 100).toFixed(4)}${stringWithPercent && '%'}`;
         }
         return Profit;
     }

@@ -163,7 +163,7 @@ export class BinanceTradesService {
                             TradeStatus = 'disabled';
                             WebSocketSpot.close();
                             DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} Solidity on ${solidityModel.Solidity.Price} has been removed! | Up to price: ${UpToPriceSpot} | Last Price: ${SpotLastPrice}`, [dls], true);
-                        } else if (sfs.CalcRatio(UpToPriceSpot) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
+                        } else if (sfs.CalcSimplifiedRatio(UpToPriceSpot, solidityModel.Solidity.Type) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
                             TradeStatus = 'disabled';
                             WebSocketSpot.close();
                             DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} is too far! Up to price: ${UpToPriceSpot}`, [dls], true);
@@ -185,7 +185,6 @@ export class BinanceTradesService {
 
                             if (OpenOrderAccess) {
                                 const { price } = await PlaceMarketOrder();
-
                                 FuturesOpenTradePrice = parseFloat(price);
 
                                 TPSL = this.CalcTPSL(FuturesOpenTradePrice, solidityModel.Solidity.Type, TradeStopsOptions.TakeProfit, TradeStopsOptions.StopLoss, tickSizeFutures);
@@ -203,7 +202,7 @@ export class BinanceTradesService {
                             tcs.SendMessage(`${solidityModel.Symbol}\nOrder Type: ${TradeType}\nNominal Quantity: ${orderQuantityNominal}\nTP: ${TPSL.TakeProfit}\nLP: ${FuturesLastPrice}\nSL: ${TPSL.StopLoss}`);
                             DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${solidityModel.Symbol} | Order Type: ${TradeType} | TP: ${TPSL.TakeProfit} LP: ${FuturesLastPrice} SL: ${TPSL.StopLoss} | Futures Websocket Freeze Time: ${futuresWebsocketFreezeTime.getSeconds()}s`, [dls, tls], true);
 
-                        } else if (sfs.CalcRatio(UpToPriceSpot) > UP_TO_PRICE_ACCESS_FUTURES_THRESHOLD) {
+                        } else if (sfs.CalcSimplifiedRatio(UpToPriceSpot, solidityModel.Solidity.Type) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
                             TradeStatus = 'disabled';
                             WebSocketSpot.close();
                             DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} is too far!`, [dls], true);
@@ -225,7 +224,7 @@ export class BinanceTradesService {
 
                 if (solidityChangeIndex !== -1 && SolidityStatus !== 'removed' && TradeStatus !== 'inTrade') {
                     const SolidityBid = Bids[solidityChangeIndex];
-                    SolidityStatus = await this.CheckSolidity(solidityModel, SolidityBid, UpToPriceSpot, TradeStatus);
+                    SolidityStatus = await this.CheckSolidity(solidityModel, SolidityBid, UpToPriceSpot, TradeStatus, solidityModel.Solidity.Type);
                     if (SolidityStatus === 'removed') {
                         WebSocketSpot.close();
                     }
@@ -392,7 +391,7 @@ export class BinanceTradesService {
         WebSocketSpotBookDepth.on('error', e => DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error in spot depth websocket with ${solidityModel.Symbol}! ${e.message}`));
     };
 
-    CheckSolidity = async (solidityModel: SolidityModel, SolidityBid: StreamBid, UpToPriceSpot: number, TradeStatus: TradeStatus): Promise<SolidityStatus> => {
+    CheckSolidity = async (solidityModel: SolidityModel, SolidityBid: StreamBid, UpToPriceSpot: number, TradeStatus: TradeStatus, LimitType: LimitType): Promise<SolidityStatus> => {
         const SOLIDITY_CHANGE_PER_UPDATE_THRESHOLD: number = 0.15;
 
         let SolidityStatus: SolidityStatus;
@@ -401,7 +400,7 @@ export class BinanceTradesService {
             this.SolidityQuantityHistory.push(SolidityBid[1]);
         }
 
-        if (sfs.CalcRatio(solidityModel.Solidity.Quantity / SolidityBid[1]) < SOLIDITY_CHANGE_PER_UPDATE_THRESHOLD) {
+        if (sfs.CalcRatioChange(solidityModel.Solidity.Quantity / SolidityBid[1]) < SOLIDITY_CHANGE_PER_UPDATE_THRESHOLD) {
             solidityModel.Solidity.Quantity = SolidityBid[1];
             SolidityStatus = 'ready';
         } else if (UpToPriceSpot === 1) {
