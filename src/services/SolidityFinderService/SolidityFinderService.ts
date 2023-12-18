@@ -1,37 +1,13 @@
 import {SolidityModel, SolidityTicket, LimitType} from "./SolidityFinderModels";
 import {Bid, Binance, DailyStatsResult} from "binance-api-node";
-import {dls} from "../../index";
 import DocumentLogService from "../DocumentLogService/DocumentLogService";
 import {FontColor} from "../FontStyleObjects";
+import {RatioCalculatingKit} from "../BinanceTradesService/RatioCalculatingKit/RatioCalculatingKit";
 
 class SolidityFinderService {
     client: Binance;
     constructor(client: Binance) {
         this.client = client;
-    }
-
-    CalcRatioChange = (ratio: number) => {
-        if (ratio > 1) {
-            return ratio - 1;
-        } else if (ratio < 1) {
-            return 1 - ratio;
-        }
-    }
-
-    CalcSimplifiedRatio = (UpToPrice: number, LimitType: LimitType): number => {
-        if (LimitType === 'asks') {
-            return 1 - UpToPrice;
-        } else if (LimitType === 'bids') {
-            return UpToPrice - 1;
-        }
-    }
-
-    CalcRealRatio = (UpToPrice: number, LimitType: LimitType): number => {
-        if (LimitType === 'asks') {
-            return 1 - UpToPrice;
-        } else if (LimitType === 'bids') {
-            return UpToPrice + 1;
-        }
     }
 
     FetchAllSymbols = async (minVolume: number) => {
@@ -116,7 +92,7 @@ class SolidityFinderService {
                     symbolsGroup.map(async (symbol) => {
                         const solidityInfo = await this.FindSolidity(symbol, ratioAccess, upToPriceAccess);
                         if (solidityInfo.Solidity.Ratio > ratioAccess &&
-                            this.CalcSimplifiedRatio(solidityInfo.Solidity.UpToPrice, solidityInfo.Solidity.Type) < upToPriceAccess) {
+                            RatioCalculatingKit.CalcSimplifiedRatio(solidityInfo.Solidity.UpToPrice, solidityInfo.Solidity.Type) < upToPriceAccess) {
                             symbolsWithSolidity.push(solidityInfo);
                         }
                     })

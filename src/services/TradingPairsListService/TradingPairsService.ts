@@ -4,6 +4,7 @@ import {FontColor} from "../FontStyleObjects";
 import {sfs} from "../../index";
 import {TradeType} from "../BinanceTradesService/BinanceTradesModels";
 import solidityFinderService from "../SolidityFinderService/SolidityFinderService";
+import {RatioCalculatingKit} from "../BinanceTradesService/RatioCalculatingKit/RatioCalculatingKit";
 
 class TradingPairsService {
     static TPWithSolidity: SolidityModel[] = [];
@@ -30,7 +31,7 @@ class TradingPairsService {
                     break;
             }
         } else {
-            Profit = `${UpToPrice > 1 ? '-' : '+'}${(parseFloat(sfs.CalcRatioChange(UpToPrice).toFixed(4)) * 100).toFixed(4)}${stringWithPercent && '%'}`;
+            Profit = `${UpToPrice > 1 ? '-' : '+'}${(parseFloat(RatioCalculatingKit.CalcRatioChange(UpToPrice).toFixed(4)) * 100).toFixed(4)}${stringWithPercent && '%'}`;
         }
         return Profit;
     }
