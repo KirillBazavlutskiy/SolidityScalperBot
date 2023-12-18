@@ -7,7 +7,7 @@ import {FontColor} from "./services/FontStyleObjects";
 import * as fs from "fs";
 import {SolidityFinderOptions} from "../Options/SolidityFInderOptions/SolidityFinderOptionsModels";
 import {TradingStopOptions} from "../Options/TradeStopsOptions/TradeStopsOptionsModels";
-import {TelegramControllerService} from "./TelegramControlerService/TelegramControlerService";
+import {TelegramControllerService} from "./services/TelegramControlerService/TelegramControlerService";
 
 const apiKey = "PmEpiESene4CCbHpmjHO8Uz7hKqc9u57bEla9ibkP14ZmXIdtf8QAsqBcFt15YKB";
 const secretKey = "5f97dmaPN48kNXYmcdEBtNKRwopfsaDWogJ9btKE1gCAIKO4z0q2IhLb4m1MfKxE";

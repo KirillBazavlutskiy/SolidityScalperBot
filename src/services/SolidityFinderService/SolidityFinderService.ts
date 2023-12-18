@@ -10,10 +10,18 @@ class SolidityFinderService {
         this.client = client;
     }
 
-    CalcRatio = (UpToPrice: number): number => {
-        if (UpToPrice < 1) {
+    CalcRatioChange = (ratio: number) => {
+        if (ratio > 1) {
+            return ratio - 1;
+        } else if (ratio < 1) {
+            return 1 - ratio;
+        }
+    }
+
+    CalcSimplifiedRatio = (UpToPrice: number, LimitType: LimitType): number => {
+        if (LimitType === 'asks') {
             return 1 - UpToPrice;
-        } else if (UpToPrice > 1) {
+        } else if (LimitType === 'bids') {
             return UpToPrice - 1;
         }
     }
@@ -81,17 +89,12 @@ class SolidityFinderService {
 
             const solidityTicket: SolidityTicket = { Type: solidityType, Price: maxOrderPrice, Quantity: maxOrder, Ratio: solidityRatio, UpToPrice: upToPrice };
 
-            const solidityModel: SolidityModel = {
+            return {
                 Symbol: symbol,
                 Price: price,
                 QuoteVolume: "quoteVolume" in ticker ? parseFloat(ticker.quoteVolume) : 0,
+                Solidity: solidityTicket
             }
-
-            if (solidityTicket.Ratio > ratioAccess && this.CalcRatio(upToPrice) < upToPriceAccess) {
-                solidityModel.Solidity = solidityTicket;
-            }
-
-            return solidityModel;
         } catch (e) {
             DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error with ${symbol}! ${e.message}`);
             return null;
@@ -112,7 +115,8 @@ class SolidityFinderService {
                 await Promise.all(
                     symbolsGroup.map(async (symbol) => {
                         const solidityInfo = await this.FindSolidity(symbol, ratioAccess, upToPriceAccess);
-                        if (solidityInfo.Solidity) {
+                        if (solidityInfo.Solidity.Ratio > ratioAccess &&
+                            this.CalcSimplifiedRatio(solidityInfo.Solidity.UpToPrice, solidityInfo.Solidity.Type) < upToPriceAccess) {
                             symbolsWithSolidity.push(solidityInfo);
                         }
                     })
