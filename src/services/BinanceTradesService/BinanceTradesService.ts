@@ -194,7 +194,7 @@ export class BinanceTradesService {
                                 await new Promise(resolve => setTimeout(resolve, 150));
 
                                 const orderCheck = await this.client.futuresGetOrder({
-                                    symbol: 'BLZUSDT',
+                                    symbol: solidityModel.Symbol,
                                     orderId: MarketOrderId,
                                 });
 
