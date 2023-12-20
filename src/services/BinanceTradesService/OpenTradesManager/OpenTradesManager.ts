@@ -59,7 +59,7 @@ export class OpenTradesManager {
         this.TPSL = OpenTradesManager.CalcTPSL(this.OpenOrderPrice, this.LimitType, TradeStopsOptions.TakeProfit, TradeStopsOptions.StopLoss, this.TickSizeFutures);
         this.StopLossBreakpoint = BinanceTradesService.FindClosestLimitOrder(this.OpenOrderPrice / RatioCalculatingKit.CalcRealRatio(0.006, this.LimitType), this.TickSizeFutures);
 
-        const orderMsg = `${this.Symbol} | Order Type: ${this.TradeType} | Nominal Quantity: ${parseFloat(this.OrderQuantity) / this.OpenOrderPrice} | TP: ${this.TPSL.TakeProfit} | LP: ${this.OpenOrderPrice} | SL: ${this.TPSL.StopLoss}`;
+        const orderMsg = `${this.Symbol} | Order Type: ${this.TradeType} | Nominal Quantity: ${parseFloat(this.OrderQuantity) * this.OpenOrderPrice} | TP: ${this.TPSL.TakeProfit} | LP: ${this.OpenOrderPrice} | SL: ${this.TPSL.StopLoss}`;
 
         tcs.SendMessage(orderMsg.replace(' | ', '\n'));
         DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], orderMsg, [dls, tls], true);
