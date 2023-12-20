@@ -25,9 +25,10 @@ export class OpenTradesManager {
     private StopLossStopLimitOrderId: number;
     private TakeProfitStopLimitOrderId: number;
 
+    private Status: CheckTPSLOutput;
+
     constructor(client: Binance, Symbol: string, TradeType: TradeType, TickSizeFutures: number) {
         this.client = client;
-
         this.Symbol = Symbol;
         this.TradeType = TradeType;
         this.LimitType = this.TradeType === 'long' ? 'asks' : 'bids';
@@ -55,7 +56,7 @@ export class OpenTradesManager {
 
         this.OpenOrderPrice = parseFloat(orderCheck.cumQuote) / parseFloat(orderCheck.executedQty);
 
-        this.TPSL = this.CalcTPSL(this.OpenOrderPrice, this.LimitType, TradeStopsOptions.TakeProfit, TradeStopsOptions.StopLoss, this.TickSizeFutures);
+        this.TPSL = OpenTradesManager.CalcTPSL(this.OpenOrderPrice, this.LimitType, TradeStopsOptions.TakeProfit, TradeStopsOptions.StopLoss, this.TickSizeFutures);
         this.StopLossBreakpoint = BinanceTradesService.FindClosestLimitOrder(this.OpenOrderPrice / RatioCalculatingKit.CalcRealRatio(0.006, this.LimitType), this.TickSizeFutures);
 
         const orderMsg = `${this.Symbol} | Order Type: ${this.TradeType} | Nominal Quantity: ${parseFloat(this.OrderQuantity) / this.OpenOrderPrice} | TP: ${this.TPSL.TakeProfit} | LP: ${this.OpenOrderPrice} | SL: ${this.TPSL.StopLoss}`;
@@ -72,8 +73,8 @@ export class OpenTradesManager {
     }
 
     UpdateLastPrice = (price: number) => {
-        const status = this.CheckTPSL(price);
-        if (status === "InTrade") {
+        this.Status = OpenTradesManager.CheckTPSL(price, this.TPSL, this.TradeType);
+        if (this.Status === "InTrade") {
             const TrailingStopLossPosition = price - this.StopLossBreakpoint;
             if (TrailingStopLossPosition > 0 && this.TradeType === 'long') {
                 this.StopLossBreakpoint += TrailingStopLossPosition;
@@ -88,7 +89,7 @@ export class OpenTradesManager {
             setTimeout(() => { this.client.futuresCancelAllOpenOrders({ symbol: this.Symbol }) }, 200);
         }
 
-        return status;
+        return this.Status;
     }
     private PlaceTakeProfitLimit = async () => {
         try {
@@ -102,7 +103,7 @@ export class OpenTradesManager {
             });
             this.TakeProfitStopLimitOrderId = orderId;
         } catch (e) {
-            this.client.futuresOrder({
+            await this.client.futuresOrder({
                 symbol: this.Symbol,
                 side: this.TradeType === 'long' ? 'SELL' : 'BUY',
                 type: 'MARKET',
@@ -130,7 +131,7 @@ export class OpenTradesManager {
             });
             this.StopLossStopLimitOrderId = orderId;
         } catch (e) {
-            this.client.futuresOrder({
+            await this.client.futuresOrder({
                 symbol: this.Symbol,
                 side: this.TradeType === 'long' ? 'SELL' : 'BUY',
                 type: 'MARKET',
@@ -140,7 +141,7 @@ export class OpenTradesManager {
         }
     }
 
-    private CalcTPSL = (currentPrice: number, limitType: LimitType, upToPriceTP: number, upToPriceSL: number, tickSize: number): CalcTPSLOutput => {
+    static CalcTPSL = (currentPrice: number, limitType: LimitType, upToPriceTP: number, upToPriceSL: number, tickSize: number): CalcTPSLOutput => {
         let currentUpToPriceTP: number = RatioCalculatingKit.CalcRealRatio(upToPriceTP, limitType === 'asks' ? 'bids' : 'asks');
         let currentUpToPriceSL: number = RatioCalculatingKit.CalcRealRatio(upToPriceSL, limitType);
 
@@ -156,15 +157,15 @@ export class OpenTradesManager {
         }
     }
 
-    private CheckTPSL = (currentPrice: number): CheckTPSLOutput => {
+    static CheckTPSL = (currentPrice: number, TPSL: CalcTPSLOutput, TradeType: TradeType): CheckTPSLOutput => {
         let result: CheckTPSLOutput;
-        if (this.TradeType === 'long') {
-            if (currentPrice >= this.TPSL.TakeProfit) result = 'TP';
-            else if (currentPrice <= this.TPSL.StopLoss) result = 'SL';
+        if (TradeType === 'long') {
+            if (currentPrice >= TPSL.TakeProfit) result = 'TP';
+            else if (currentPrice <= TPSL.StopLoss) result = 'SL';
             else result = 'InTrade';
         } else {
-            if (currentPrice <= this.TPSL.TakeProfit) result = 'TP';
-            else if (currentPrice >= this.TPSL.StopLoss) result = 'SL';
+            if (currentPrice <= TPSL.TakeProfit) result = 'TP';
+            else if (currentPrice >= TPSL.StopLoss) result = 'SL';
             else result = 'InTrade';
         }
         return result;

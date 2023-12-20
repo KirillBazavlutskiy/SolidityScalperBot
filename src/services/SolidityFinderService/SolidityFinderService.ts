@@ -1,13 +1,33 @@
-import {SolidityModel, SolidityTicket, LimitType} from "./SolidityFinderModels";
-import {Bid, Binance, DailyStatsResult} from "binance-api-node";
+import {LimitType, SolidityModel, SolidityTicket} from "./SolidityFinderModels";
+import {Bid, Binance, CandleChartInterval, DailyStatsResult} from "binance-api-node";
 import DocumentLogService from "../DocumentLogService/DocumentLogService";
 import {FontColor} from "../FontStyleObjects";
 import {RatioCalculatingKit} from "../BinanceTradesService/RatioCalculatingKit/RatioCalculatingKit";
+import {SolidityFinderOption} from "../../index";
 
 class SolidityFinderService {
     client: Binance;
     constructor(client: Binance) {
         this.client = client;
+    }
+
+    CheckPriceAtTargetTime = async (symbol: string, targetPrice: number, durationHours: number) => {
+            try {
+                const endDate = Date.now();
+                const startDate = endDate - durationHours * 60 * 60 * 1000;
+
+                const candles = await this.client.candles({
+                    symbol,
+                    interval: CandleChartInterval.THIRTY_MINUTES,
+                    startTime: startDate,
+                    endTime: endDate,
+                    limit: durationHours * 2,
+                });
+
+                return candles.some(candle => parseFloat(candle.low) < targetPrice && targetPrice < parseFloat(candle.high));
+            } catch (e) {
+                throw e;
+            }
     }
 
     FetchAllSymbols = async (minVolume: number) => {
@@ -102,7 +122,8 @@ class SolidityFinderService {
             DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `Error with fetching symbols! ${e.message}`, [], true);
         }
 
-        return symbolsWithSolidity;
+        return symbolsWithSolidity
+            .filter(symbolWithSolidity => this.CheckPriceAtTargetTime(symbolWithSolidity.Symbol, symbolWithSolidity.Solidity.Price, SolidityFinderOption.checkReachingPriceDuration));
     };
 }
 
