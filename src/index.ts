@@ -35,7 +35,7 @@ tcs.SendMessage('Bot has started!');
 
 const fetchSolidity = async (): Promise<void> => {
     if (tcs.GetTradeStatus()) {
-        TradingPairsService.TPWithSolidity = await sfs.FindAllSolidity(SolidityFinderOption.minVolume, SolidityFinderOption.ratioAccess, SolidityFinderOption.upToPriceAccess);
+        TradingPairsService.TPWithSolidity = await sfs.FindAllSolidity(SolidityFinderOption.minVolume, SolidityFinderOption.ratioAccess, SolidityFinderOption.upToPriceAccess, SolidityFinderOption.checkReachingPriceDuration);
         DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `Found solidity: ${TradingPairsService.TPWithSolidity.length}`, [ dls ]);
         TradingPairsService.TPWithSolidity.forEach(tp => { if (!TradingPairsService.CheckTPInTrade(tp, true)) bts.TradeSymbol(tp) } );
     } else {

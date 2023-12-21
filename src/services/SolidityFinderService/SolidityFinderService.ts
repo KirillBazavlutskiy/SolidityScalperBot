@@ -3,7 +3,6 @@ import {Bid, Binance, CandleChartInterval, DailyStatsResult} from "binance-api-n
 import DocumentLogService from "../DocumentLogService/DocumentLogService";
 import {FontColor} from "../FontStyleObjects";
 import {RatioCalculatingKit} from "../BinanceTradesService/RatioCalculatingKit/RatioCalculatingKit";
-import {SolidityFinderOption} from "../../index";
 
 class SolidityFinderService {
     client: Binance;
@@ -11,15 +10,22 @@ class SolidityFinderService {
         this.client = client;
     }
 
-    CheckPriceAtTargetTime = async (symbol: string, targetPrice: number, durationHours: number) => {
+    CheckPriceAtTargetTime = async (symbol: string, targetPrice: number, durationMinutes: number) => {
             try {
                 const candles = await this.client.candles({
                     symbol,
-                    interval: CandleChartInterval.FIFTEEN_MINUTES,
-                    limit: durationHours * 2,
+                    interval: CandleChartInterval.ONE_MINUTE,
+                    limit: durationMinutes,
                 });
 
-                return candles.some(candle => parseFloat(candle.low) < targetPrice && targetPrice < parseFloat(candle.high));
+                let checkResult = false;
+
+                candles.forEach(candle => {
+                    const result = parseFloat(candle.low) < targetPrice && targetPrice < parseFloat(candle.high);
+                    if (result) checkResult = true;
+                });
+
+                return checkResult;
             } catch (e) {
                 throw e;
             }
@@ -92,7 +98,7 @@ class SolidityFinderService {
         }
     };
 
-    FindAllSolidity = async (minVolume: number, ratioAccess: number, upToPriceAccess: number) => {
+    FindAllSolidity = async (minVolume: number, ratioAccess: number, upToPriceAccess: number, checkReachingPriceDuration: number) => {
         const symbolsWithSolidity: SolidityModel[] = [];
 
         try {
@@ -118,7 +124,9 @@ class SolidityFinderService {
         }
 
         return symbolsWithSolidity
-            .filter(symbolWithSolidity => !this.CheckPriceAtTargetTime(symbolWithSolidity.Symbol, symbolWithSolidity.Solidity.Price, SolidityFinderOption.checkReachingPriceDuration));
+            .filter(async (symbolWithSolidity) => {
+                return await this.CheckPriceAtTargetTime(symbolWithSolidity.Symbol, symbolWithSolidity.Solidity.Price, checkReachingPriceDuration)
+            });
     };
 }
 
