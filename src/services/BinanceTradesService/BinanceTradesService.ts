@@ -146,7 +146,7 @@ export class BinanceTradesService {
                             OpenOrderAccess = orderQuantityNominal <= 20;
 
                             if (OpenOrderAccess) {
-                                await otm.PlaceMarketOrder(orderQuantity);
+                                FuturesOpenTradePrice = await otm.PlaceMarketOrder(orderQuantity);
                             } else {
                                 TradeStatus = 'disabled';
                                 WebSocketSpot.close();
@@ -268,6 +268,7 @@ export class BinanceTradesService {
                 }
             } catch (e) {
                 DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Error with spot trade message ${e.message}`, [dls], true);
+                tcs.SendMessage(`Error with spot trade message ${e.message}`);
             }
 
             isProcessingSpotTrades = false;
@@ -295,6 +296,7 @@ export class BinanceTradesService {
                 }
             } catch (e) {
                 DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Error with spot book depth update ${e.message}`, [dls], true);
+                tcs.SendMessage(`Error with spot book depth update ${e.message}`);
             }
 
             isProcessingSpotTrades = false;

@@ -1,4 +1,4 @@
 {
-  "TakeProfit": 0.01,
-  "StopLoss": 0.003
+  "TakeProfit": 0.03,
+  "StopLoss": 0.0015
 }

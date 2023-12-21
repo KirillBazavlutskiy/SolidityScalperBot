@@ -13,14 +13,9 @@ class SolidityFinderService {
 
     CheckPriceAtTargetTime = async (symbol: string, targetPrice: number, durationHours: number) => {
             try {
-                const endDate = Date.now();
-                const startDate = endDate - durationHours * 60 * 60 * 1000;
-
                 const candles = await this.client.candles({
                     symbol,
-                    interval: CandleChartInterval.THIRTY_MINUTES,
-                    startTime: startDate,
-                    endTime: endDate,
+                    interval: CandleChartInterval.FIFTEEN_MINUTES,
                     limit: durationHours * 2,
                 });
 
@@ -123,7 +118,7 @@ class SolidityFinderService {
         }
 
         return symbolsWithSolidity
-            .filter(symbolWithSolidity => this.CheckPriceAtTargetTime(symbolWithSolidity.Symbol, symbolWithSolidity.Solidity.Price, SolidityFinderOption.checkReachingPriceDuration));
+            .filter(symbolWithSolidity => !this.CheckPriceAtTargetTime(symbolWithSolidity.Symbol, symbolWithSolidity.Solidity.Price, SolidityFinderOption.checkReachingPriceDuration));
     };
 }
 

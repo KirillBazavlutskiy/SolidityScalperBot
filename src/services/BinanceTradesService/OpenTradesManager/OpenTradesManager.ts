@@ -57,7 +57,7 @@ export class OpenTradesManager {
         this.OpenOrderPrice = parseFloat(orderCheck.cumQuote) / parseFloat(orderCheck.executedQty);
 
         this.TPSL = OpenTradesManager.CalcTPSL(this.OpenOrderPrice, this.LimitType, TradeStopsOptions.TakeProfit, TradeStopsOptions.StopLoss, this.TickSizeFutures);
-        this.StopLossBreakpoint = BinanceTradesService.FindClosestLimitOrder(this.OpenOrderPrice / RatioCalculatingKit.CalcRealRatio(0.006, this.LimitType), this.TickSizeFutures);
+        this.StopLossBreakpoint = BinanceTradesService.FindClosestLimitOrder(this.OpenOrderPrice / RatioCalculatingKit.CalcRealRatio(0.001, this.LimitType), this.TickSizeFutures);
 
         const orderMsg = `${this.Symbol} | Order Type: ${this.TradeType} | Nominal Quantity: ${parseFloat(this.OrderQuantity) * this.OpenOrderPrice} | TP: ${this.TPSL.TakeProfit} | LP: ${this.OpenOrderPrice} | SL: ${this.TPSL.StopLoss}`;
         const orderMsgTg = `${this.Symbol} | Order Type: ${this.TradeType}\nNominal Quantity: ${parseFloat(this.OrderQuantity) * this.OpenOrderPrice}\nTP: ${this.TPSL.TakeProfit}\nLP: ${this.OpenOrderPrice}\nSL: ${this.TPSL.StopLoss}`;
@@ -71,6 +71,8 @@ export class OpenTradesManager {
         } catch (e) {
             throw e;
         }
+
+        return this.OpenOrderPrice
     }
 
     UpdateLastPrice = (price: number) => {
@@ -115,11 +117,15 @@ export class OpenTradesManager {
     }
 
     private PlaceStopLossLimit = async () => {
-        if (this.StopLossStopLimitOrderId !== undefined) {
-            await this.client.futuresCancelOrder({
-                symbol: this.Symbol,
-                orderId: this.StopLossStopLimitOrderId,
-            })
+        try {
+            if (this.StopLossStopLimitOrderId !== undefined) {
+                await this.client.futuresCancelOrder({
+                    symbol: this.Symbol,
+                    orderId: this.StopLossStopLimitOrderId,
+                })
+            }
+        } catch (e) {
+            throw e;
         }
 
         try {
