@@ -4,7 +4,8 @@ import {FontColor} from "../FontStyleObjects";
 import {sfs} from "../../index";
 import {TradeType} from "../BinanceTradesService/BinanceTradesModels";
 import solidityFinderService from "../SolidityFinderService/SolidityFinderService";
-import {RatioCalculatingKit} from "../BinanceTradesService/RatioCalculatingKit/RatioCalculatingKit";
+import {BinanceOrdersCalculatingKit} from "../BinanceTradesService/BinanceOrdersCalculatingKit/BinanceOrdersCalculatingKit";
+import {OpenTradesManager} from "../BinanceTradesService/OpenTradesManager/OpenTradesManager";
 
 class TradingPairsService {
     static TPWithSolidity: SolidityModel[] = [];
@@ -12,28 +13,11 @@ class TradingPairsService {
 
     static LogTradingPairs = (): void => {
         const TradingSymbols = this.TPWithSolidityInTrade.map(TradingPair => TradingPair.Symbol.padEnd(16, ' '));
-        const TradingPairsUpToPrice = this.TPWithSolidityInTrade.map(TradingPair => this.ShowProfit(TradingPair.Solidity.UpToPrice));
+        const TradingPairsUpToPrice = this.TPWithSolidityInTrade.map(TradingPair => OpenTradesManager.ShowProfit(TradingPair.Solidity.UpToPrice));
 
         DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `\t${TradingSymbols.join('\t')}\n` +
                                                             `\t\t\t\t${TradingPairsUpToPrice.join('\t\t')}`
         , [], true);
-    }
-
-    static ShowProfit = (UpToPrice: number, stringWithPercent: boolean = true, TradeType?: TradeType) => {
-        let Profit: string;
-        if (TradeType !== undefined) {
-            switch (TradeType) {
-                case "long":
-                    Profit = `${(parseFloat((1 - UpToPrice).toFixed(4)) * 100).toFixed(4)}%`;
-                    break;
-                case "short":
-                    Profit = `${(parseFloat((UpToPrice - 1).toFixed(4)) * 100).toFixed(4)}%`;
-                    break;
-            }
-        } else {
-            Profit = `${UpToPrice > 1 ? '-' : '+'}${(parseFloat(RatioCalculatingKit.CalcRatioChange(UpToPrice).toFixed(4)) * 100).toFixed(4)}${stringWithPercent && '%'}`;
-        }
-        return Profit;
     }
 
     static ChangeTPInTrade = (solidityModel: SolidityModel) => {

@@ -1,11 +1,12 @@
 import {Binance} from "binance-api-node";
-import {CalcTPSLOutput, CheckTPSLOutput, TradeType} from "../BinanceTradesModels";
+import {TradeType} from "../BinanceTradesModels";
 import {dls, tcs, tls, TradeStopsOptions} from "../../../index";
-import {RatioCalculatingKit} from "../RatioCalculatingKit/RatioCalculatingKit";
+import {BinanceOrdersCalculatingKit} from "../BinanceOrdersCalculatingKit/BinanceOrdersCalculatingKit";
 import {LimitType} from "../../SolidityFinderService/SolidityFinderModels";
-import {BinanceTradesService} from "../BinanceTradesService";
 import DocumentLogService from "../../DocumentLogService/DocumentLogService";
 import {FontColor} from "../../FontStyleObjects";
+import {TradingStopOptions} from "../../../../Options/TradeStopsOptions/TradeStopsOptionsModels";
+import {TradeStatus, UpdateLastPriceOutput} from "./OpenTradesManagerModels";
 
 export class OpenTradesManager {
     private client: Binance;
@@ -18,14 +19,18 @@ export class OpenTradesManager {
     private TickSizeFutures: number;
 
     private OpenOrderPrice: number;
-    private TPSL: CalcTPSLOutput;
-    private StopLossBreakpoint: number;
+    private TradeStopOptions: TradingStopOptions;
+
+    private CurrentProfit: number;
+    private MaxProfit: number;
+    private MaxProfitPrice: number;
 
     private MarketOrderId: number;
     private StopLossStopLimitOrderId: number;
-    private TakeProfitStopLimitOrderId: number;
 
-    private Status: CheckTPSLOutput;
+    private StopLossPrice: number;
+
+    private Status: TradeStatus;
 
     constructor(client: Binance, Symbol: string, TradeType: TradeType, TickSizeFutures: number) {
         this.client = client;
@@ -33,6 +38,7 @@ export class OpenTradesManager {
         this.TradeType = TradeType;
         this.LimitType = this.TradeType === 'long' ? 'asks' : 'bids';
         this.TickSizeFutures = TickSizeFutures;
+        this.TradeStopOptions = TradeStopsOptions;
     }
 
     PlaceMarketOrder = async (OrderQuantity: string) => {
@@ -55,19 +61,20 @@ export class OpenTradesManager {
         });
 
         this.OpenOrderPrice = parseFloat(orderCheck.cumQuote) / parseFloat(orderCheck.executedQty);
-
-        this.TPSL = OpenTradesManager.CalcTPSL(this.OpenOrderPrice, this.LimitType, TradeStopsOptions.TakeProfit, TradeStopsOptions.StopLoss, this.TickSizeFutures);
-        this.StopLossBreakpoint = BinanceTradesService.FindClosestLimitOrder(this.OpenOrderPrice / RatioCalculatingKit.CalcRealRatio(0.001, this.LimitType), this.TickSizeFutures);
-
-        const orderMsg = `${this.Symbol} | Order Type: ${this.TradeType} | Nominal Quantity: ${parseFloat(this.OrderQuantity) * this.OpenOrderPrice} | TP: ${this.TPSL.TakeProfit} | LP: ${this.OpenOrderPrice} | SL: ${this.TPSL.StopLoss}`;
-        const orderMsgTg = `${this.Symbol} | Order Type: ${this.TradeType}\nNominal Quantity: ${parseFloat(this.OrderQuantity) * this.OpenOrderPrice}\nTP: ${this.TPSL.TakeProfit}\nLP: ${this.OpenOrderPrice}\nSL: ${this.TPSL.StopLoss}`;
-
-        tcs.SendMessage(orderMsgTg);
-        DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], orderMsg, [dls, tls], true);
+        this.MaxProfitPrice = this.OpenOrderPrice;
+        this.MaxProfitPrice = this.OpenOrderPrice;
+        this.MaxProfit = 0;
+        this.StopLossPrice = BinanceOrdersCalculatingKit.CalcPriceByRatio(this.MaxProfitPrice, TradeStopsOptions.StopLoss, this.LimitType, this.TickSizeFutures);
 
         try {
-            await this.PlaceTakeProfitLimit();
+            // await this.PlaceTakeProfitLimit();
             await this.PlaceStopLossLimit();
+
+            const orderMsg = `${this.Symbol} | Order Type: ${this.TradeType} | Nominal Quantity: ${parseFloat(this.OrderQuantity) * this.OpenOrderPrice} | LP: ${this.OpenOrderPrice} | SL: ${this.StopLossPrice}`;
+            const orderMsgTg = `${this.Symbol} | Order Type: ${this.TradeType}\nNominal Quantity: ${parseFloat(this.OrderQuantity) * this.OpenOrderPrice}\nLP: ${this.OpenOrderPrice}\nSL: ${this.StopLossPrice}`;
+
+            tcs.SendMessage(orderMsgTg);
+            DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], orderMsg, [dls, tls], true);
         } catch (e) {
             throw e;
         }
@@ -75,106 +82,75 @@ export class OpenTradesManager {
         return this.OpenOrderPrice
     }
 
-    UpdateLastPrice = (price: number) => {
-        this.Status = OpenTradesManager.CheckTPSL(price, this.TPSL, this.TradeType);
-        if (this.Status === "InTrade") {
-            const TrailingStopLossPosition = price - this.StopLossBreakpoint;
-            if (TrailingStopLossPosition > 0 && this.TradeType === 'long') {
-                this.StopLossBreakpoint += TrailingStopLossPosition;
-                this.TPSL.StopLoss += TrailingStopLossPosition;
-                this.PlaceStopLossLimit();
-            } else if (TrailingStopLossPosition < 0 && this.TradeType === 'short') {
-                this.StopLossBreakpoint += TrailingStopLossPosition;
-                this.TPSL.StopLoss += TrailingStopLossPosition;
-                this.PlaceStopLossLimit();
+    UpdateLastPrice = (price: number): UpdateLastPriceOutput => {
+        try {
+            const CurrentProfit = parseFloat(OpenTradesManager.ShowProfit(this.OpenOrderPrice / price, false, this.TradeType));
+
+            if (BinanceOrdersCalculatingKit.CheckReachingPrice(price, this.StopLossPrice, this.TradeType)) {
+                this.Status = 'Closed';
             }
-        } else {
-            setTimeout(() => { this.client.futuresCancelAllOpenOrders({ symbol: this.Symbol }) }, 200);
-        }
 
-        return this.Status;
-    }
-    private PlaceTakeProfitLimit = async () => {
-        try {
-            const { orderId } = await this.client.futuresOrder({
-                symbol: this.Symbol,
-                side: this.TradeType === 'long' ? 'SELL' : 'BUY',
-                type: 'LIMIT',
-                price: this.TPSL.TakeProfit.toString(),
-                quantity: this.OrderQuantity,
-                timeInForce: 'GTC',
-            });
-            this.TakeProfitStopLimitOrderId = orderId;
-        } catch (e) {
-            await this.client.futuresOrder({
-                symbol: this.Symbol,
-                side: this.TradeType === 'long' ? 'SELL' : 'BUY',
-                type: 'MARKET',
-                quantity: this.OrderQuantity,
-            });
-            throw e;
-        }
-    }
-
-    private PlaceStopLossLimit = async () => {
-        try {
-            if (this.StopLossStopLimitOrderId !== undefined) {
-                await this.client.futuresCancelOrder({
-                    symbol: this.Symbol,
-                    orderId: this.StopLossStopLimitOrderId,
-                })
+            if (CurrentProfit > this.MaxProfit) {
+                this.MaxProfit = CurrentProfit;
+                this.MaxProfitPrice = price;
+                this.StopLossPrice = BinanceOrdersCalculatingKit.CalcPriceByRatio(this.MaxProfitPrice, TradeStopsOptions.StopLoss, this.LimitType, this.TickSizeFutures);
             }
         } catch (e) {
             throw e;
         }
-
-        try {
-            const { orderId } = await this.client.futuresOrder({
-                symbol: this.Symbol,
-                side: this.TradeType === 'long' ? 'SELL' : 'BUY',
-                type: 'STOP_MARKET',
-                stopPrice: this.TPSL.StopLoss.toString(),
-                quantity: this.OrderQuantity,
-            });
-            this.StopLossStopLimitOrderId = orderId;
-        } catch (e) {
-            await this.client.futuresOrder({
-                symbol: this.Symbol,
-                side: this.TradeType === 'long' ? 'SELL' : 'BUY',
-                type: 'MARKET',
-                quantity: this.OrderQuantity,
-            });
-            throw e;
-        }
-    }
-
-    static CalcTPSL = (currentPrice: number, limitType: LimitType, upToPriceTP: number, upToPriceSL: number, tickSize: number): CalcTPSLOutput => {
-        let currentUpToPriceTP: number = RatioCalculatingKit.CalcRealRatio(upToPriceTP, limitType === 'asks' ? 'bids' : 'asks');
-        let currentUpToPriceSL: number = RatioCalculatingKit.CalcRealRatio(upToPriceSL, limitType);
-
-        let currentTakeProfit: number = currentPrice * currentUpToPriceTP;
-        let currentStopLoss: number = currentPrice * currentUpToPriceSL;
-
-        const fixedTakeProfit = BinanceTradesService.FindClosestLimitOrder(currentTakeProfit, tickSize);
-        const fixedStopLoss = BinanceTradesService.FindClosestLimitOrder(currentStopLoss, tickSize);
 
         return {
-            TakeProfit: fixedTakeProfit,
-            StopLoss: fixedStopLoss,
-        }
+            TradeStatus: this.Status,
+            CurrentProfit: this.CurrentProfit,
+        };
+    }
+    // private PlaceTakeProfitLimit = async () => {
+    //     try {
+    //         const { orderId } = await this.client.futuresOrder({
+    //             symbol: this.Symbol,
+    //             side: this.TradeType === 'long' ? 'SELL' : 'BUY',
+    //             type: 'LIMIT',
+    //             price: this.TPSL.TakeProfit.toString(),
+    //             quantity: this.OrderQuantity,
+    //             timeInForce: 'GTC',
+    //         });
+    //         this.TakeProfitStopLimitOrderId = orderId;
+    //     } catch (e) {
+    //         await this.client.futuresOrder({
+    //             symbol: this.Symbol,
+    //             side: this.TradeType === 'long' ? 'SELL' : 'BUY',
+    //             type: 'MARKET',
+    //             quantity: this.OrderQuantity,
+    //         });
+    //         throw e;
+    //     }
+    // }
+
+    private PlaceStopLossLimit = async () => {
+        const { orderId } = await this.client.futuresOrder({
+            symbol: this.Symbol,
+            side: this.TradeType === 'long' ? 'SELL' : 'BUY',
+            type: 'TRAILING_STOP_MARKET',
+            callbackRate: (this.TradeStopOptions.StopLoss * 100).toString(),
+        });
+        this.StopLossStopLimitOrderId = orderId;
     }
 
-    static CheckTPSL = (currentPrice: number, TPSL: CalcTPSLOutput, TradeType: TradeType): CheckTPSLOutput => {
-        let result: CheckTPSLOutput;
-        if (TradeType === 'long') {
-            if (currentPrice >= TPSL.TakeProfit) result = 'TP';
-            else if (currentPrice <= TPSL.StopLoss) result = 'SL';
-            else result = 'InTrade';
+
+    static ShowProfit = (UpToPrice: number, stringWithPercent: boolean = true, TradeType?: TradeType) => {
+        let Profit: string;
+        if (TradeType !== undefined) {
+            switch (TradeType) {
+                case "long":
+                    Profit = `${(parseFloat((1 - UpToPrice).toFixed(4)) * 100).toFixed(4)}${stringWithPercent && '%'}`;
+                    break;
+                case "short":
+                    Profit = `${(parseFloat((UpToPrice - 1).toFixed(4)) * 100).toFixed(4)}${stringWithPercent && '%'}`;
+                    break;
+            }
         } else {
-            if (currentPrice <= TPSL.TakeProfit) result = 'TP';
-            else if (currentPrice >= TPSL.StopLoss) result = 'SL';
-            else result = 'InTrade';
+            Profit = `${UpToPrice > 1 ? '-' : '+'}${(parseFloat(BinanceOrdersCalculatingKit.CalcRatioChange(UpToPrice).toFixed(4)) * 100).toFixed(4)}${stringWithPercent && '%'}`;
         }
-        return result;
+        return Profit;
     }
 }

@@ -1,4 +1,4 @@
-export interface SolidityFinderOptions {
+export interface SolidityFinderOptionsModel {
     minVolume: number;
     ratioAccess: number;
     upToPriceAccess: number;

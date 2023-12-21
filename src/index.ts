@@ -5,7 +5,7 @@ import {BinanceTradesService} from "./services/BinanceTradesService/BinanceTrade
 import DocumentLogService, {DocumentLogger} from "./services/DocumentLogService/DocumentLogService";
 import {FontColor} from "./services/FontStyleObjects";
 import * as fs from "fs";
-import {SolidityFinderOptions} from "../Options/SolidityFInderOptions/SolidityFinderOptionsModels";
+import {SolidityFinderOptionsModel} from "../Options/SolidityFInderOptions/SolidityFinderOptionsModels";
 import {TradingStopOptions} from "../Options/TradeStopsOptions/TradeStopsOptionsModels";
 import {TelegramControllerService} from "./services/TelegramControlerService/TelegramControlerService";
 
@@ -22,7 +22,7 @@ const client = Binance({
 
 const SolidityOptionsJson = fs.readFileSync('./Options/SolidityFinderOptions/SolidityFinderOptions.json', 'utf-8');
 const TradeStopsOptionsJson = fs.readFileSync('./Options/TradeStopsOptions/TradeStopsOptions.json', 'utf-8');
-export const SolidityFinderOption: SolidityFinderOptions = JSON.parse(SolidityOptionsJson);
+export const SolidityFinderOptions: SolidityFinderOptionsModel = JSON.parse(SolidityOptionsJson);
 export const TradeStopsOptions: TradingStopOptions = JSON.parse(TradeStopsOptionsJson);
 
 export const sfs = new SolidityFinderService(client);
@@ -35,7 +35,7 @@ tcs.SendMessage('Bot has started!');
 
 const fetchSolidity = async (): Promise<void> => {
     if (tcs.GetTradeStatus()) {
-        TradingPairsService.TPWithSolidity = await sfs.FindAllSolidity(SolidityFinderOption.minVolume, SolidityFinderOption.ratioAccess, SolidityFinderOption.upToPriceAccess, SolidityFinderOption.checkReachingPriceDuration);
+        TradingPairsService.TPWithSolidity = await sfs.FindAllSolidity(SolidityFinderOptions.minVolume, SolidityFinderOptions.ratioAccess, SolidityFinderOptions.upToPriceAccess, SolidityFinderOptions.checkReachingPriceDuration);
         DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `Found solidity: ${TradingPairsService.TPWithSolidity.length}`, [ dls ]);
         TradingPairsService.TPWithSolidity.forEach(tp => { if (!TradingPairsService.CheckTPInTrade(tp, true)) bts.TradeSymbol(tp) } );
     } else {

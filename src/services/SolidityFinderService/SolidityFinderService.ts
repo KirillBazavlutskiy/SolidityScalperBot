@@ -2,7 +2,7 @@ import {LimitType, SolidityModel, SolidityTicket} from "./SolidityFinderModels";
 import {Bid, Binance, CandleChartInterval, DailyStatsResult} from "binance-api-node";
 import DocumentLogService from "../DocumentLogService/DocumentLogService";
 import {FontColor} from "../FontStyleObjects";
-import {RatioCalculatingKit} from "../BinanceTradesService/RatioCalculatingKit/RatioCalculatingKit";
+import {BinanceOrdersCalculatingKit} from "../BinanceTradesService/BinanceOrdersCalculatingKit/BinanceOrdersCalculatingKit";
 
 class SolidityFinderService {
     client: Binance;
@@ -113,7 +113,7 @@ class SolidityFinderService {
                     symbolsGroup.map(async (symbol) => {
                         const solidityInfo = await this.FindSolidity(symbol, ratioAccess, upToPriceAccess);
                         if (solidityInfo.Solidity.Ratio > ratioAccess &&
-                            RatioCalculatingKit.CalcSimplifiedRatio(solidityInfo.Solidity.UpToPrice, solidityInfo.Solidity.Type) < upToPriceAccess) {
+                            BinanceOrdersCalculatingKit.CalcSimplifiedRatio(solidityInfo.Solidity.UpToPrice, solidityInfo.Solidity.Type) < upToPriceAccess) {
                             symbolsWithSolidity.push(solidityInfo);
                         }
                     })

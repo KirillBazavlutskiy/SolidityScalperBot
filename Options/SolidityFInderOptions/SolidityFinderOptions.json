@@ -2,5 +2,5 @@
   "minVolume": 2000000,
   "ratioAccess": 22,
   "upToPriceAccess": 0.012,
-  "checkReachingPriceDuration": 10
+  "checkReachingPriceDuration": 20
 }
