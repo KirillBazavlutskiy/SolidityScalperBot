@@ -1,5 +1,6 @@
-import TelegramBot, { InlineKeyboardMarkup, Message, CallbackQuery } from 'node-telegram-bot-api';
+import TelegramBot, {InlineKeyboardMarkup, Message, CallbackQuery, ReplyKeyboardMarkup, KeyboardButton} from 'node-telegram-bot-api';
 import fs from "fs";
+import {text} from "stream/consumers";
 
 export class TelegramControllerService {
     private Bot: TelegramBot;
@@ -18,17 +19,30 @@ export class TelegramControllerService {
         this.Bot.on('callback_query', this.onCallbackQuery.bind(this));
     }
 
-    private CreateKeyBoard = (): InlineKeyboardMarkup => ({
-        inline_keyboard: [
-            this.TradingAccess ?
-                [{ text: 'Stop searching', callback_data: 'stopSearching' }] :
-                [{ text: 'Start searching', callback_data: 'startSearching' }]
-        ]
-    })
+    private CreateKeyBoard = (): ReplyKeyboardMarkup => ({
+        keyboard: [
+            [
+                {
+                    text: this.TradingAccess ?
+                        'Stop searching' :
+                        'Start searching'
+                },
+                {
+                    text: 'Ping'
+                }
+            ]
+        ],
+        resize_keyboard: true,
+        one_time_keyboard: false
+    });
 
     private onStart = (msg: Message) => {
         const chatId = msg.chat.id;
-        this.Bot.sendMessage(chatId, 'Hello! Now you subscribed for live trades!', { reply_markup: this.CreateKeyBoard() });
+        this.Bot.sendMessage(chatId, 'Hello! Now you subscribed for live trades!', {
+            reply_markup:  {
+                ...this.CreateKeyBoard(),
+            },
+        });
         const subscribedUsersJson = fs.readFileSync(this.dataPath, 'utf-8');
         const subscribedUsers: number[] = JSON.parse(subscribedUsersJson);
 
@@ -36,21 +50,43 @@ export class TelegramControllerService {
     }
 
     private onMessage = (msg: Message) => {
-        // Обработка текстовых сообщений, если необходимо
+        const chatId: number = msg.chat.id || 0;
+        const data: string = msg.text || '';
+
+        switch (data) {
+            case 'Start searching':
+                this.TradingAccess = true;
+                this.Bot.sendMessage(chatId, 'Bot started searching!', { reply_markup: this.CreateKeyBoard() });
+                this.chatId = chatId;
+                break;
+            case 'Stop searching':
+                this.TradingAccess = false;
+                this.Bot.sendMessage(chatId, 'Bot stopped searching!', { reply_markup: this.CreateKeyBoard() });
+                break;
+            case 'Ping':
+                this.Bot.sendMessage(chatId, 'Program is active!', { reply_markup: this.CreateKeyBoard() });
+                break;
+        }
     }
 
     private onCallbackQuery = (callbackQuery: CallbackQuery) => {
-        const chatId: number = callbackQuery.message?.chat.id || 0;
-        const data: string = callbackQuery.data || '';
-
-        if (data === 'startSearching') {
-            this.TradingAccess = true;
-            this.Bot.sendMessage(chatId, 'Bot started searching!', { reply_markup: this.CreateKeyBoard() });
-            this.chatId = chatId;
-        } else if (data === 'stopSearching') {
-            this.TradingAccess = false;
-            this.Bot.sendMessage(chatId, 'Bot stopped searching!', { reply_markup: this.CreateKeyBoard() });
-        }
+        // const chatId: number = callbackQuery.message?.chat.id || 0;
+        // const data: string = callbackQuery.data || '';
+        //
+        // switch (data) {
+        //     case 'startSearching':
+        //         this.TradingAccess = true;
+        //         this.Bot.sendMessage(chatId, 'Bot started searching!', { reply_markup: this.CreateKeyBoard() });
+        //         this.chatId = chatId;
+        //         break;
+        //     case 'stopSearching':
+        //         this.TradingAccess = false;
+        //         this.Bot.sendMessage(chatId, 'Bot stopped searching!', { reply_markup: this.CreateKeyBoard() });
+        //         break;
+        //     case 'Ping':
+        //         this.Bot.sendMessage(chatId, 'Program is active!', { reply_markup: this.CreateKeyBoard() });
+        //         break;
+        // }
     }
 
     GetTradeStatus = (): boolean => {
