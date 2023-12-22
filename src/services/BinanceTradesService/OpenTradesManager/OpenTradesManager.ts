@@ -42,33 +42,33 @@ export class OpenTradesManager {
     }
 
     PlaceMarketOrder = async (OrderQuantity: string) => {
-        this.OrderQuantity = OrderQuantity;
-
-        const order = await this.client.futuresOrder({
-            symbol: this.Symbol,
-            side: this.TradeType === 'long' ? 'BUY' : 'SELL',
-            type: "MARKET",
-            quantity: this.OrderQuantity,
-        })
-
-        this.MarketOrderId = order.orderId;
-
-        await new Promise(resolve => setTimeout(resolve, 150));
-
-        const orderCheck = await this.client.futuresGetOrder({
-            symbol: this.Symbol,
-            orderId: this.MarketOrderId,
-        });
-
-        this.OpenOrderPrice = parseFloat(orderCheck.cumQuote) / parseFloat(orderCheck.executedQty);
-        this.MaxProfitPrice = this.OpenOrderPrice;
-        this.MaxProfitPrice = this.OpenOrderPrice;
-        this.MaxProfit = 0;
-        this.StopLossPrice = BinanceOrdersCalculatingKit.CalcPriceByRatio(this.MaxProfitPrice, TradeStopsOptions.StopLoss, this.LimitType, this.TickSizeFutures);
-
         try {
-            // await this.PlaceTakeProfitLimit();
+            this.OrderQuantity = OrderQuantity;
+
+            const order = await this.client.futuresOrder({
+                symbol: this.Symbol,
+                side: this.TradeType === 'long' ? 'BUY' : 'SELL',
+                type: "MARKET",
+                quantity: this.OrderQuantity,
+            })
+
+            this.MarketOrderId = order.orderId;
+
+            await new Promise(resolve => setTimeout(resolve, 150));
+
             await this.PlaceStopLossLimit();
+
+            const orderCheck = await this.client.futuresGetOrder({
+                symbol: this.Symbol,
+                orderId: this.MarketOrderId,
+            });
+            this.OpenOrderPrice = parseFloat(orderCheck.cumQuote) / parseFloat(orderCheck.executedQty);
+            this.MaxProfitPrice = this.OpenOrderPrice;
+            this.MaxProfitPrice = this.OpenOrderPrice;
+            this.MaxProfit = 0;
+
+            this.StopLossPrice = BinanceOrdersCalculatingKit.CalcPriceByRatio(this.MaxProfitPrice, TradeStopsOptions.StopLoss, this.LimitType, this.TickSizeFutures);
+            // await this.PlaceTakeProfitLimit();
 
             const orderMsg = `${this.Symbol} | Order Type: ${this.TradeType} | Nominal Quantity: ${parseFloat(this.OrderQuantity) * this.OpenOrderPrice} | LP: ${this.OpenOrderPrice} | SL: ${this.StopLossPrice}`;
             const orderMsgTg = `${this.Symbol} | Order Type: ${this.TradeType}\nNominal Quantity: ${parseFloat(this.OrderQuantity) * this.OpenOrderPrice}\nLP: ${this.OpenOrderPrice}\nSL: ${this.StopLossPrice}`;
@@ -129,11 +129,12 @@ export class OpenTradesManager {
 
     private PlaceStopLossLimit = async () => {
         try {
+            console.log((this.TradeStopOptions.StopLoss * 100).toString())
             const { orderId } = await this.client.futuresOrder({
-            symbol: this.Symbol,
-            side: this.TradeType === 'long' ? 'SELL' : 'BUY',
-            type: 'TRAILING_STOP_MARKET',
-            callbackRate: (this.TradeStopOptions.StopLoss * 100).toString(),
+                symbol: this.Symbol,
+                side: this.TradeType === 'long' ? 'SELL' : 'BUY',
+                type: 'TRAILING_STOP_MARKET',
+                callbackRate: (this.TradeStopOptions.StopLoss * 100).toString(),
             });
             this.StopLossStopLimitOrderId = orderId;
         } catch (e) {
