@@ -22,6 +22,7 @@ class SolidityFinderService {
 
                 candles.forEach(candle => {
                     const result = parseFloat(candle.low) < targetPrice && targetPrice < parseFloat(candle.high);
+                    console.log(`${symbol} | ${targetPrice} ${candle.low} ${candle.high} ${result}`)
                     if (result) checkResult = true;
                 });
 
@@ -123,10 +124,18 @@ class SolidityFinderService {
             DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `Error with fetching symbols! ${e.message}`, [], true);
         }
 
-        return symbolsWithSolidity
-            .filter(async (symbolWithSolidity) => {
-                return await this.CheckPriceAtTargetTime(symbolWithSolidity.Symbol, symbolWithSolidity.Solidity.Price, checkReachingPriceDuration)
-            });
+        let filteredSymbolsWithSolidity: SolidityModel[] = [];
+
+        await Promise.all(
+            symbolsWithSolidity.map(async (symbolWithSolidity) => {
+                const result = !(await this.CheckPriceAtTargetTime(symbolWithSolidity.Symbol, symbolWithSolidity.Solidity.Price, checkReachingPriceDuration));
+                if (result) {
+                    filteredSymbolsWithSolidity.push(symbolWithSolidity);
+                }
+            })
+        );
+
+        return filteredSymbolsWithSolidity;
     };
 }
 

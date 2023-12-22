@@ -84,7 +84,7 @@ export class OpenTradesManager {
 
     UpdateLastPrice = (price: number): UpdateLastPriceOutput => {
         try {
-            const CurrentProfit = parseFloat(OpenTradesManager.ShowProfit(this.OpenOrderPrice / price, false, this.TradeType));
+            const CurrentProfit = OpenTradesManager.ShowProfit(this.OpenOrderPrice / price, this.TradeType);
 
             if (BinanceOrdersCalculatingKit.CheckReachingPrice(price, this.StopLossPrice, this.TradeType)) {
                 this.Status = 'Closed';
@@ -147,20 +147,7 @@ export class OpenTradesManager {
     }
 
 
-    static ShowProfit = (UpToPrice: number, stringWithPercent: boolean = true, TradeType?: TradeType) => {
-        let Profit: string;
-        if (TradeType !== undefined) {
-            switch (TradeType) {
-                case "long":
-                    Profit = `${(parseFloat((1 - UpToPrice).toFixed(4)) * 100).toFixed(4)}${stringWithPercent && '%'}`;
-                    break;
-                case "short":
-                    Profit = `${(parseFloat((UpToPrice - 1).toFixed(4)) * 100).toFixed(4)}${stringWithPercent && '%'}`;
-                    break;
-            }
-        } else {
-            Profit = `${UpToPrice > 1 ? '-' : '+'}${(parseFloat(BinanceOrdersCalculatingKit.CalcRatioChange(UpToPrice).toFixed(4)) * 100).toFixed(4)}${stringWithPercent && '%'}`;
-        }
-        return Profit;
+    static ShowProfit = (UpToPrice: number, TradeType?: TradeType) => {
+        return BinanceOrdersCalculatingKit.RoundUp(BinanceOrdersCalculatingKit.CalcSimplifiedRatio(UpToPrice, TradeType === 'long' ? 'asks' : 'bids'), 3);
     }
 }
