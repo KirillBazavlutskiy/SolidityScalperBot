@@ -22,7 +22,6 @@ class SolidityFinderService {
 
                 candles.forEach(candle => {
                     const result = parseFloat(candle.low) < targetPrice && targetPrice < parseFloat(candle.high);
-                    console.log(`${symbol} | ${targetPrice} ${candle.low} ${candle.high} ${result}`)
                     if (result) checkResult = true;
                 });
 
