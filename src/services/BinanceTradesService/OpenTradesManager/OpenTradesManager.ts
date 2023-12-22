@@ -85,6 +85,7 @@ export class OpenTradesManager {
     UpdateLastPrice = (price: number): UpdateLastPriceOutput => {
         try {
             const CurrentProfit = OpenTradesManager.ShowProfit(this.OpenOrderPrice / price, this.TradeType);
+            this.CurrentProfit = CurrentProfit;
 
             if (BinanceOrdersCalculatingKit.CheckReachingPrice(price, this.StopLossPrice, this.TradeType)) {
                 this.Status = 'Closed';
