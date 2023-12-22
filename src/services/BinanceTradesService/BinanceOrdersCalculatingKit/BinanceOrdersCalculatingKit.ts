@@ -38,12 +38,14 @@ export class BinanceOrdersCalculatingKit {
         }
     }
 
+    static RoundUp = (num: number, fractionDigits: number) => {
+        const floatMultiplier = 10 ** fractionDigits;
+        return Math.round(num * floatMultiplier) / floatMultiplier;
+    }
 
     static FindClosestLimitOrder = (price: number, tickSize: number): number => {
         const numIndex = tickSize.toFixed(15).lastIndexOf("1");
-        const floatLenght = numIndex === 0 ? 0 : numIndex - 1;
-
-        const floatMultiplier = 10 ** floatLenght;
-        return Math.round(price * floatMultiplier) / floatMultiplier;
+        const floatLength = numIndex === 0 ? 0 : numIndex - 1;
+        return this.RoundUp(price, floatLength);
     }
 }
