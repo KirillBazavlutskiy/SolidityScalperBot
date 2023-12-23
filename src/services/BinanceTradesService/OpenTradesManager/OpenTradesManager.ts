@@ -130,13 +130,13 @@ export class OpenTradesManager {
 
     private PlaceStopLossLimit = async () => {
         try {
-            const Prices = await this.client.futuresPrices()
             const { orderId } = await this.client.futuresOrder({
                 symbol: this.Symbol,
                 side: this.TradeType === 'long' ? 'SELL' : 'BUY',
                 type: 'TRAILING_STOP_MARKET',
                 callbackRate: (this.TradeStopOptions.StopLoss * 100).toString(),
-                activationPrice: Prices[this.Symbol],
+                // @ts-ignore
+                quantity: this.OrderQuantity
             });
             this.StopLossStopLimitOrderId = orderId;
         } catch (e) {
