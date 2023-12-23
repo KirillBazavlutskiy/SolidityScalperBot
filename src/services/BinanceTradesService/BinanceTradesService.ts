@@ -42,8 +42,9 @@ export class BinanceTradesService {
         let exchangeInfoSpot;
         let exchangeInfoFutures;
 
+        exchangeInfoSpot = await this.client.exchangeInfo();
+
         try {
-            exchangeInfoSpot = await this.client.exchangeInfo();
             exchangeInfoFutures = await this.client.futuresExchangeInfo();
         } catch (e) {
             DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} is not on futures!`, [ dls], true);
@@ -315,13 +316,6 @@ export class BinanceTradesService {
                 ProcessSpotBookDepthQueue();
             }
         })
-
-        setTimeout(() => {
-            if (FuturesLastPrice === undefined) {
-                WebSocketSpot.close();
-                DocumentLogService.MadeTheNewLog([FontColor.FgGray], `${solidityModel.Symbol} is out of websocket connection! Not on futures!`, [ dls ], true);
-            }
-        }, 60000);
 
         WebSocketSpot.on('close', () => {
             WebSocketSpotBookDepth.close();
