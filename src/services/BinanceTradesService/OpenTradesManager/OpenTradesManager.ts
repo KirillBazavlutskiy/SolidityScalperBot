@@ -50,6 +50,7 @@ export class OpenTradesManager {
                 side: this.TradeType === 'long' ? 'BUY' : 'SELL',
                 type: "MARKET",
                 quantity: this.OrderQuantity,
+
             })
 
             this.MarketOrderId = order.orderId;
@@ -129,12 +130,13 @@ export class OpenTradesManager {
 
     private PlaceStopLossLimit = async () => {
         try {
-            console.log((this.TradeStopOptions.StopLoss * 100).toString())
+            const Prices = await this.client.futuresPrices()
             const { orderId } = await this.client.futuresOrder({
                 symbol: this.Symbol,
                 side: this.TradeType === 'long' ? 'SELL' : 'BUY',
                 type: 'TRAILING_STOP_MARKET',
                 callbackRate: (this.TradeStopOptions.StopLoss * 100).toString(),
+                activationPrice: Prices[this.Symbol],
             });
             this.StopLossStopLimitOrderId = orderId;
         } catch (e) {
