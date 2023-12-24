@@ -149,6 +149,8 @@ export class BinanceTradesService {
 
                             if (OpenOrderAccess) {
                                 FuturesOpenTradePrice = await otm.PlaceMarketOrder(orderQuantity);
+                                WebSocketSpot.close();
+                                WebSocketSpotBookDepth.close();
                             } else {
                                 DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} | To high nominal quantity!`, [dls], true);
                                 CloseTrade();
@@ -156,8 +158,6 @@ export class BinanceTradesService {
                                 WebSocketSpotBookDepth.close();
                                 WebSocketFutures.close();
                             }
-                            WebSocketSpot.close();
-                            WebSocketSpotBookDepth.close();
                         } else if (BinanceOrdersCalculatingKit.CalcSimplifiedRatio(UpToPriceSpot, solidityModel.Solidity.Type) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
                             CloseTrade();
                             WebSocketSpot.close();
@@ -211,12 +211,13 @@ export class BinanceTradesService {
 
                     SolidityStatus = await this.CheckSolidity(solidityModel, SolidityBid, UpToPriceSpot, TradeStatus, MaxSolidityQuantity);
                     if (SolidityStatus === 'removed') {
-                        TradeStatus = 'disabled';
+                        CloseTrade();
                         WebSocketSpot.close();
                         WebSocketSpotBookDepth.close();
                         WebSocketFutures.close();
                     } else if (SolidityStatus === 'ends') {
                         TradeStatus = 'inTrade';
+                        WebSocketSpot.close();
                         WebSocketSpotBookDepth.close();
                         FuturesOpenTradePrice = await otm.PlaceMarketOrder(orderQuantity);
                     }

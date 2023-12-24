@@ -62,12 +62,11 @@ export class TelegramControllerService {
         switch (data) {
             case 'Start searching':
                 this.TradingAccess = true;
-                this.Bot.sendMessage(chatId, 'Bot started searching!', { reply_markup: this.CreateKeyBoard() });
-                this.chatId = chatId;
+                this.SendMessage('Bot stopped searching!');
                 break;
             case 'Stop searching':
                 this.TradingAccess = false;
-                this.Bot.sendMessage(chatId, 'Bot stopped searching!', { reply_markup: this.CreateKeyBoard() });
+                this.SendMessage('Bot stopped searching!');
                 break;
             case 'Ping':
                 this.Bot.sendMessage(chatId, 'Program is active!', { reply_markup: this.CreateKeyBoard() });

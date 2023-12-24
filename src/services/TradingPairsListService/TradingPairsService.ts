@@ -1,17 +1,24 @@
 import {SolidityModel} from "../SolidityFinderService/SolidityFinderModels";
 import {BinanceOrdersCalculatingKit} from "../BinanceTradesService/BinanceOrdersCalculatingKit/BinanceOrdersCalculatingKit";
-import {OpenTradesManager} from "../BinanceTradesService/OpenTradesManager/OpenTradesManager";
 
 class TradingPairsService {
     static TPWithSolidity: SolidityModel[] = [];
     private static TPWithSolidityInTrade: SolidityModel[] = [];
 
     static LogTradingPairs = (): string => {
-        const TradingPairsUpToPrice = this.TPWithSolidityInTrade.map(TradingPair => OpenTradesManager.ShowProfit(TradingPair.Solidity.UpToPrice));
         let result;
 
         if (this.TPWithSolidityInTrade.length !== 0) {
-            result = `${TradingPairsService.TPWithSolidityInTrade.map(TradingPair => `${TradingPair.Symbol}\n${BinanceOrdersCalculatingKit.RoundUp(BinanceOrdersCalculatingKit.CalcSimplifiedRatio(TradingPair.Solidity.UpToPrice, TradingPair.Solidity.Type) * 100, 4)}%`).join('\n\n')}`;
+            result =
+                `${TradingPairsService.TPWithSolidityInTrade.map(TradingPair => {
+                    return (
+                        `${TradingPair.Symbol}\n` +
+                        `${BinanceOrdersCalculatingKit.RoundUp(BinanceOrdersCalculatingKit.CalcSimplifiedRatio(TradingPair.Solidity.UpToPrice, TradingPair.Solidity.Type) * 100, 4)}%\n` +
+                        `Waiting for price: ${TradingPair.Solidity.Price}\n` + 
+                        `Last price: ${TradingPair.Price}`
+                    );
+                }).join('\n\n')
+            }`
         } else {
             result = 'No trading pairs active!';
         }
