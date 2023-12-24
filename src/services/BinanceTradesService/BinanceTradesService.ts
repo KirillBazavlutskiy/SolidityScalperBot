@@ -152,7 +152,7 @@ export class BinanceTradesService {
                                 WebSocketSpot.close();
                                 WebSocketSpotBookDepth.close();
                             } else {
-                                DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} | To high nominal quantity!`, [dls], true);
+                                DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} | To high nominal quantity! (${orderQuantityNominal})`, [dls], true);
                                 CloseTrade();
                                 WebSocketSpot.close();
                                 WebSocketSpotBookDepth.close();

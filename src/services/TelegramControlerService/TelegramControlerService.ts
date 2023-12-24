@@ -17,7 +17,6 @@ export class TelegramControllerService {
     private setupBotListeners(): void {
         this.Bot.onText(/\/start/, this.onStart.bind(this));
         this.Bot.on('message', this.onMessage.bind(this));
-        this.Bot.on('callback_query', this.onCallbackQuery.bind(this));
     }
 
     private CreateKeyBoard = (): ReplyKeyboardMarkup => ({
@@ -62,7 +61,7 @@ export class TelegramControllerService {
         switch (data) {
             case 'Start searching':
                 this.TradingAccess = true;
-                this.SendMessage('Bot stopped searching!');
+                this.SendMessage('Bot started searching!');
                 break;
             case 'Stop searching':
                 this.TradingAccess = false;
@@ -74,26 +73,6 @@ export class TelegramControllerService {
             case 'Trades Info':
                 this.Bot.sendMessage(chatId, TradingPairsService.LogTradingPairs(), { reply_markup: this.CreateKeyBoard() })
         }
-    }
-
-    private onCallbackQuery = (callbackQuery: CallbackQuery) => {
-        // const chatId: number = callbackQuery.message?.chat.id || 0;
-        // const data: string = callbackQuery.data || '';
-        //
-        // switch (data) {
-        //     case 'startSearching':
-        //         this.TradingAccess = true;
-        //         this.Bot.sendMessage(chatId, 'Bot started searching!', { reply_markup: this.CreateKeyBoard() });
-        //         this.chatId = chatId;
-        //         break;
-        //     case 'stopSearching':
-        //         this.TradingAccess = false;
-        //         this.Bot.sendMessage(chatId, 'Bot stopped searching!', { reply_markup: this.CreateKeyBoard() });
-        //         break;
-        //     case 'Ping':
-        //         this.Bot.sendMessage(chatId, 'Program is active!', { reply_markup: this.CreateKeyBoard() });
-        //         break;
-        // }
     }
 
     GetTradeStatus = (): boolean => {

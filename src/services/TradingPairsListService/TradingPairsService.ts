@@ -14,6 +14,7 @@ class TradingPairsService {
                     return (
                         `${TradingPair.Symbol}\n` +
                         `${BinanceOrdersCalculatingKit.RoundUp(BinanceOrdersCalculatingKit.CalcSimplifiedRatio(TradingPair.Solidity.UpToPrice, TradingPair.Solidity.Type) * 100, 4)}%\n` +
+                        `Trade Type: ${TradingPair.Solidity.Type === 'asks' ? 'Long' : 'Short'}` +
                         `Waiting for price: ${TradingPair.Solidity.Price}\n` + 
                         `Last price: ${TradingPair.Price}`
                     );
