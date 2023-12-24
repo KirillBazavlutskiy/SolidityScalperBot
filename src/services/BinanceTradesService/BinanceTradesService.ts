@@ -186,7 +186,7 @@ export class BinanceTradesService {
                     const TradeCondition = otm.UpdateLastPrice(FuturesLastPrice);
 
                     if (TradeCondition.TradeStatus === 'Closed') {
-                        DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${solidityModel.Symbol} | Order was closed! | Profit: ${TradeCondition.CurrentProfit}%}`, [ dls, tls ], true);
+                        DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${solidityModel.Symbol} | Order was closed! | Profit: ${TradeCondition.CurrentProfit}%`, [ dls, tls ], true);
                         tcs.SendMessage(`${solidityModel.Symbol}\nOrder was closed!\nProfit: ${TradeCondition.CurrentProfit}%`);
                         WebSocketFutures.close();
                         CloseTrade();

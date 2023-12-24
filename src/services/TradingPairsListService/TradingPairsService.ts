@@ -14,7 +14,7 @@ class TradingPairsService {
                     return (
                         `${TradingPair.Symbol}\n` +
                         `${BinanceOrdersCalculatingKit.RoundUp(BinanceOrdersCalculatingKit.CalcSimplifiedRatio(TradingPair.Solidity.UpToPrice, TradingPair.Solidity.Type) * 100, 4)}%\n` +
-                        `Trade Type: ${TradingPair.Solidity.Type === 'asks' ? 'Long' : 'Short'}` +
+                        `Trade Type: ${TradingPair.Solidity.Type === 'asks' ? 'Long' : 'Short'}\n` +
                         `Waiting for price: ${TradingPair.Solidity.Price}\n` + 
                         `Last price: ${TradingPair.Price}`
                     );
@@ -31,8 +31,6 @@ class TradingPairsService {
         const TradingPairIndex = this.TPWithSolidityInTrade.findIndex(TradingPair => TradingPair.Symbol === solidityModel.Symbol);
 
         if (TradingPairIndex === -1) {
-            this.TPWithSolidityInTrade.push(solidityModel);
-        } else {
             this.TPWithSolidityInTrade[TradingPairIndex] = solidityModel;
         }
     }
