@@ -199,13 +199,13 @@ export class BinanceTradesService {
                     const TradeCondition = otm.UpdateLastPrice(FuturesLastPrice);
 
                     if (TradeCondition.TradeStatus === 'Closed') {
-                        const EndTradeTime = new Date();
-                        const TradeTime = EndTradeTime.getTime() - OpenTradeTime.getTime();
+                        // const EndTradeTime = new Date();
+                        // const TradeTime = new Date(EndTradeTime.getTime() - OpenTradeTime.getTime());
 
                         TradeStatus = 'disabled';
                         WebSocketSpot.close();
-                        DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${solidityModel.Symbol} | Order was closed! | Profit: ${TradeCondition.CurrentProfit}%\nTrade Time: ${TradeTime.toString()}`, [ dls, tls ], true);
-                        tcs.SendMessage(`${solidityModel.Symbol}\nOrder was closed!\nProfit: ${TradeCondition.CurrentProfit}%\nTrade Time: ${TradeTime.toString()}`);
+                        DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${solidityModel.Symbol} | Order was closed! | Profit: ${TradeCondition.CurrentProfit}%}`, [ dls, tls ], true);
+                        tcs.SendMessage(`${solidityModel.Symbol}\nOrder was closed!\nProfit: ${TradeCondition.CurrentProfit}%`);
                     }
 
                     // const AddTradeData = () => {
