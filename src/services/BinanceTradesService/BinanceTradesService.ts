@@ -122,17 +122,17 @@ export class BinanceTradesService {
                                 tcs.SendMessage(`${solidityModel.Symbol}\nSolidity on ${solidityModel.Solidity.Price} was reached!\nWaiting for price ${OpenOrderPrice}!`);
                             }
                         } else if ((UpToPriceSpot > 1 && solidityModel.Solidity.Type === 'asks') || (UpToPriceSpot < 1 && solidityModel.Solidity.Type === 'bids')) {
-                            CloseTrade();
-                            WebSocketSpot.close();
-                            WebSocketSpotBookDepth.close();
-                            WebSocketFutures.close();
                             DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} Solidity on ${solidityModel.Solidity.Price} has been removed! | Up to price: ${UpToPriceSpot} | Last Price: ${SpotLastPrice}`, [dls], true);
-                        } else if (BinanceOrdersCalculatingKit.CalcSimplifiedRatio(UpToPriceSpot, solidityModel.Solidity.Type) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
                             CloseTrade();
                             WebSocketSpot.close();
                             WebSocketSpotBookDepth.close();
                             WebSocketFutures.close();
+                        } else if (BinanceOrdersCalculatingKit.CalcSimplifiedRatio(UpToPriceSpot, solidityModel.Solidity.Type) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
                             DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} is too far! Up to price: ${UpToPriceSpot}`, [dls], true);
+                            CloseTrade();
+                            WebSocketSpot.close();
+                            WebSocketSpotBookDepth.close();
+                            WebSocketFutures.close();
                         }
                         break;
                     case "reached":
@@ -159,11 +159,11 @@ export class BinanceTradesService {
                                 WebSocketFutures.close();
                             }
                         } else if (BinanceOrdersCalculatingKit.CalcSimplifiedRatio(UpToPriceSpot, solidityModel.Solidity.Type) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
+                            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} is too far!`, [dls], true);
                             CloseTrade();
                             WebSocketSpot.close();
                             WebSocketSpotBookDepth.close();
                             WebSocketFutures.close();
-                            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} is too far!`, [dls], true);
                         }
                         break;
                 }
@@ -186,9 +186,10 @@ export class BinanceTradesService {
                     const TradeCondition = otm.UpdateLastPrice(FuturesLastPrice);
 
                     if (TradeCondition.TradeStatus === 'Closed') {
-                        CloseTrade();
                         DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${solidityModel.Symbol} | Order was closed! | Profit: ${TradeCondition.CurrentProfit}%}`, [ dls, tls ], true);
                         tcs.SendMessage(`${solidityModel.Symbol}\nOrder was closed!\nProfit: ${TradeCondition.CurrentProfit}%`);
+                        WebSocketFutures.close();
+                        CloseTrade();
                     }
                 }
             } catch (e) {
@@ -210,15 +211,18 @@ export class BinanceTradesService {
                     if (SolidityBid[1] > MaxSolidityQuantity) MaxSolidityQuantity = SolidityBid[1];
 
                     SolidityStatus = await this.CheckSolidity(solidityModel, SolidityBid, UpToPriceSpot, TradeStatus, MaxSolidityQuantity);
+                    TradingPairsService.ChangeTPInTrade(solidityModel);
                     if (SolidityStatus === 'removed') {
                         CloseTrade();
                         WebSocketSpot.close();
                         WebSocketSpotBookDepth.close();
                         WebSocketFutures.close();
+                        DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} Solidity on ${solidityModel.Solidity.Price} has been removed. The quantity on ${SolidityBid[0]} is ${SolidityBid[1]}!`, [ dls ], true);
                     } else if (SolidityStatus === 'ends') {
                         TradeStatus = 'inTrade';
                         WebSocketSpot.close();
                         WebSocketSpotBookDepth.close();
+                        DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} Solidity on ${solidityModel.Solidity.Price} is almost ends. The quantity on ${SolidityBid[0]} is ${SolidityBid[1]}!`, [ dls ], true);
                         FuturesOpenTradePrice = await otm.PlaceMarketOrder(orderQuantity);
                     }
                 }
@@ -331,11 +335,8 @@ export class BinanceTradesService {
                 }
             } else {
                 SolidityStatus = 'removed';
-                DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} Solidity on ${solidityModel.Solidity.Price} has been removed. The quantity on ${SolidityBid[0]} is ${SolidityBid[1]}!`, [ dls ], true);
             }
         }
-
-        TradingPairsService.ChangeTPInTrade(solidityModel);
         return SolidityStatus;
     }
 
