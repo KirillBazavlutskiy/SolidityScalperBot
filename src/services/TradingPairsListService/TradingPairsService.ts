@@ -27,10 +27,14 @@ class TradingPairsService {
         return result;
     }
 
+    static AddTPInTrade = (solidityModel: SolidityModel) => {
+        this.TPWithSolidityInTrade.push(solidityModel);
+    }
+
     static ChangeTPInTrade = (solidityModel: SolidityModel) => {
         const TradingPairIndex = this.TPWithSolidityInTrade.findIndex(TradingPair => TradingPair.Symbol === solidityModel.Symbol);
 
-        if (TradingPairIndex === -1) {
+        if (TradingPairIndex !== -1) {
             this.TPWithSolidityInTrade[TradingPairIndex] = solidityModel;
         }
     }
@@ -43,7 +47,7 @@ class TradingPairsService {
         const TradingPairIndex = this.TPWithSolidityInTrade.findIndex(TradingPair => TradingPair.Symbol === solidityModel.Symbol);
 
         if (TradingPairIndex === -1) {
-            if (addToList) this.ChangeTPInTrade(solidityModel);
+            if (addToList) this.AddTPInTrade(solidityModel);
             return false;
         } else {
             return true
