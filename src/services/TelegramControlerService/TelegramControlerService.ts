@@ -1,6 +1,7 @@
 import TelegramBot, {InlineKeyboardMarkup, Message, CallbackQuery, ReplyKeyboardMarkup, KeyboardButton} from 'node-telegram-bot-api';
 import fs from "fs";
 import {text} from "stream/consumers";
+import TradingPairsService from "../TradingPairsListService/TradingPairsService";
 
 export class TelegramControllerService {
     private Bot: TelegramBot;
@@ -29,6 +30,11 @@ export class TelegramControllerService {
                 },
                 {
                     text: 'Ping'
+                },
+            ],
+            [
+                {
+                    text: 'Trades Info'
                 }
             ]
         ],
@@ -66,6 +72,8 @@ export class TelegramControllerService {
             case 'Ping':
                 this.Bot.sendMessage(chatId, 'Program is active!', { reply_markup: this.CreateKeyBoard() });
                 break;
+            case 'Trades Info':
+                this.Bot.sendMessage(chatId, TradingPairsService.LogTradingPairs(), { reply_markup: this.CreateKeyBoard() })
         }
     }
 

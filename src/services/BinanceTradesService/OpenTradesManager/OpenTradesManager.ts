@@ -50,7 +50,6 @@ export class OpenTradesManager {
                 side: this.TradeType === 'long' ? 'BUY' : 'SELL',
                 type: "MARKET",
                 quantity: this.OrderQuantity,
-
             })
 
             this.MarketOrderId = order.orderId;
@@ -106,27 +105,6 @@ export class OpenTradesManager {
             CurrentProfit: this.CurrentProfit,
         };
     }
-    // private PlaceTakeProfitLimit = async () => {
-    //     try {
-    //         const { orderId } = await this.client.futuresOrder({
-    //             symbol: this.Symbol,
-    //             side: this.TradeType === 'long' ? 'SELL' : 'BUY',
-    //             type: 'LIMIT',
-    //             price: this.TPSL.TakeProfit.toString(),
-    //             quantity: this.OrderQuantity,
-    //             timeInForce: 'GTC',
-    //         });
-    //         this.TakeProfitStopLimitOrderId = orderId;
-    //     } catch (e) {
-    //         await this.client.futuresOrder({
-    //             symbol: this.Symbol,
-    //             side: this.TradeType === 'long' ? 'SELL' : 'BUY',
-    //             type: 'MARKET',
-    //             quantity: this.OrderQuantity,
-    //         });
-    //         throw e;
-    //     }
-    // }
 
     private PlaceStopLossLimit = async () => {
         try {

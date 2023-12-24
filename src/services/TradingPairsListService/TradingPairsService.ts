@@ -1,9 +1,4 @@
 import {SolidityModel} from "../SolidityFinderService/SolidityFinderModels";
-import DocumentLogService from "../DocumentLogService/DocumentLogService";
-import {FontColor} from "../FontStyleObjects";
-import {sfs} from "../../index";
-import {TradeType} from "../BinanceTradesService/BinanceTradesModels";
-import solidityFinderService from "../SolidityFinderService/SolidityFinderService";
 import {BinanceOrdersCalculatingKit} from "../BinanceTradesService/BinanceOrdersCalculatingKit/BinanceOrdersCalculatingKit";
 import {OpenTradesManager} from "../BinanceTradesService/OpenTradesManager/OpenTradesManager";
 
@@ -11,13 +6,17 @@ class TradingPairsService {
     static TPWithSolidity: SolidityModel[] = [];
     private static TPWithSolidityInTrade: SolidityModel[] = [];
 
-    static LogTradingPairs = (): void => {
-        const TradingSymbols = this.TPWithSolidityInTrade.map(TradingPair => TradingPair.Symbol.padEnd(16, ' '));
+    static LogTradingPairs = (): string => {
         const TradingPairsUpToPrice = this.TPWithSolidityInTrade.map(TradingPair => OpenTradesManager.ShowProfit(TradingPair.Solidity.UpToPrice));
+        let result;
 
-        DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `\t${TradingSymbols.join('\t')}\n` +
-                                                            `\t\t\t\t${TradingPairsUpToPrice.join('\t\t')}`
-        , [], true);
+        if (this.TPWithSolidityInTrade.length !== 0) {
+            result = `${TradingPairsService.TPWithSolidityInTrade.map(TradingPair => `${TradingPair.Symbol}\n${BinanceOrdersCalculatingKit.RoundUp(BinanceOrdersCalculatingKit.CalcSimplifiedRatio(TradingPair.Solidity.UpToPrice, TradingPair.Solidity.Type) * 100, 4)}%`).join('\n\n')}`;
+        } else {
+            result = 'No trading pairs active!';
+        }
+
+        return result;
     }
 
     static ChangeTPInTrade = (solidityModel: SolidityModel) => {
