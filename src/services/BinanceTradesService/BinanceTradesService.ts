@@ -119,7 +119,7 @@ export class BinanceTradesService {
                                     : solidityModel.Solidity.Price - tickSizeSpot, tickSizeSpot);
 
                                 DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${solidityModel.Symbol} | Solidity on ${solidityModel.Solidity.Price} was reached! Waiting for price ${OpenOrderPrice} | Process Time: ${processTime.getSeconds()}s`, [dls, tls], true);
-                                tcs.SendMessage(`${solidityModel.Symbol}\nSolidity on ${solidityModel.Solidity.Price} was reached!\nWaiting for price ${OpenOrderPrice}!`);
+                                tcs.SendMessage(`${solidityModel.Symbol}\nSolidity on ${solidityModel.Solidity.Price} was reached!\nWaiting for price ${OpenOrderPrice}$!`);
                             }
                         } else if ((UpToPriceSpot > 1 && solidityModel.Solidity.Type === 'asks') || (UpToPriceSpot < 1 && solidityModel.Solidity.Type === 'bids')) {
                             DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} Solidity on ${solidityModel.Solidity.Price} has been removed! | Up to price: ${UpToPriceSpot} | Last Price: ${SpotLastPrice}`, [dls], true);
@@ -143,7 +143,8 @@ export class BinanceTradesService {
 
                             OpenTradeTime = new Date();
 
-                            orderQuantity = parseFloat((11 / FuturesLastPrice).toFixed(quantityPrecisionFutures)) > 0 ? (11 / FuturesLastPrice).toFixed(quantityPrecisionFutures) :'1';
+                            orderQuantity = BinanceOrdersCalculatingKit.RoundUp(11 / FuturesLastPrice, quantityPrecisionFutures).toString();
+                            orderQuantity = parseFloat(orderQuantity) > 0 ? orderQuantity : '1';
                             orderQuantityNominal = parseFloat(orderQuantity) * FuturesLastPrice;
                             OpenOrderAccess = orderQuantityNominal <= 20;
 
@@ -159,6 +160,7 @@ export class BinanceTradesService {
                                 WebSocketFutures.close();
                             }
                         } else if (BinanceOrdersCalculatingKit.CalcSimplifiedRatio(UpToPriceSpot, solidityModel.Solidity.Type) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
+                            tcs.SendMessage(`${solidityModel.Symbol} is too far!\nUp To price: ${BinanceOrdersCalculatingKit.RoundUp(UpToPriceSpot, 4)}`);
                             DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} is too far!`, [dls], true);
                             CloseTrade();
                             WebSocketSpot.close();
@@ -213,17 +215,21 @@ export class BinanceTradesService {
                     SolidityStatus = await this.CheckSolidity(solidityModel, SolidityBid, UpToPriceSpot, TradeStatus, MaxSolidityQuantity);
                     TradingPairsService.ChangeTPInTrade(solidityModel);
                     if (SolidityStatus === 'removed') {
+                        if (TradeStatus === 'reached') tcs.SendMessage(`Solidity was removed!`);
                         CloseTrade();
                         WebSocketSpot.close();
                         WebSocketSpotBookDepth.close();
                         WebSocketFutures.close();
-                        DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} Solidity on ${solidityModel.Solidity.Price} has been removed. The quantity on ${SolidityBid[0]} is ${SolidityBid[1]}!`, [ dls ], true);
+                        DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} Solidity on ${solidityModel.Solidity.Price}$ has been removed. The quantity on ${SolidityBid[0]}$ is ${SolidityBid[1]}!`, [ dls ], true);
                     } else if (SolidityStatus === 'ends') {
                         TradeStatus = 'inTrade';
                         WebSocketSpot.close();
                         WebSocketSpotBookDepth.close();
-                        DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} Solidity on ${solidityModel.Solidity.Price} is almost ends. The quantity on ${SolidityBid[0]} is ${SolidityBid[1]}!`, [ dls ], true);
+                        DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} Solidity on ${solidityModel.Solidity.Price}$ is almost ends. The quantity on ${SolidityBid[0]} is ${SolidityBid[1]}!`, [ dls ], true);
                         FuturesOpenTradePrice = await otm.PlaceMarketOrder(orderQuantity);
+                    } else if (SolidityStatus === 'moved' && TradeStatus === 'reached') {
+                        TradeStatus = 'watching';
+                        tcs.SendMessage(`Solidity on ${solidityModel.Symbol} has been moved to ${solidityModel.Solidity.Price}$\nRatio: ${solidityModel.Solidity.Ratio}`)
                     }
                 }
             } catch (e) {

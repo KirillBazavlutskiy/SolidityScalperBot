@@ -13,10 +13,10 @@ class TradingPairsService {
                 `${TradingPairsService.TPWithSolidityInTrade.map(TradingPair => {
                     return (
                         `${TradingPair.Symbol}\n` +
-                        `${BinanceOrdersCalculatingKit.RoundUp(BinanceOrdersCalculatingKit.CalcSimplifiedRatio(TradingPair.Solidity.UpToPrice, TradingPair.Solidity.Type) * 100, 4)}%\n` +
-                        `Trade Type: ${TradingPair.Solidity.Type === 'asks' ? 'Long' : 'Short'}\n` +
-                        `Waiting for price: ${TradingPair.Solidity.Price}\n` + 
-                        `Last price: ${TradingPair.Price}`
+                        `Up tp price: ${BinanceOrdersCalculatingKit.RoundUp(BinanceOrdersCalculatingKit.CalcSimplifiedRatio(TradingPair.Solidity.UpToPrice, TradingPair.Solidity.Type) * 100, 4)}%\n` +
+                        `Trade type: ${TradingPair.Solidity.Type === 'asks' ? 'Long' : 'Short'}\n` +
+                        `Waiting for price: ${TradingPair.Solidity.Price}$\n` + 
+                        `Last price: ${TradingPair.Price}$`
                     );
                 }).join('\n\n')
             }`

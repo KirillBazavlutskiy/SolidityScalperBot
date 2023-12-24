@@ -43,9 +43,13 @@ export class BinanceOrdersCalculatingKit {
         return Math.round(num * floatMultiplier) / floatMultiplier;
     }
 
+    static GetFractionDigitsLength = (number: number) => {
+        const numIndex = number.toFixed(15).lastIndexOf("1");
+        return numIndex === 0 ? 0 : numIndex - 1;
+    }
+
     static FindClosestLimitOrder = (price: number, tickSize: number): number => {
-        const numIndex = tickSize.toFixed(15).lastIndexOf("1");
-        const floatLength = numIndex === 0 ? 0 : numIndex - 1;
+        const floatLength = this.GetFractionDigitsLength(tickSize);
         return this.RoundUp(price, floatLength);
     }
 }
