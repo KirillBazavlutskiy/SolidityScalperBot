@@ -335,9 +335,14 @@ export class BinanceTradesService {
                     solidityModel = lastSolidity;
                     DocumentLogService.MadeTheNewLog([FontColor.FgCyan], `Solidity on ${solidityModel.Symbol} in ${solidityModel.Solidity.Price}!`, [ dls ], true);
                 } else {
-                    SolidityStatus = 'moved';
-                    solidityModel = lastSolidity;
-                    DocumentLogService.MadeTheNewLog([FontColor.FgBlue], `Solidity on ${solidityModel.Symbol} has been moved to ${solidityModel.Solidity.Price} | Ratio: ${solidityModel.Solidity.Ratio}!`, [ dls ], true);
+                    const checkForReachingPrice = await sfs.CheckPriceAtTargetTime(solidityModel.Symbol, lastSolidity.Price, SolidityFinderOptions.checkReachingPriceDuration);
+                    if (!checkForReachingPrice) {
+                        SolidityStatus = 'moved';
+                        solidityModel = lastSolidity;
+                        DocumentLogService.MadeTheNewLog([FontColor.FgBlue], `Solidity on ${solidityModel.Symbol} has been moved to ${solidityModel.Solidity.Price} | Ratio: ${solidityModel.Solidity.Ratio}!`, [ dls ], true);
+                    } else {
+                        SolidityStatus = 'removed';
+                    }
                 }
             } else {
                 SolidityStatus = 'removed';
