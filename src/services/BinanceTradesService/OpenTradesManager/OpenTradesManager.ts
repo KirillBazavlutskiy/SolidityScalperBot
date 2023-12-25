@@ -15,6 +15,7 @@ export class OpenTradesManager {
     private TradeType: TradeType;
     private LimitType: LimitType;
     private OrderQuantity: string;
+    private OrderQuantityNominal: string;
 
     private TickSizeFutures: number;
 
@@ -41,9 +42,12 @@ export class OpenTradesManager {
         this.TradeStopOptions = TradeStopsOptions;
     }
 
-    PlaceMarketOrder = async (OrderQuantity: string) => {
+    PlaceMarketOrder = async (LastPrice: number, OrderQuantityNominal: string, QuantityPrecisionFutures: number) => {
         try {
-            this.OrderQuantity = OrderQuantity;
+            this.OrderQuantityNominal = OrderQuantityNominal;
+
+            const orderQuantity = BinanceOrdersCalculatingKit.RoundUp(11 / LastPrice, QuantityPrecisionFutures).toString();
+            this.OrderQuantity = parseFloat(orderQuantity) > 0 ? orderQuantity : '1';
 
             const order = await this.client.futuresOrder({
                 symbol: this.Symbol,
