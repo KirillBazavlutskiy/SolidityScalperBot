@@ -2,6 +2,9 @@ import TelegramBot, {InlineKeyboardMarkup, Message, CallbackQuery, ReplyKeyboard
 import fs from "fs";
 import {text} from "stream/consumers";
 import TradingPairsService from "../TradingPairsListService/TradingPairsService";
+import DocumentLogService from "../DocumentLogService/DocumentLogService";
+import {FontColor} from "../FontStyleObjects";
+import {dls, tls} from "../../index";
 
 export class TelegramControllerService {
     private Bot: TelegramBot;
@@ -55,23 +58,27 @@ export class TelegramControllerService {
     }
 
     private onMessage = (msg: Message) => {
-        const chatId: number = msg.chat.id || 0;
-        const data: string = msg.text || '';
+        try {
+            const chatId: number = msg.chat.id || 0;
+            const data: string = msg.text || '';
 
-        switch (data) {
-            case 'Start searching':
-                this.TradingAccess = true;
-                this.SendMessage('Bot started searching!');
-                break;
-            case 'Stop searching':
-                this.TradingAccess = false;
-                this.SendMessage('Bot stopped searching!');
-                break;
-            case 'Ping':
-                this.Bot.sendMessage(chatId, 'Program is active!', { reply_markup: this.CreateKeyBoard() });
-                break;
-            case 'Trades Info':
-                this.Bot.sendMessage(chatId, TradingPairsService.LogTradingPairs(), { reply_markup: this.CreateKeyBoard() })
+            switch (data) {
+                case 'Start searching':
+                    this.TradingAccess = true;
+                    this.SendMessage('Bot started searching!');
+                    break;
+                case 'Stop searching':
+                    this.TradingAccess = false;
+                    this.SendMessage('Bot stopped searching!');
+                    break;
+                case 'Ping':
+                    this.Bot.sendMessage(chatId, 'Program is active!', { reply_markup: this.CreateKeyBoard() });
+                    break;
+                case 'Trades Info':
+                    this.Bot.sendMessage(chatId, TradingPairsService.LogTradingPairs(), { reply_markup: this.CreateKeyBoard() })
+            }
+        } catch (e) {
+            DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error in telegram service: ${e.message}`, [dls], true);
         }
     }
 
@@ -80,11 +87,15 @@ export class TelegramControllerService {
     }
 
     SendMessage = (message: string) => {
-        const subscribedUsersJson = fs.readFileSync(this.dataPath, 'utf-8');
-        const subscribedUsers: number[] = JSON.parse(subscribedUsersJson);
+        try {
+            const subscribedUsersJson = fs.readFileSync(this.dataPath, 'utf-8');
+            const subscribedUsers: number[] = JSON.parse(subscribedUsersJson);
 
-        subscribedUsers.forEach(userId => {
-            this.Bot.sendMessage(userId, message, { reply_markup: this.CreateKeyBoard() });
-        })
+            subscribedUsers.forEach(userId => {
+                this.Bot.sendMessage(userId, message, { reply_markup: this.CreateKeyBoard() });
+            })
+        } catch (e) {
+            throw e;
+        }
     }
 }
