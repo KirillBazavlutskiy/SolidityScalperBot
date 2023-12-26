@@ -137,13 +137,8 @@ export class BinanceTradesService {
 
                             OpenTradeTime = new Date();
 
-                            orderQuantity = BinanceOrdersCalculatingKit.RoundUp(11 / FuturesLastPrice, quantityPrecisionFutures).toString();
-                            const orderQuantityFixed = parseFloat(orderQuantity) > 0 ? orderQuantity : '1';
-                            orderQuantityNominal = parseFloat(orderQuantity) * FuturesLastPrice;
-                            OpenOrderAccess = 5 <= orderQuantityNominal && orderQuantityNominal <= 20;
-
                             if (OpenOrderAccess) {
-                                FuturesOpenTradePrice = await otm.PlaceMarketOrder(FuturesLastPrice, orderQuantityNominal.toString(), quantityPrecisionFutures);
+                                FuturesOpenTradePrice = await otm.PlaceMarketOrder(FuturesLastPrice, TradeStopsOptions.TradeOptions.NominalQuantity.toString(), quantityPrecisionFutures);
                                 WebSocketSpot.close();
                                 WebSocketSpotBookDepth.close();
                             } else {
@@ -236,7 +231,8 @@ export class BinanceTradesService {
                 }
             } catch (e) {
                 DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Error with spot trade message ${e.message}`, [dls], true);
-                tcs.SendMessage(`Error with spot trade message ${e.message}`);
+                tcs.SendMessage(`Error with spot trade message on ${solidityModel.Symbol}:\n${e.message}`);
+                CloseTrade();
             }
 
             isProcessingSpotTrades = false;
@@ -264,7 +260,7 @@ export class BinanceTradesService {
                 }
             } catch (e) {
                 DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Error with spot book depth update ${e.message}`, [dls], true);
-                tcs.SendMessage(`Error with spot book depth update ${e.message}`);
+                tcs.SendMessage(`Error with spot book depth update on ${solidityModel.Symbol}:\n${e.message}`);
             }
 
             isProcessingSpotTrades = false;
@@ -289,6 +285,19 @@ export class BinanceTradesService {
         WebSocketSpot.on('error', e => DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error in spot depth websocket with ${solidityModel.Symbol}! ${e.message}`));
         WebSocketFutures.on('error', e => DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error in spot depth websocket with ${solidityModel.Symbol}! ${e.message}`));
         WebSocketSpotBookDepth.on('error', e => DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error in spot depth websocket with ${solidityModel.Symbol}! ${e.message}`));
+
+        WebSocketSpot.on('close', () => {
+            DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Spot trades websocket on ${solidityModel.Symbol} has been disabled!`, [ dls ], true);
+        });
+
+        WebSocketSpotBookDepth.on('close', () => {
+            DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Spot book depth websocket on ${solidityModel.Symbol} has been disabled!`, [ dls ], true);
+        });
+
+        WebSocketFutures.on('close', () => {
+            TradeStatus = 'disabled';
+            DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Futures trades websocket on ${solidityModel.Symbol} has been disabled!`, [ dls ], true);
+        });
     };
 
     CheckSolidity = async (solidityModel: SolidityModel, SolidityBid: StreamBid, UpToPriceSpot: number, TradeStatus: TradeStatus, MaxSolidityQuantity: number): Promise<SolidityStatus> => {

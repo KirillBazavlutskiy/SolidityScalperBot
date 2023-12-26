@@ -1,4 +1,9 @@
 export interface TradingStopOptions {
-    TakeProfit: number;
-    StopLoss: number;
+    Stops: {
+        TakeProfit: number;
+        TrailingStopLoss: number;
+    },
+    TradeOptions: {
+        NominalQuantity: number;
+    }
 }

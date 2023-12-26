@@ -46,8 +46,8 @@ export class OpenTradesManager {
         try {
             this.OrderQuantityNominal = OrderQuantityNominal;
 
-            const orderQuantity = BinanceOrdersCalculatingKit.RoundUp(11 / LastPrice, QuantityPrecisionFutures).toString();
-            this.OrderQuantity = parseFloat(orderQuantity) > 0 ? orderQuantity : '1';
+            const orderQuantityLegacy = BinanceOrdersCalculatingKit.RoundUp(11 / LastPrice, QuantityPrecisionFutures).toString();
+            this.OrderQuantity = parseFloat(orderQuantityLegacy) > 0 ? orderQuantityLegacy : '1';
 
             const order = await this.client.futuresOrder({
                 symbol: this.Symbol,
@@ -66,12 +66,13 @@ export class OpenTradesManager {
                 symbol: this.Symbol,
                 orderId: this.MarketOrderId,
             });
+
             this.OpenOrderPrice = parseFloat(orderCheck.cumQuote) / parseFloat(orderCheck.executedQty);
             this.MaxProfitPrice = this.OpenOrderPrice;
             this.MaxProfitPrice = this.OpenOrderPrice;
             this.MaxProfit = 0;
 
-            this.StopLossPrice = BinanceOrdersCalculatingKit.CalcPriceByRatio(this.MaxProfitPrice, TradeStopsOptions.StopLoss, this.LimitType, this.TickSizeFutures);
+            this.StopLossPrice = BinanceOrdersCalculatingKit.CalcPriceByRatio(this.MaxProfitPrice, TradeStopsOptions.Stops.TrailingStopLoss, this.LimitType, this.TickSizeFutures);
             // await this.PlaceTakeProfitLimit();
 
             const orderMsg = `${this.Symbol} | Order Type: ${this.TradeType} | Nominal Quantity: ${parseFloat(this.OrderQuantity) * this.OpenOrderPrice} | LP: ${this.OpenOrderPrice} | SL: ${this.StopLossPrice}`;
@@ -98,7 +99,7 @@ export class OpenTradesManager {
             if (CurrentProfit > this.MaxProfit) {
                 this.MaxProfit = CurrentProfit;
                 this.MaxProfitPrice = price;
-                this.StopLossPrice = BinanceOrdersCalculatingKit.CalcPriceByRatio(this.MaxProfitPrice, TradeStopsOptions.StopLoss, this.LimitType, this.TickSizeFutures);
+                this.StopLossPrice = BinanceOrdersCalculatingKit.CalcPriceByRatio(this.MaxProfitPrice, TradeStopsOptions.Stops.TrailingStopLoss, this.LimitType, this.TickSizeFutures);
             }
         } catch (e) {
             throw e;
@@ -116,7 +117,7 @@ export class OpenTradesManager {
                 symbol: this.Symbol,
                 side: this.TradeType === 'long' ? 'SELL' : 'BUY',
                 type: 'TRAILING_STOP_MARKET',
-                callbackRate: (this.TradeStopOptions.StopLoss * 100).toString(),
+                callbackRate: (this.TradeStopOptions.Stops.TrailingStopLoss * 100).toString(),
                 // @ts-ignore
                 quantity: this.OrderQuantity
             });
