@@ -91,7 +91,7 @@ export class BinanceTradesService {
 
         const WebSocketSpot: WebSocket = new WebSocket(`wss://stream.binance.com:9443/ws/${solidityModel.Symbol.toLowerCase()}@trade`);
         const WebSocketFutures: WebSocket = new WebSocket(`wss://fstream.binance.com/ws/${solidityModel.Symbol.toLowerCase()}@trade`);
-        const WebSocketSpotBookDepth: WebSocket = new WebSocket(`wss://stream.binance.com:9443/ws/${solidityModel.Symbol.toLowerCase()}@depth@100ms`);
+        const WebSocketSpotBookDepth: WebSocket = new WebSocket(`wss://stream.binance.com:9443/ws/${solidityModel.Symbol.toLowerCase()}@depth@500ms`);
 
         const ProcessSpotTrade = async (data: Buffer) => {
             try {
@@ -193,8 +193,8 @@ export class BinanceTradesService {
                     const SolidityBid = Bids[solidityChangeIndex];
 
                     if (SolidityBid[1] > MaxSolidityQuantity) MaxSolidityQuantity = SolidityBid[1];
-
                     SolidityStatus = await this.CheckSolidity(solidityModel, SolidityBid, UpToPriceSpot, TradeStatus, MaxSolidityQuantity);
+
                     TradingPairsService.ChangeTPInTrade(solidityModel);
                     if (SolidityStatus === 'removed') {
                         if (TradeStatus === 'reached') tcs.SendMessage(`${solidityModel.Symbol}\nSolidity was removed!`);
@@ -263,7 +263,7 @@ export class BinanceTradesService {
                 tcs.SendMessage(`Error with spot book depth update on ${solidityModel.Symbol}:\n${e.message}`);
             }
 
-            isProcessingSpotTrades = false;
+            isProcessingSpotBookDepth = false;
         };
 
         WebSocketSpotBookDepth.on('message', (data) => {
@@ -302,7 +302,7 @@ export class BinanceTradesService {
     CheckSolidity = async (solidityModel: SolidityModel, SolidityBid: StreamBid, UpToPriceSpot: number, TradeStatus: TradeStatus, MaxSolidityQuantity: number): Promise<SolidityStatus> => {
         const SOLIDITY_CHANGE_PER_UPDATE_THRESHOLD: number = 0.15;
 
-        let SolidityStatus: SolidityStatus = 'ready';
+        let SolidityStatus: SolidityStatus;
 
         if (TradeStatus === 'reached') {
             this.SolidityQuantityHistory.push(SolidityBid[1]);
