@@ -122,7 +122,7 @@ export class BinanceTradesService {
                                 tcs.SendMessage(`${solidityModel.Symbol}\nSolidity on ${solidityModel.Solidity.Price} was reached!\nWaiting for price ${OpenOrderPrice}$!`);
                             }
                         } else if ((UpToPriceSpot > 1 && solidityModel.Solidity.Type === 'asks') || (UpToPriceSpot < 1 && solidityModel.Solidity.Type === 'bids')) {
-                            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} Solidity on ${solidityModel.Solidity.Price} has been removed! | Up to price: ${UpToPriceSpot} | Last Price: ${SpotLastPrice}`, [dls], true);
+                            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} Solidity on ${solidityModel.Solidity.Price} has been destroyed! | Up to price: ${UpToPriceSpot} | Last Price: ${SpotLastPrice}`, [dls], true);
                             CloseTrade();
                         } else if (BinanceOrdersCalculatingKit.CalcSimplifiedRatio(UpToPriceSpot, solidityModel.Solidity.Type) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
                             DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} is too far! Up to price: ${UpToPriceSpot}`, [dls], true);
@@ -275,11 +275,10 @@ export class BinanceTradesService {
 
         const CloseTrade = () => {
             TradeStatus = 'disabled';
-            TradingPairsService.DeleteTPInTrade(solidityModel.Symbol);
-            DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Websockets on ${solidityModel.Symbol} has been disabled!`, [ dls ], true);
             WebSocketSpot.close();
             WebSocketSpotBookDepth.close();
             WebSocketFutures.close();
+            TradingPairsService.DeleteTPInTrade(solidityModel.Symbol);
         }
 
         WebSocketSpot.on('error', e => DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error in spot depth websocket with ${solidityModel.Symbol}! ${e.message}`));
@@ -303,7 +302,7 @@ export class BinanceTradesService {
     CheckSolidity = async (solidityModel: SolidityModel, SolidityBid: StreamBid, UpToPriceSpot: number, TradeStatus: TradeStatus, MaxSolidityQuantity: number): Promise<SolidityStatus> => {
         const SOLIDITY_CHANGE_PER_UPDATE_THRESHOLD: number = 0.15;
 
-        let SolidityStatus: SolidityStatus;
+        let SolidityStatus: SolidityStatus = 'ready';
 
         if (TradeStatus === 'reached') {
             this.SolidityQuantityHistory.push(SolidityBid[1]);
