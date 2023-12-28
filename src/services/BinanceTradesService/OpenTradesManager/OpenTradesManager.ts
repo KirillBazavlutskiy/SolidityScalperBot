@@ -46,7 +46,7 @@ export class OpenTradesManager {
         try {
             this.OrderQuantityNominal = OrderQuantityNominal;
 
-            const orderQuantityLegacy = BinanceOrdersCalculatingKit.RoundUp(11 / LastPrice, QuantityPrecisionFutures).toString();
+            const orderQuantityLegacy = (parseFloat(this.OrderQuantityNominal) / LastPrice).toFixed(QuantityPrecisionFutures);
             this.OrderQuantity = parseFloat(orderQuantityLegacy) > 0 ? orderQuantityLegacy : '1';
 
             const order = await this.client.futuresOrder({

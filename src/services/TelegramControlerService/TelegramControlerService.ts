@@ -92,7 +92,11 @@ export class TelegramControllerService {
             const subscribedUsers: number[] = JSON.parse(subscribedUsersJson);
 
             subscribedUsers.forEach(userId => {
-                this.Bot.sendMessage(userId, message, { reply_markup: this.CreateKeyBoard() });
+                try {
+                    this.Bot.sendMessage(userId, message, { reply_markup: this.CreateKeyBoard() });
+                } catch (e) {
+                    throw e;
+                }
             })
         } catch (e) {
             throw e;

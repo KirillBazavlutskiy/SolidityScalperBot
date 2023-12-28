@@ -1,19 +1,13 @@
 import {
-    Bid,
     Binance,
     ExchangeInfo,
-    FuturesOrder,
     FuturesOrderType_LT,
-    OrderBook,
-    OrderType_LT,
-    WSTrade
+    OrderType_LT
 } from "binance-api-node";
-import {SolidityModel, LimitType} from "../SolidityFinderService/SolidityFinderModels";
+import {SolidityModel} from "../SolidityFinderService/SolidityFinderModels";
 import TradingPairsService from "../TradingPairsListService/TradingPairsService";
 import {dls, sfs, SolidityFinderOptions, tcs, tls, TradeStopsOptions} from "../../index";
 import {
-    CalcTPSLOutput,
-    CheckTPSLOutput,
     SolidityStatus,
     StreamBid,
     TradeStatus,
@@ -23,9 +17,6 @@ import WebSocket from 'ws';
 import DocumentLogService from "../DocumentLogService/DocumentLogService";
 import {FontColor} from "../FontStyleObjects";
 import beep from 'beepbeep';
-import {TradesHistoryDataService} from "../TradesHistoryDataService/TradesHistoryDataService";
-import tradingPairsService from "../TradingPairsListService/TradingPairsService";
-import {Mutex} from "async-mutex";
 import {BinanceOrdersCalculatingKit} from "./BinanceOrdersCalculatingKit/BinanceOrdersCalculatingKit";
 import {OpenTradesManager} from "./OpenTradesManager/OpenTradesManager";
 
@@ -63,7 +54,7 @@ export class BinanceTradesService {
 
         let UpToPriceSpot: number = solidityModel.Solidity.UpToPrice;
 
-        let SolidityStatus: SolidityStatus;
+        let SolidityStatus: SolidityStatus = 'ready';
         let MaxSolidityQuantity = solidityModel.Solidity.Quantity;
 
         let FuturesOpenTradePrice: number;
@@ -91,7 +82,7 @@ export class BinanceTradesService {
 
         const WebSocketSpot: WebSocket = new WebSocket(`wss://stream.binance.com:9443/ws/${solidityModel.Symbol.toLowerCase()}@trade`);
         const WebSocketFutures: WebSocket = new WebSocket(`wss://fstream.binance.com/ws/${solidityModel.Symbol.toLowerCase()}@trade`);
-        const WebSocketSpotBookDepth: WebSocket = new WebSocket(`wss://stream.binance.com:9443/ws/${solidityModel.Symbol.toLowerCase()}@depth@500ms`);
+        const WebSocketSpotBookDepth: WebSocket = new WebSocket(`wss://stream.binance.com:9443/ws/${solidityModel.Symbol.toLowerCase()}@depth`);
 
         const ProcessSpotTrade = async (data: Buffer) => {
             try {
@@ -206,7 +197,7 @@ export class BinanceTradesService {
                         WebSocketSpotBookDepth.close();
                         tcs.SendMessage(`${solidityModel.Symbol}\nSolidity on ${solidityModel.Solidity.Price}$ is almost ends\nThe quantity on ${SolidityBid[0]} is ${SolidityBid[1]}\nOpening Order...`);
                         DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} Solidity on ${solidityModel.Solidity.Price}$ is almost ends. The quantity on ${SolidityBid[0]} is ${SolidityBid[1]}!`, [ dls ], true);
-                        FuturesOpenTradePrice = await otm.PlaceMarketOrder(FuturesLastPrice, orderQuantityNominal.toString(), quantityPrecisionFutures);
+                        FuturesOpenTradePrice = await otm.PlaceMarketOrder(FuturesLastPrice, TradeStopsOptions.TradeOptions.NominalQuantity.toString(), quantityPrecisionFutures);
                     } else if (SolidityStatus === 'moved') {
                         TradeStatus = 'watching';
                         tcs.SendMessage(`Solidity on ${solidityModel.Symbol} has been moved to ${solidityModel.Solidity.Price}$\nRatio: ${solidityModel.Solidity.Ratio}`)
@@ -304,9 +295,9 @@ export class BinanceTradesService {
 
         let SolidityStatus: SolidityStatus;
 
-        if (TradeStatus === 'reached') {
-            this.SolidityQuantityHistory.push(SolidityBid[1]);
-        }
+        // if (TradeStatus === 'reached') {
+        //     this.SolidityQuantityHistory.push(SolidityBid[1]);
+        // }
 
         const SolidityQuantityChange = SolidityBid[1] / solidityModel.Solidity.Quantity - 1;
 
