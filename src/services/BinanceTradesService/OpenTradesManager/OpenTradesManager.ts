@@ -135,6 +135,6 @@ export class OpenTradesManager {
 
 
     static ShowProfit = (UpToPrice: number, TradeType?: TradeType) => {
-        return BinanceOrdersCalculatingKit.RoundUp(BinanceOrdersCalculatingKit.CalcSimplifiedRatio(UpToPrice, TradeType === 'long' ? 'asks' : 'bids'), 5);
+        return BinanceOrdersCalculatingKit.RoundUp(BinanceOrdersCalculatingKit.CalcSimplifiedRatio(UpToPrice, TradeType === 'long' ? 'asks' : 'bids') * 100, 5);
     }
 }

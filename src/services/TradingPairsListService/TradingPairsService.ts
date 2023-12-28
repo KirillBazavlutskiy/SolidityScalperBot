@@ -1,4 +1,4 @@
-import {SolidityModel} from "../SolidityFinderService/SolidityFinderModels";
+import {LimitType, SolidityModel} from "../SolidityFinderService/SolidityFinderModels";
 import {BinanceOrdersCalculatingKit} from "../BinanceTradesService/BinanceOrdersCalculatingKit/BinanceOrdersCalculatingKit";
 
 class TradingPairsService {
@@ -10,10 +10,10 @@ class TradingPairsService {
 
         if (this.TPWithSolidityInTrade.length !== 0) {
             result =
-                `${TradingPairsService.TPWithSolidityInTrade.map(TradingPair => {
+                `${this.TPWithSolidityInTrade.map(TradingPair => {
                     return (
                         `${TradingPair.Symbol}\n` +
-                        `Up tp price: ${BinanceOrdersCalculatingKit.RoundUp(BinanceOrdersCalculatingKit.CalcSimplifiedRatio(TradingPair.Solidity.UpToPrice, TradingPair.Solidity.Type) * 100, 4)}%\n` +
+                        `Up tp price:${this.ShowUptoPrice(TradingPair.Solidity.UpToPrice, TradingPair.Solidity.Type)}\n` +
                         `Trade type: ${TradingPair.Solidity.Type === 'asks' ? 'Long' : 'Short'}\n` +
                         `Waiting for price: ${TradingPair.Solidity.Price}$\n` + 
                         `Last price: ${TradingPair.Price}$`
@@ -53,6 +53,10 @@ class TradingPairsService {
             return true
         }
     };
+
+    static ShowUptoPrice = (upToPrice: number, BidType: LimitType) => {
+        return `${BinanceOrdersCalculatingKit.RoundUp(BinanceOrdersCalculatingKit.CalcSimplifiedRatio(upToPrice, BidType) * 100, 4)}%`
+    }
 }
 
 export default TradingPairsService;

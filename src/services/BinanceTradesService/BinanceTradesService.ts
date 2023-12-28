@@ -137,7 +137,7 @@ export class BinanceTradesService {
                                 CloseTrade();
                             }
                         } else if (BinanceOrdersCalculatingKit.CalcSimplifiedRatio(UpToPriceSpot, solidityModel.Solidity.Type) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
-                            tcs.SendMessage(`${solidityModel.Symbol} is too far!\nUp To price: ${BinanceOrdersCalculatingKit.RoundUp(UpToPriceSpot, 4)}`);
+                            tcs.SendMessage(`${solidityModel.Symbol} is too far!\nUp To price: ${TradingPairsService.ShowUptoPrice(UpToPriceSpot, solidityModel.Solidity.Type)}`);
                             DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} is too far!`, [dls], true);
                             CloseTrade();
                         }
@@ -200,7 +200,7 @@ export class BinanceTradesService {
                         FuturesOpenTradePrice = await otm.PlaceMarketOrder(FuturesLastPrice, TradeStopsOptions.TradeOptions.NominalQuantity.toString(), quantityPrecisionFutures);
                     } else if (SolidityStatus === 'moved') {
                         TradeStatus = 'watching';
-                        tcs.SendMessage(`Solidity on ${solidityModel.Symbol} has been moved to ${solidityModel.Solidity.Price}$\nRatio: ${solidityModel.Solidity.Ratio}`)
+                        tcs.SendMessage(`Solidity on ${solidityModel.Symbol} has been moved to ${solidityModel.Solidity.Price}$\nUp to price: ${solidityModel.Solidity.UpToPrice}`)
                     }
                 }
             } catch (e) {
