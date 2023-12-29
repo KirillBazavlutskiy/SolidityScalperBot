@@ -188,19 +188,19 @@ export class BinanceTradesService {
 
                     TradingPairsService.ChangeTPInTrade(solidityModel);
                     if (SolidityStatus === 'removed') {
-                        if (TradeStatus === 'reached') tcs.SendMessage(`${solidityModel.Symbol}\nSolidity was removed!`);
+                        if (TradeStatus === 'reached') tcs.SendMessage(`${solidityModel.Symbol}\nSolidity on ${solidityModel.Solidity.Price}$ has been removed!\nThe quantity on ${SolidityBid[0]}$ is ${SolidityBid[1]}!`);
                         CloseTrade();
                         DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} Solidity on ${solidityModel.Solidity.Price}$ has been removed. The quantity on ${SolidityBid[0]}$ is ${SolidityBid[1]}!`, [ dls ], true);
                     } else if (SolidityStatus === 'ends') {
                         TradeStatus = 'inTrade';
                         WebSocketSpot.close();
                         WebSocketSpotBookDepth.close();
-                        tcs.SendMessage(`${solidityModel.Symbol}\nSolidity on ${solidityModel.Solidity.Price}$ is almost ends\nThe quantity on ${SolidityBid[0]} is ${SolidityBid[1]}\nOpening Order...`);
+                        tcs.SendMessage(`${solidityModel.Symbol}\nSolidity on ${solidityModel.Solidity.Price}$ is almost ends\nThe quantity on ${SolidityBid[0]}$ is ${SolidityBid[1]}\nOpening Order...`);
                         DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} Solidity on ${solidityModel.Solidity.Price}$ is almost ends. The quantity on ${SolidityBid[0]} is ${SolidityBid[1]}!`, [ dls ], true);
                         FuturesOpenTradePrice = await otm.PlaceMarketOrder(FuturesLastPrice, TradeStopsOptions.TradeOptions.NominalQuantity.toString(), quantityPrecisionFutures);
                     } else if (SolidityStatus === 'moved') {
                         TradeStatus = 'watching';
-                        tcs.SendMessage(`Solidity on ${solidityModel.Symbol} has been moved to ${solidityModel.Solidity.Price}$\nUp to price: ${solidityModel.Solidity.UpToPrice}`)
+                        tcs.SendMessage(`${solidityModel.Symbol}\nSolidity has been moved to ${solidityModel.Solidity.Price}$\nUp to price: ${solidityModel.Solidity.UpToPrice}`)
                     }
                 }
             } catch (e) {

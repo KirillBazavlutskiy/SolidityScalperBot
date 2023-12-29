@@ -99,7 +99,7 @@ export class TelegramControllerService {
                 }
             })
         } catch (e) {
-            throw e;
+            DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error in telegram service: ${e.message}`, [dls], true);
         }
     }
 }

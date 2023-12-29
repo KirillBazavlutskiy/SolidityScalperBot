@@ -13,7 +13,7 @@ class TradingPairsService {
                 `${this.TPWithSolidityInTrade.map(TradingPair => {
                     return (
                         `${TradingPair.Symbol}\n` +
-                        `Up tp price:${this.ShowUptoPrice(TradingPair.Solidity.UpToPrice, TradingPair.Solidity.Type)}\n` +
+                        `Up tp price: ${this.ShowUptoPrice(TradingPair.Solidity.UpToPrice, TradingPair.Solidity.Type)}\n` +
                         `Trade type: ${TradingPair.Solidity.Type === 'asks' ? 'Long' : 'Short'}\n` +
                         `Waiting for price: ${TradingPair.Solidity.Price}$\n` + 
                         `Last price: ${TradingPair.Price}$`
