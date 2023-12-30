@@ -309,9 +309,13 @@ export class BinanceTradesService {
             }
         } else {
             DocumentLogService.MadeTheNewLog([FontColor.FgCyan], `Trying to refresh solidity info on ${solidityModel.Symbol}...`, [ dls ], true);
-            const lastSolidity = await sfs.FindSolidity(solidityModel.Symbol, SolidityFinderOptions.ratioAccess, SolidityFinderOptions.upToPriceAccess);
+            const lastSolidity = await sfs.FindSolidity(solidityModel.Symbol);
 
-            if (lastSolidity.Solidity?.Type === solidityModel.Solidity.Type) {
+            if (
+                lastSolidity.Solidity.Ratio >= SolidityFinderOptions.ratioAccess &&
+                lastSolidity.Solidity.UpToPrice >= SolidityFinderOptions.upToPriceAccess &&
+                lastSolidity.Solidity?.Type === solidityModel.Solidity.Type
+            ) {
                 if (lastSolidity.Solidity.Price === solidityModel.Solidity.Price) {
                     SolidityStatus = 'ready';
                     solidityModel = lastSolidity;

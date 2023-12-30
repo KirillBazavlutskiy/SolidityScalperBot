@@ -51,7 +51,7 @@ class SolidityFinderService {
         }
     };
 
-    FindSolidity = async (symbol: string, ratioAccess: number, upToPriceAccess: number): Promise<SolidityModel | null> => {
+    FindSolidity = async (symbol: string): Promise<SolidityModel | null> => {
         try {
             const orderBook = await this.client.book({ symbol });
             const ticker = await this.client.dailyStats({ symbol });
@@ -111,9 +111,11 @@ class SolidityFinderService {
 
                 await Promise.all(
                     symbolsGroup.map(async (symbol) => {
-                        const solidityInfo = await this.FindSolidity(symbol, ratioAccess, upToPriceAccess);
-                        if (solidityInfo.Solidity.Ratio > ratioAccess &&
-                            BinanceOrdersCalculatingKit.CalcSimplifiedRatio(solidityInfo.Solidity.UpToPrice, solidityInfo.Solidity.Type) < upToPriceAccess) {
+                        const solidityInfo = await this.FindSolidity(symbol);
+                        if (
+                            solidityInfo.Solidity.Ratio > ratioAccess &&
+                            BinanceOrdersCalculatingKit.CalcSimplifiedRatio(solidityInfo.Solidity.UpToPrice, solidityInfo.Solidity.Type) < upToPriceAccess
+                        ) {
                             symbolsWithSolidity.push(solidityInfo);
                         }
                     })
