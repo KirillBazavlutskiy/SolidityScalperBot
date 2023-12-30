@@ -128,14 +128,9 @@ export class BinanceTradesService {
 
                             OpenTradeTime = new Date();
 
-                            if (OpenOrderAccess) {
-                                FuturesOpenTradePrice = await otm.PlaceMarketOrder(FuturesLastPrice, TradeStopsOptions.TradeOptions.NominalQuantity.toString(), quantityPrecisionFutures);
-                                WebSocketSpot.close();
-                                WebSocketSpotBookDepth.close();
-                            } else {
-                                DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} | Not normal quantity! (${orderQuantityNominal})\nOrder quantity: ${orderQuantity}`, [dls], true);
-                                CloseTrade();
-                            }
+                            FuturesOpenTradePrice = await otm.PlaceMarketOrder(FuturesLastPrice, TradeStopsOptions.TradeOptions.NominalQuantity.toString(), quantityPrecisionFutures);
+                            WebSocketSpot.close();
+                            WebSocketSpotBookDepth.close();
                         } else if (BinanceOrdersCalculatingKit.CalcSimplifiedRatio(UpToPriceSpot, solidityModel.Solidity.Type) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
                             tcs.SendMessage(`${solidityModel.Symbol} is too far!\nUp To price: ${TradingPairsService.ShowUptoPrice(UpToPriceSpot, solidityModel.Solidity.Type)}`);
                             DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} is too far!`, [dls], true);
@@ -307,7 +302,7 @@ export class BinanceTradesService {
         } else if (UpToPriceSpot === 1) {
             solidityModel.Solidity.Quantity = SolidityBid[1];
 
-            if (SolidityBid[1] / MaxSolidityQuantity < 0.25) {
+            if (SolidityBid[1] / MaxSolidityQuantity < 0.4) {
                 SolidityStatus = 'ends';
             } else {
                 SolidityStatus = 'ready';
