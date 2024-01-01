@@ -1,9 +1,9 @@
 {
   "Stops": {
     "TakeProfit": 0.03,
-    "TrailingStopLoss": 0.003
+    "TrailingStopLoss": 0.004
   },
   "TradeOptions": {
-    "NominalQuantity": 11
+    "NominalQuantity": 20
   }
 }

@@ -299,7 +299,7 @@ export class BinanceTradesService {
         } else if (UpToPriceSpot === 1) {
             solidityModel.Solidity.Quantity = SolidityBid[1];
 
-            if (SolidityBid[1] / MaxSolidityQuantity < 0.4) {
+            if (SolidityBid[1] / MaxSolidityQuantity < 0.3) {
                 SolidityStatus = 'ends';
             } else {
                 SolidityStatus = 'ready';
