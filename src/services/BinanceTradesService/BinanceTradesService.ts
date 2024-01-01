@@ -48,7 +48,7 @@ export class BinanceTradesService {
         let tickSizeFutures: number = BinanceTradesService.FetchTickSize(exchangeInfoFutures, solidityModel.Symbol);
 
         let minNotionalFutures = parseFloat(BinanceTradesService.FetchMinNotionalFutures(exchangeInfoFutures, solidityModel.Symbol));
-        let quantityPrecisionFutures: number = exchangeInfoFutures.quantityPrecision;
+        let quantityPrecisionFutures: number = BinanceTradesService.GetQuantityPrecision(exchangeInfoFutures, solidityModel.Symbol);
 
         const UP_TO_PRICE_ACCESS_SPOT_THRESHOLD: number = SolidityFinderOptions.upToPriceAccess + 0.01;
 
@@ -74,7 +74,7 @@ export class BinanceTradesService {
         const otm = new OpenTradesManager(this.client, solidityModel.Symbol, TradeStopsOptions, TradeType, tickSizeFutures);
 
         DocumentLogService.MadeTheNewLog(
-            [FontColor.FgGreen], `New Solidity on ${solidityModel.Symbol} | Solidity Price: ${solidityModel.Solidity.Price} | Solidity Ratio: ${solidityModel.Solidity.Ratio} | Up To Price: ${solidityModel.Solidity.UpToPrice} | Last Price: ${solidityModel.Price}`,
+            [FontColor.FgGreen], `New Solidity on ${solidityModel.Symbol} | Solidity Price: ${solidityModel.Solidity.Price} | Solidity Ratio: ${solidityModel.Solidity.Ratio} | Up To Price: ${solidityModel.Solidity.UpToPrice} | Last Price: ${solidityModel.Price} | Quantity Precision: ${quantityPrecisionFutures}`,
             [ dls ], true);
 
         const WebSocketSpot: WebSocket = new WebSocket(`wss://stream.binance.com:9443/ws/${solidityModel.Symbol.toLowerCase()}@trade`);
@@ -332,6 +332,12 @@ export class BinanceTradesService {
             }
         }
         return SolidityStatus;
+    }
+
+    static GetQuantityPrecision = (exchangeInfo: ExchangeInfo<OrderType_LT> | ExchangeInfo<FuturesOrderType_LT>, symbol: string) => {
+        for (const pair of exchangeInfo.symbols) {
+            if (pair.symbol === symbol) return pair.quantityPrecision;
+        }
     }
 
     static FetchTickSize = (exchangeInfo: ExchangeInfo<OrderType_LT> | ExchangeInfo<FuturesOrderType_LT>, symbol: string): number => {
