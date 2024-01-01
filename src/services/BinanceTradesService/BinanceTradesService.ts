@@ -63,11 +63,6 @@ export class BinanceTradesService {
         let FuturesLastPrice: number;
         let FuturesWebsocketLastTradeTime: Date;
 
-        let orderQuantity: string;
-        let orderQuantityNominal: number;
-
-        let OpenOrderAccess: boolean = false;
-
         let TradeStatus: TradeStatus = 'watching';
 
         let minPriceFuturesInTrade = Number.MAX_VALUE;

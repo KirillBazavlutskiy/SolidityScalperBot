@@ -80,7 +80,8 @@ export class OpenTradesManager {
             tcs.SendMessage(orderMsgTg);
             DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], orderMsg, [dls, tls], true);
         } catch (e) {
-            throw e;
+            DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `Error with placing order! Nominal quantity: ${parseFloat(this.OrderQuantityNominal)} | Open order price: ${LastPrice} | Quantity Precision: ${QuantityPrecisionFutures} | Calculated quantity: ${this.OrderQuantity}`, [dls, tls], true);
+            tcs.SendMessage(`${this.Symbol}\nError with placing order!\nNominal quantity: ${parseFloat(OrderQuantityNominal)}\nOpen order price: ${LastPrice}\nQuantity Precision: ${QuantityPrecisionFutures}\nCalculated quantity: ${this.OrderQuantity}`);
         }
 
         return this.OpenOrderPrice
