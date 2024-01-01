@@ -6,7 +6,7 @@ import {
 } from "binance-api-node";
 import {SolidityModel} from "../SolidityFinderService/SolidityFinderModels";
 import TradingPairsService from "../TradingPairsListService/TradingPairsService";
-import {dls, sfs, SolidityFinderOptions, tcs, tls, TradeStopsOptions} from "../../index";
+import {dls, sfs, tcs, tls} from "../../index";
 import {
     SolidityStatus,
     StreamBid,
@@ -19,6 +19,8 @@ import {FontColor} from "../FontStyleObjects";
 import beep from 'beepbeep';
 import {BinanceOrdersCalculatingKit} from "./BinanceOrdersCalculatingKit/BinanceOrdersCalculatingKit";
 import {OpenTradesManager} from "./OpenTradesManager/OpenTradesManager";
+import {SolidityFinderOptionsModel} from "../../../Options/SolidityFInderOptions/SolidityFinderOptionsModels";
+import {TradingStopOptions} from "../../../Options/TradeStopsOptions/TradeStopsOptionsModels";
 
 
 export class BinanceTradesService {
@@ -29,7 +31,7 @@ export class BinanceTradesService {
 
     SolidityQuantityHistory: number[];
 
-    TradeSymbol = async (solidityModel: SolidityModel): Promise<void | 0> => {
+    TradeSymbol = async (solidityModel: SolidityModel, SolidityFinderOptions: SolidityFinderOptionsModel, TradeStopsOptions: TradingStopOptions): Promise<void | 0> => {
         let exchangeInfoSpot;
         let exchangeInfoFutures;
 
@@ -74,7 +76,7 @@ export class BinanceTradesService {
         let OpenTradeTime: Date;
         let TradeType: TradeType = solidityModel.Solidity.Type === 'asks' ? 'long' : 'short';
 
-        const otm = new OpenTradesManager(this.client, solidityModel.Symbol, TradeType, tickSizeFutures);
+        const otm = new OpenTradesManager(this.client, solidityModel.Symbol, TradeStopsOptions, TradeType, tickSizeFutures);
 
         DocumentLogService.MadeTheNewLog(
             [FontColor.FgGreen], `New Solidity on ${solidityModel.Symbol} | Solidity Price: ${solidityModel.Solidity.Price} | Solidity Ratio: ${solidityModel.Solidity.Ratio} | Up To Price: ${solidityModel.Solidity.UpToPrice} | Last Price: ${solidityModel.Price}`,
@@ -179,7 +181,7 @@ export class BinanceTradesService {
                     const SolidityBid = Bids[solidityChangeIndex];
 
                     if (SolidityBid[1] > MaxSolidityQuantity) MaxSolidityQuantity = SolidityBid[1];
-                    SolidityStatus = await this.CheckSolidity(solidityModel, SolidityBid, UpToPriceSpot, TradeStatus, MaxSolidityQuantity);
+                    SolidityStatus = await this.CheckSolidity(solidityModel, SolidityBid, UpToPriceSpot, TradeStatus, MaxSolidityQuantity, SolidityFinderOptions);
 
                     TradingPairsService.ChangeTPInTrade(solidityModel);
                     if (SolidityStatus === 'removed') {
@@ -285,7 +287,7 @@ export class BinanceTradesService {
         });
     };
 
-    CheckSolidity = async (solidityModel: SolidityModel, SolidityBid: StreamBid, UpToPriceSpot: number, TradeStatus: TradeStatus, MaxSolidityQuantity: number): Promise<SolidityStatus> => {
+    CheckSolidity = async (solidityModel: SolidityModel, SolidityBid: StreamBid, UpToPriceSpot: number, TradeStatus: TradeStatus, MaxSolidityQuantity: number, SolidityFinderOptions: SolidityFinderOptionsModel): Promise<SolidityStatus> => {
         const SOLIDITY_CHANGE_PER_UPDATE_THRESHOLD: number = 0.15;
 
         let SolidityStatus: SolidityStatus;
