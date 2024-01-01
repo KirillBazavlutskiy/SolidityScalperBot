@@ -20,24 +20,30 @@ const client = Binance({
     getTime: () => new Date().getTime(),
 });
 
-const SolidityOptionsJson = fs.readFileSync('./Options/SolidityFinderOptions/SolidityFinderOptions.json', 'utf-8');
-const TradeStopsOptionsJson = fs.readFileSync('./Options/TradeStopsOptions/TradeStopsOptions.json', 'utf-8');
-export const SolidityFinderOptions: SolidityFinderOptionsModel = JSON.parse(SolidityOptionsJson);
-export const TradeStopsOptions: TradingStopOptions = JSON.parse(TradeStopsOptionsJson);
-
 export const sfs = new SolidityFinderService(client);
 const bts = new BinanceTradesService(client);
 export const dls = new DocumentLogger('./Logs/Logs.txt');
 export const tls = new DocumentLogger('./Logs/TradeLogs.txt')
 export const tcs = new TelegramControllerService(TelegramBotKey);
 
+export const GetSolidityFinderOptions = (): SolidityFinderOptionsModel => {
+    const SolidityOptionsJson = fs.readFileSync('./Options/SolidityFinderOptions/SolidityFinderOptions.json', 'utf-8');
+    return JSON.parse(SolidityOptionsJson);
+}
+
+export const GetTradeStopsOptions = (): TradingStopOptions => {
+    const TradeStopsOptionsJson = fs.readFileSync('./Options/TradeStopsOptions/TradeStopsOptions.json', 'utf-8');
+    return JSON.parse(TradeStopsOptionsJson);
+}
+
 tcs.SendMessage('Bot has started!');
 
 const fetchSolidity = async (): Promise<void> => {
     if (tcs.GetTradeStatus()) {
+        const SolidityFinderOptions = GetSolidityFinderOptions();
         TradingPairsService.TPWithSolidity = await sfs.FindAllSolidity(SolidityFinderOptions.minVolume, SolidityFinderOptions.ratioAccess, SolidityFinderOptions.upToPriceAccess, SolidityFinderOptions.checkReachingPriceDuration);
         DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `Found solidity: ${TradingPairsService.TPWithSolidity.length}`, [ dls ]);
-        TradingPairsService.TPWithSolidity.forEach(tp => { if (!TradingPairsService.CheckTPInTrade(tp, true)) bts.TradeSymbol(tp) } );
+        TradingPairsService.TPWithSolidity.forEach(tp => { if (!TradingPairsService.CheckTPInTrade(tp, true)) bts.TradeSymbol(tp, GetSolidityFinderOptions(), GetTradeStopsOptions()) } );
     } else {
         DocumentLogService.MadeTheNewLog([FontColor.FgGray], 'Search was canceled! Start id with telegram chat!', [ dls ], true);
     }
