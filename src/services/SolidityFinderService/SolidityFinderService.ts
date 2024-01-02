@@ -31,21 +31,24 @@ class SolidityFinderService {
             }
     }
 
-    FetchAllSymbols = async (minVolume: number) => {
+    FetchAllSymbols = async (minVolume: number, topPriceChangePercent: number) => {
         try {
             const tickers = await this.client.dailyStats();
             const futuresSymbolsInfo = await this.client.futuresExchangeInfo();
             const futuresSymbols = futuresSymbolsInfo.symbols.map(symbolInfo => symbolInfo.symbol);
             const tickersFixed: DailyStatsResult[] = JSON.parse(JSON.stringify(tickers));
 
-            return tickersFixed
+            const filteredTickers = tickersFixed
                 .filter(tradingPair => !(tradingPair.symbol.includes('BTC') || tradingPair.symbol.includes('ETH') || tradingPair.symbol.includes('USDC') || tradingPair.symbol.includes('FTT')))
                 .filter(tradingPair => futuresSymbols.includes(tradingPair.symbol))
                 .filter(tradingPair => {
                     return tradingPair.symbol.substring(tradingPair.symbol.length - 4, tradingPair.symbol.length) === "USDT"
                 })
                 .filter(tradingPair => parseFloat(tradingPair.quoteVolume) > minVolume)
+                .sort((a, b) => Math.abs(parseFloat(b.priceChangePercent)) - Math.abs(parseFloat(a.priceChangePercent)))
                 .map(tradingPair => tradingPair.symbol);
+
+            return filteredTickers.slice(0, topPriceChangePercent);
         } catch (e) {
             throw e;
         }
@@ -98,11 +101,11 @@ class SolidityFinderService {
         }
     };
 
-    FindAllSolidity = async (minVolume: number, ratioAccess: number, upToPriceAccess: number, checkReachingPriceDuration: number) => {
+    FindAllSolidity = async (minVolume: number, ratioAccess: number, upToPriceAccess: number, checkReachingPriceDuration: number, topPriceChangePercent: number) => {
         const symbolsWithSolidity: SolidityModel[] = [];
 
         try {
-            const symbols = await this.FetchAllSymbols(minVolume);
+            const symbols = await this.FetchAllSymbols(minVolume, topPriceChangePercent);
             const symbolsGroupLength = 30;
 
             for (let i = 0; i < symbols.length; i += symbolsGroupLength) {

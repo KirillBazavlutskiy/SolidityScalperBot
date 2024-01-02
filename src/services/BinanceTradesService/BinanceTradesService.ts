@@ -180,7 +180,7 @@ export class BinanceTradesService {
 
                     TradingPairsService.ChangeTPInTrade(solidityModel);
                     if (SolidityStatus === 'removed') {
-                        if (TradeStatus === 'reached') tcs.SendMessage(`${solidityModel.Symbol}\nSolidity on ${solidityModel.Solidity.Price}$ has been removed!\nThe quantity on ${SolidityBid[0]}$ is ${SolidityBid[1]}!`);
+                        if (TradeStatus === 'reached') tcs.SendMessage(`${solidityModel.Symbol}\nSolidity on ${solidityModel.Solidity.Price}$ has been removed!\nThe quantity on ${SolidityBid[0]}$ is ${SolidityBid[1]}\n Max quantity was ${MaxSolidityQuantity}`);
                         CloseTrade();
                         DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} Solidity on ${solidityModel.Solidity.Price}$ has been removed. The quantity on ${SolidityBid[0]}$ is ${SolidityBid[1]}!`, [ dls ], true);
                     } else if (SolidityStatus === 'ends') {
