@@ -1,8 +1,3 @@
-export interface CalcTPSLOutput {
-    TakeProfit: number;
-    StopLoss: number;
-}
-
 export type TradeStatus = 'watching' | 'reached' | 'inTrade' | 'disabled';
 export type SolidityStatus = 'ready' | 'moved' | 'removed' | 'ends';
 export type TradeType = 'long' | 'short';
