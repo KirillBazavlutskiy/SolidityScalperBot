@@ -1,18 +1,35 @@
-import TelegramBot, {InlineKeyboardMarkup, Message, CallbackQuery, ReplyKeyboardMarkup, KeyboardButton} from 'node-telegram-bot-api';
+import TelegramBot, {
+    CallbackQuery,
+    InlineKeyboardMarkup,
+    Message,
+    ReplyKeyboardMarkup
+} from 'node-telegram-bot-api';
 import fs from "fs";
-import {text} from "stream/consumers";
 import TradingPairsService from "../TradingPairsListService/TradingPairsService";
 import DocumentLogService from "../DocumentLogService/DocumentLogService";
 import {FontColor} from "../FontStyleObjects";
-import {dls, tls} from "../../index";
+import {dls} from "../../index";
+import {Binance} from "binance-api-node";
+import {OptionsManager} from "../OptionsManager/OptionsManager";
 
 export class TelegramControllerService {
     private Bot: TelegramBot;
-    private chatId: number;
+    client: Binance;
     private TradingAccess: boolean = true;
     private dataPath = './data/TelegramUsers.json';
 
-    constructor(token: string) {
+    private _state: string;
+
+    private SetState = (state: string) => {
+        this._state = state;
+    }
+
+    private GetState = () => {
+        return this._state;
+    }
+
+    constructor(token: string, client: Binance) {
+        this.client = client;
         this.Bot = new TelegramBot(token, { polling: true });
         this.setupBotListeners();
     }
@@ -20,6 +37,7 @@ export class TelegramControllerService {
     private setupBotListeners(): void {
         this.Bot.onText(/\/start/, this.onStart.bind(this));
         this.Bot.on('message', this.onMessage.bind(this));
+        this.Bot.on('callback_query', this.OnCallbackQuery.bind(this));
     }
 
     private CreateKeyBoard = (): ReplyKeyboardMarkup => ({
@@ -38,10 +56,23 @@ export class TelegramControllerService {
                 {
                     text: 'Trades Info'
                 }
+            ],
+            [
+                {
+                    text: 'Trading Options'
+                }
             ]
         ],
         resize_keyboard: true,
         one_time_keyboard: false
+    });
+
+    private CreateReplyTradeOptionsButtons = (empty: boolean = false): InlineKeyboardMarkup => ({
+        inline_keyboard: empty ? [] : [
+            [{ text: 'Stop loss percent value', callback_data: 'ChangeStopLossPercentValue' }],
+            [{ text: 'Stop loss trailing value', callback_data: 'ChangeStopLossTrailingValue' }],
+            [{ text: 'Take profit percent value', callback_data: 'ChangeTakeProfitPercentValue' }]
+        ].filter(option => option[0].callback_data !== this.GetState())
     });
 
     private onStart = (msg: Message) => {
@@ -51,13 +82,24 @@ export class TelegramControllerService {
                 ...this.CreateKeyBoard(),
             },
         });
+        this.AddSubscriber(chatId);
+    }
+
+    private AddSubscriber = (id: number) => {
         const subscribedUsersJson = fs.readFileSync(this.dataPath, 'utf-8');
         const subscribedUsers: number[] = JSON.parse(subscribedUsersJson);
 
-        fs.writeFileSync(this.dataPath, JSON.stringify([ ...subscribedUsers, chatId ]), 'utf-8');
+        fs.writeFileSync(this.dataPath, JSON.stringify([ ...subscribedUsers, id ]), 'utf-8');
     }
 
-    private onMessage = (msg: Message) => {
+    private DeleteSubscriber = (id: number) => {
+        const subscribedUsersJson = fs.readFileSync(this.dataPath, 'utf-8');
+        const subscribedUsers: number[] = JSON.parse(subscribedUsersJson);
+
+        fs.writeFileSync(this.dataPath, JSON.stringify(subscribedUsers.filter(userId => userId !== id)), 'utf-8');
+    }
+
+    private onMessage = async (msg: Message) => {
         try {
             const chatId: number = msg.chat.id || 0;
             const data: string = msg.text || '';
@@ -71,14 +113,80 @@ export class TelegramControllerService {
                     this.TradingAccess = false;
                     this.SendMessage('Bot stopped searching!');
                     break;
+
                 case 'Ping':
-                    this.Bot.sendMessage(chatId, 'Program is active!', { reply_markup: this.CreateKeyBoard() });
+                    const ping = await this.client.ping();
+                    this.Bot.sendMessage(chatId, `Program is active!\n${ping ? 'Connection is active too!' : 'Isn`t connected to binance!'}`, { reply_markup: this.CreateKeyBoard() });
                     break;
                 case 'Trades Info':
-                    this.Bot.sendMessage(chatId, TradingPairsService.LogTradingPairs(), { reply_markup: this.CreateKeyBoard() })
+                    this.Bot.sendMessage(chatId, TradingPairsService.LogTradingPairs(), { reply_markup: this.CreateKeyBoard() });
+                    break;
+
+                case 'Trading Options':
+                    this.Bot.sendMessage(chatId, 'Choose the option:', { reply_markup: this.CreateReplyTradeOptionsButtons() });
+                    break;
+
+                default:
+                    switch (this.GetState()) {
+                        case 'ChangeStopLossPercentValue': {
+                            this.SetState('');
+                            const OldOptions = OptionsManager.GetOptions();
+                            const fixedValueFloat = parseFloat(data.replace(',', '.'));
+                            OldOptions.TradingOptions.Stops.StopLoss.PercentValue = fixedValueFloat;
+                            OptionsManager.ChangeOptions(OldOptions);
+                            const msg = `Stop loss value has been changed to ${fixedValueFloat}`;
+                            this.Bot.sendMessage(chatId, msg, { reply_markup: this.CreateReplyTradeOptionsButtons(true) });
+                            this.SendMessage(msg, chatId);
+                            break;
+                        }
+                        case 'ChangeStopLossTrailingValue': {
+                            this.SetState('');
+                            const OldOptions = OptionsManager.GetOptions();
+                            OldOptions.TradingOptions.Stops.StopLoss.IsTrailing = data === '1';
+                            OptionsManager.ChangeOptions(OldOptions);
+                            const msg = `Stop loss trailing status has been changed to ${data === '1'}`;
+                            this.Bot.sendMessage(chatId, msg, { reply_markup: this.CreateReplyTradeOptionsButtons(true) });
+                            this.SendMessage(msg, chatId);
+                            break;
+                        }
+                        case 'ChangeTakeProfitPercentValue': {
+                            this.SetState('');
+                            const OldOptions = OptionsManager.GetOptions();
+                            const fixedValueFloat = parseFloat(data.replace(',', '.'));
+                            OldOptions.TradingOptions.Stops.TakeProfit = fixedValueFloat;
+                            OptionsManager.ChangeOptions(OldOptions);
+                            const msg = `Take profit value has been changed to ${fixedValueFloat}`
+                            this.Bot.sendMessage(chatId, msg, { reply_markup: this.CreateReplyTradeOptionsButtons(true) });
+                            this.SendMessage(msg, chatId);
+                            break;
+                        }
+                        default: {
+                            this.Bot.sendMessage(chatId, '?', { reply_markup: this.CreateReplyTradeOptionsButtons(true) });
+                        }
+                    }
             }
         } catch (e) {
             DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error in telegram service: ${e.message}`, [dls], true);
+        }
+    }
+
+    private OnCallbackQuery = (callbackQuery: CallbackQuery) => {
+        const chatId = callbackQuery.message.chat.id;
+        const data = callbackQuery.data;
+
+        switch (data) {
+            case 'ChangeStopLossPercentValue':
+                this.SetState(data);
+                this.Bot.sendMessage(chatId, 'Type a new value for Stop Loss Percent Value (1 is 1%):', { reply_markup: this.CreateReplyTradeOptionsButtons() });
+                break;
+            case 'ChangeStopLossTrailingValue':
+                this.SetState(data);
+                this.Bot.sendMessage(chatId, 'Type a new condition for trailing Stop Loss (0 or 1):', { reply_markup: this.CreateReplyTradeOptionsButtons() });
+                break;
+            case 'ChangeTakeProfitPercentValue':
+                this.SetState(data);
+                this.Bot.sendMessage(chatId, 'Type a new value for Take Profit Percent Value (1 is 1% | 0 means disabled):', { reply_markup: this.CreateReplyTradeOptionsButtons() });
+                break;
         }
     }
 
@@ -86,16 +194,16 @@ export class TelegramControllerService {
         return this.TradingAccess;
     }
 
-    SendMessage = (message: string) => {
+    SendMessage = (message: string, sendingUser?: number) => {
         try {
             const subscribedUsersJson = fs.readFileSync(this.dataPath, 'utf-8');
             const subscribedUsers: number[] = JSON.parse(subscribedUsersJson);
 
-            subscribedUsers.forEach(userId => {
+            subscribedUsers.filter(user => user !== sendingUser).forEach(userId => {
                 try {
                     this.Bot.sendMessage(userId, message, { reply_markup: this.CreateKeyBoard() });
                 } catch (e) {
-                    throw e;
+                    this.DeleteSubscriber(userId);
                 }
             })
         } catch (e) {

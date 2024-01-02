@@ -1,0 +1,21 @@
+{
+  "SolidityFinderOptions": {
+    "MinVolume": 1000000,
+    "RatioAccess": 20,
+    "UpToPriceAccess": 1.2,
+    "CheckReachingPriceDuration": 15,
+    "TopPriceChangePercentCount": 20
+  },
+  "TradingOptions": {
+    "Stops": {
+      "TakeProfit": 0,
+      "StopLoss": {
+        "IsTrailing": true,
+        "PercentValue": 0.2
+      }
+    },
+    "TradeOptions": {
+      "NominalQuantity": 20
+    }
+  }
+}

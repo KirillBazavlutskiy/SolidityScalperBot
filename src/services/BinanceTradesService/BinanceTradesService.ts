@@ -19,8 +19,7 @@ import {FontColor} from "../FontStyleObjects";
 import beep from 'beepbeep';
 import {BinanceOrdersCalculatingKit} from "./BinanceOrdersCalculatingKit/BinanceOrdersCalculatingKit";
 import {OpenTradesManager} from "./OpenTradesManager/OpenTradesManager";
-import {SolidityFinderOptionsModel} from "../../../Options/SolidityFInderOptions/SolidityFinderOptionsModels";
-import {TradingStopOptions} from "../../../Options/TradeStopsOptions/TradeStopsOptionsModels";
+import {SolidityFinderOptionsModel, TradingOptionsModel} from "../OptionsManager/OptionsModel";
 
 
 export class BinanceTradesService {
@@ -31,7 +30,7 @@ export class BinanceTradesService {
 
     SolidityQuantityHistory: number[];
 
-    TradeSymbol = async (solidityModel: SolidityModel, SolidityFinderOptions: SolidityFinderOptionsModel, TradeStopsOptions: TradingStopOptions): Promise<void | 0> => {
+    TradeSymbol = async (solidityModel: SolidityModel, SolidityFinderOptions: SolidityFinderOptionsModel, TradeStopsOptions: TradingOptionsModel): Promise<void | 0> => {
         let exchangeInfoSpot;
         let exchangeInfoFutures;
 
@@ -50,7 +49,7 @@ export class BinanceTradesService {
         let minNotionalFutures = parseFloat(BinanceTradesService.FetchMinNotionalFutures(exchangeInfoFutures, solidityModel.Symbol));
         let quantityPrecisionFutures: number = BinanceTradesService.GetQuantityPrecision(exchangeInfoFutures, solidityModel.Symbol);
 
-        const UP_TO_PRICE_ACCESS_SPOT_THRESHOLD: number = SolidityFinderOptions.upToPriceAccess + 0.01;
+        const UP_TO_PRICE_ACCESS_SPOT_THRESHOLD: number = SolidityFinderOptions.UpToPriceAccess + 0.01;
 
         let OpenOrderPrice: number;
 
@@ -309,8 +308,8 @@ export class BinanceTradesService {
             const lastSolidity = await sfs.FindSolidity(solidityModel.Symbol);
 
             if (
-                lastSolidity.Solidity.Ratio >= SolidityFinderOptions.ratioAccess &&
-                lastSolidity.Solidity.UpToPrice >= SolidityFinderOptions.upToPriceAccess &&
+                lastSolidity.Solidity.Ratio >= SolidityFinderOptions.RatioAccess &&
+                lastSolidity.Solidity.UpToPrice >= SolidityFinderOptions.UpToPriceAccess &&
                 lastSolidity.Solidity?.Type === solidityModel.Solidity.Type
             ) {
                 if (lastSolidity.Solidity.Price === solidityModel.Solidity.Price) {
@@ -318,7 +317,7 @@ export class BinanceTradesService {
                     solidityModel = lastSolidity;
                     DocumentLogService.MadeTheNewLog([FontColor.FgCyan], `Solidity on ${solidityModel.Symbol} in ${solidityModel.Solidity.Price}!`, [ dls ], true);
                 } else {
-                    const checkForReachingPrice = await sfs.CheckPriceAtTargetTime(solidityModel.Symbol, lastSolidity.Price, SolidityFinderOptions.checkReachingPriceDuration);
+                    const checkForReachingPrice = await sfs.CheckPriceAtTargetTime(solidityModel.Symbol, lastSolidity.Price, SolidityFinderOptions.CheckReachingPriceDuration);
                     if (!checkForReachingPrice) {
                         SolidityStatus = 'moved';
                         solidityModel = lastSolidity;

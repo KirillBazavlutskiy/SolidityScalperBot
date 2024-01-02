@@ -4,10 +4,8 @@ import TradingPairsService from "./services/TradingPairsListService/TradingPairs
 import {BinanceTradesService} from "./services/BinanceTradesService/BinanceTradesService";
 import DocumentLogService, {DocumentLogger} from "./services/DocumentLogService/DocumentLogService";
 import {FontColor} from "./services/FontStyleObjects";
-import * as fs from "fs";
-import {SolidityFinderOptionsModel} from "../Options/SolidityFInderOptions/SolidityFinderOptionsModels";
-import {TradingStopOptions} from "../Options/TradeStopsOptions/TradeStopsOptionsModels";
 import {TelegramControllerService} from "./services/TelegramControlerService/TelegramControlerService";
+import {OptionsManager} from "./services/OptionsManager/OptionsManager";
 
 const apiKey = "PmEpiESene4CCbHpmjHO8Uz7hKqc9u57bEla9ibkP14ZmXIdtf8QAsqBcFt15YKB";
 const secretKey = "5f97dmaPN48kNXYmcdEBtNKRwopfsaDWogJ9btKE1gCAIKO4z0q2IhLb4m1MfKxE";
@@ -24,26 +22,16 @@ export const sfs = new SolidityFinderService(client);
 const bts = new BinanceTradesService(client);
 export const dls = new DocumentLogger('./Logs/Logs.txt');
 export const tls = new DocumentLogger('./Logs/TradeLogs.txt')
-export const tcs = new TelegramControllerService(TelegramBotKey);
-
-export const GetSolidityFinderOptions = (): SolidityFinderOptionsModel => {
-    const SolidityOptionsJson = fs.readFileSync('./Options/SolidityFinderOptions/SolidityFinderOptions.json', 'utf-8');
-    return JSON.parse(SolidityOptionsJson);
-}
-
-export const GetTradeStopsOptions = (): TradingStopOptions => {
-    const TradeStopsOptionsJson = fs.readFileSync('./Options/TradeStopsOptions/TradeStopsOptions.json', 'utf-8');
-    return JSON.parse(TradeStopsOptionsJson);
-}
+export const tcs = new TelegramControllerService(TelegramBotKey, client);
 
 tcs.SendMessage('Bot has started!');
 
 const fetchSolidity = async (): Promise<void> => {
     if (tcs.GetTradeStatus()) {
-        const SolidityFinderOptions = GetSolidityFinderOptions();
-        TradingPairsService.TPWithSolidity = await sfs.FindAllSolidity(SolidityFinderOptions.minVolume, SolidityFinderOptions.ratioAccess, SolidityFinderOptions.upToPriceAccess, SolidityFinderOptions.checkReachingPriceDuration, 20);
+        const Options = OptionsManager.GetOptions();
+        TradingPairsService.TPWithSolidity = await sfs.FindAllSolidity(Options.SolidityFinderOptions.MinimalVolume, Options.SolidityFinderOptions.RatioAccess, Options.SolidityFinderOptions.UpToPriceAccess, Options.SolidityFinderOptions.CheckReachingPriceDuration, 20);
         DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `Found solidity: ${TradingPairsService.TPWithSolidity.length}`, [ dls ]);
-        TradingPairsService.TPWithSolidity.forEach(tp => { if (!TradingPairsService.CheckTPInTrade(tp, true)) bts.TradeSymbol(tp, GetSolidityFinderOptions(), GetTradeStopsOptions()) } );
+        TradingPairsService.TPWithSolidity.forEach(tp => { if (!TradingPairsService.CheckTPInTrade(tp, true)) bts.TradeSymbol(tp, Options.SolidityFinderOptions, Options.TradingOptions) } );
     } else {
         DocumentLogService.MadeTheNewLog([FontColor.FgGray], 'Search was canceled! Start id with telegram chat!', [ dls ], true);
     }
