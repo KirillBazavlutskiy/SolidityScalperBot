@@ -74,16 +74,16 @@ export class TelegramControllerService {
 
     private CreateReplySolidityFinderOptionsButtons = (empty: boolean = false): InlineKeyboardMarkup => ({
         inline_keyboard: empty ? [] : [
-            [{ text: 'Top price change percent count', callback_data: 'ChangeTopPriceChangePercentCount' }],
-            [{ text: 'Check reaching price duration value', callback_data: 'ChangeCheckReachingPriceDuration' }]
+            [{ text: 'PriceUninterruptedDuration', callback_data: 'ChangePriceUninterruptedDuration' }],
+            [{ text: 'TopGainersCount', callback_data: 'ChangeTopGainersCount' }]
         ].filter(option => option[0].callback_data !== this.GetState())
     })
 
     private CreateReplyTradeOptionsButtons = (empty: boolean = false): InlineKeyboardMarkup => ({
         inline_keyboard: empty ? [] : [
-            [{ text: 'Stop loss percent value', callback_data: 'ChangeStopLossPercentValue' }],
-            [{ text: 'Stop loss trailing value', callback_data: 'ChangeStopLossTrailingValue' }],
-            [{ text: 'Take profit percent value', callback_data: 'ChangeTakeProfitPercentValue' }]
+            [{ text: 'StopLossPercentValue', callback_data: 'ChangeStopLossPercentValue' }],
+            [{ text: 'StopLossTrailingValue', callback_data: 'ChangeStopLossTrailingValue' }],
+            [{ text: 'TakeProfitPercentValue', callback_data: 'ChangeTakeProfitPercentValue' }]
         ].filter(option => option[0].callback_data !== this.GetState())
     });
 
@@ -144,24 +144,24 @@ export class TelegramControllerService {
 
                 default:
                     switch (this.GetState()) {
-                        case 'ChangeTopPriceChangePercentCount': {
+                        case 'ChangePriceUninterruptedDuration': {
                             this.SetState('');
                             const OldOptions = OptionsManager.GetOptions();
                             const fixedValue = parseFloat(parseFloat(data).toFixed());
-                            OldOptions.SolidityFinderOptions.TopPriceChangePercentCount = fixedValue;
+                            OldOptions.SolidityFinderOptions.TopGainersCount = fixedValue;
                             OptionsManager.ChangeOptions(OldOptions);
-                            const msg = `Top price change percent count value has been changed to ${fixedValue}`;
+                            const msg = `"PriceUninterruptedDuration" value has been changed to ${fixedValue}`;
                             this.Bot.sendMessage(chatId, msg, { reply_markup: this.CreateReplySolidityFinderOptionsButtons(true) });
                             this.SendMessage(msg, chatId);
                             break;
                         }
-                        case 'ChangeCheckReachingPriceDuration': {
+                        case 'ChangeTopGainersCount': {
                             this.SetState('');
                             const OldOptions = OptionsManager.GetOptions();
                             const fixedValue = parseFloat(parseFloat(data).toFixed());
-                            OldOptions.SolidityFinderOptions.CheckReachingPriceDuration = fixedValue;
+                            OldOptions.SolidityFinderOptions.PriceUninterruptedDuration = fixedValue;
                             OptionsManager.ChangeOptions(OldOptions);
-                            const msg = `Check reaching price duration value has been changed to ${fixedValue}`;
+                            const msg = `"TopGainersCount" value has been changed to ${fixedValue}`;
                             this.Bot.sendMessage(chatId, msg, { reply_markup: this.CreateReplySolidityFinderOptionsButtons(true) });
                             this.SendMessage(msg, chatId);
                             break;
@@ -173,7 +173,7 @@ export class TelegramControllerService {
                             const fixedValueFloat = parseFloat(data.replace(',', '.'));
                             OldOptions.TradingOptions.Stops.StopLoss.PercentValue = fixedValueFloat;
                             OptionsManager.ChangeOptions(OldOptions);
-                            const msg = `Stop loss value has been changed to ${fixedValueFloat}`;
+                            const msg = `"StopLossPercentValue" value has been changed to ${fixedValueFloat}`;
                             this.Bot.sendMessage(chatId, msg, { reply_markup: this.CreateReplyTradeOptionsButtons(true) });
                             this.SendMessage(msg, chatId);
                             break;
@@ -183,7 +183,7 @@ export class TelegramControllerService {
                             const OldOptions = OptionsManager.GetOptions();
                             OldOptions.TradingOptions.Stops.StopLoss.IsTrailing = data === '1';
                             OptionsManager.ChangeOptions(OldOptions);
-                            const msg = `Stop loss trailing status has been changed to ${data === '1'}`;
+                            const msg = `"StopLossTrailingValue" status has been changed to ${data === '1'}`;
                             this.Bot.sendMessage(chatId, msg, { reply_markup: this.CreateReplyTradeOptionsButtons(true) });
                             this.SendMessage(msg, chatId);
                             break;
@@ -194,7 +194,7 @@ export class TelegramControllerService {
                             const fixedValueFloat = parseFloat(data.replace(',', '.'));
                             OldOptions.TradingOptions.Stops.TakeProfit = fixedValueFloat;
                             OptionsManager.ChangeOptions(OldOptions);
-                            const msg = `Take profit value has been changed to ${fixedValueFloat}`
+                            const msg = `"TakeProfitPercent" value has been changed to ${fixedValueFloat}`
                             this.Bot.sendMessage(chatId, msg, { reply_markup: this.CreateReplyTradeOptionsButtons(true) });
                             this.SendMessage(msg, chatId);
                             break;
@@ -215,26 +215,26 @@ export class TelegramControllerService {
         const Options = OptionsManager.GetOptions();
 
         switch (data) {
-            case 'ChangeTopPriceChangePercentCount':
+            case 'ChangePriceUninterruptedDuration':
                 this.SetState(data);
-                this.Bot.sendMessage(chatId, `Type a new value for top price change percent count:\nOld value: ${Options.SolidityFinderOptions.TopPriceChangePercentCount}\nTips: 20 is normal\nOr choose other option:`, { reply_markup: this.CreateReplySolidityFinderOptionsButtons() });
+                this.Bot.sendMessage(chatId, `Type a new value for "PriceUninterruptedDuration":\nOld value: ${Options.SolidityFinderOptions.TopGainersCount}\nTips: 20 is normal\nOr choose other option:`, { reply_markup: this.CreateReplySolidityFinderOptionsButtons() });
                 break;
-            case 'ChangeCheckReachingPriceDuration':
+            case 'ChangeTopGainersCount':
                 this.SetState(data);
-                this.Bot.sendMessage(chatId, `Type a new value for check reaching price duration:\nOld value: ${Options.SolidityFinderOptions.CheckReachingPriceDuration}\nTips: 1 means 1 minute\nOr choose other option:`, { reply_markup: this.CreateReplySolidityFinderOptionsButtons() });
+                this.Bot.sendMessage(chatId, `Type a new value for "TopGainersCount":\nOld value: ${Options.SolidityFinderOptions.PriceUninterruptedDuration}\nTips: 1 means 1 minute\nOr choose other option:`, { reply_markup: this.CreateReplySolidityFinderOptionsButtons() });
                 break;
 
             case 'ChangeStopLossPercentValue':
                 this.SetState(data);
-                this.Bot.sendMessage(chatId, `Type a new value for Stop Loss Percent Value:\nOld value: ${Options.TradingOptions.Stops.StopLoss.PercentValue}\nTips: 1 is 1%\nOr choose other option:`, { reply_markup: this.CreateReplyTradeOptionsButtons() });
+                this.Bot.sendMessage(chatId, `Type a new value for "StopLossPercentValue":\nOld value: ${Options.TradingOptions.Stops.StopLoss.PercentValue}\nTips: 1 is 1%\nOr choose other option:`, { reply_markup: this.CreateReplyTradeOptionsButtons() });
                 break;
             case 'ChangeStopLossTrailingValue':
                 this.SetState(data);
-                this.Bot.sendMessage(chatId, `Type a new condition for trailing Stop Loss:\nOld value: ${Options.TradingOptions.Stops.StopLoss.IsTrailing}\nTips: 0(false) or 1(true)\nOr choose other option:`, { reply_markup: this.CreateReplyTradeOptionsButtons() });
+                this.Bot.sendMessage(chatId, `Type a new condition "StopLossTrailingValue":\nOld value: ${Options.TradingOptions.Stops.StopLoss.IsTrailing}\nTips: 0(false) or 1(true)\nOr choose other option:`, { reply_markup: this.CreateReplyTradeOptionsButtons() });
                 break;
             case 'ChangeTakeProfitPercentValue':
                 this.SetState(data);
-                this.Bot.sendMessage(chatId, `Type a new value for Take Profit Percent Value:\nOld value: ${Options.TradingOptions.Stops.TakeProfit}\nTips: 1 is 1% | 0 means disabled\nOr choose other option:`, { reply_markup: this.CreateReplyTradeOptionsButtons() });
+                this.Bot.sendMessage(chatId, `Type a new value for "TakeProfitPercentValue":\nOld value: ${Options.TradingOptions.Stops.TakeProfit}\nTips: 1 is 1% | 0 means disabled\nOr choose other option:`, { reply_markup: this.CreateReplyTradeOptionsButtons() });
                 break;
         }
     }

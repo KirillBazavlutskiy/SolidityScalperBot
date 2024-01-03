@@ -13,7 +13,7 @@ class TradingPairsService {
                 `${this.TPWithSolidityInTrade.map(TradingPair => {
                     return (
                         `${TradingPair.Symbol}\n` +
-                        `Up to price: ${this.ShowUptoPrice(TradingPair.Solidity.UpToPrice, TradingPair.Solidity.Type)}\n` +
+                        `Up to price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(TradingPair.Solidity.UpToPrice, TradingPair.Solidity.Type, 4)}\n` +
                         `Trade type: ${TradingPair.Solidity.Type === 'asks' ? 'Long' : 'Short'}\n` +
                         `Waiting for price: ${TradingPair.Solidity.Price}$\n` + 
                         `Last price: ${TradingPair.Price}$`
@@ -53,10 +53,6 @@ class TradingPairsService {
             return true
         }
     };
-
-    static ShowUptoPrice = (upToPrice: number, BidType: LimitType) => {
-        return `${BinanceOrdersCalculatingKit.RoundUp(BinanceOrdersCalculatingKit.CalcSimplifiedRatio(upToPrice, BidType) * 100, 4)}%`
-    }
 }
 
 export default TradingPairsService;

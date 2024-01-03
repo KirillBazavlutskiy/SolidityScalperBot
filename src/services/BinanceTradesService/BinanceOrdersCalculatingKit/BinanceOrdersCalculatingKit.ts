@@ -22,12 +22,20 @@ export class BinanceOrdersCalculatingKit {
         }
     }
 
-    static CalcSimplifiedRatio = (UpToPrice: number, LimitType: LimitType): number => {
+    static CalcSimplifiedRatio = (UpToPrice: number, LimitType: LimitType, fractionDigits: number = 0): number => {
+        let ratio;
         if (LimitType === 'asks') {
-            return 1 - UpToPrice;
+            ratio = 1 - UpToPrice;
         } else if (LimitType === 'bids') {
-            return UpToPrice - 1;
+            ratio = UpToPrice - 1;
         }
+
+        if (fractionDigits !== 0) ratio = this.RoundUp(ratio, fractionDigits);
+        return ratio;
+    }
+
+    static ShowUptoPrice = (UpToPrice: number, LimitType: LimitType, fractionDigits: number = 0) => {
+        return `${LimitType === 'asks' ? '+' : '-'}${this.CalcSimplifiedRatio(UpToPrice, LimitType, fractionDigits) * 100}%`;
     }
 
     static CalcRealRatio = (UpToPrice: number, LimitType: LimitType): number => {

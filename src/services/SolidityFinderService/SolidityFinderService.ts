@@ -38,21 +38,19 @@ class SolidityFinderService {
             const futuresSymbols = futuresSymbolsInfo.symbols.map(symbolInfo => symbolInfo.symbol);
             const tickersFixed: DailyStatsResult[] = JSON.parse(JSON.stringify(tickers));
 
-            const filteredTickers = tickersFixed
+            let filteredTickers = tickersFixed
                 .filter(tradingPair => !(tradingPair.symbol.includes('BTC') || tradingPair.symbol.includes('ETH') || tradingPair.symbol.includes('USDC') || tradingPair.symbol.includes('FTT')))
                 .filter(tradingPair => futuresSymbols.includes(tradingPair.symbol))
                 .filter(tradingPair => {
                     return tradingPair.symbol.substring(tradingPair.symbol.length - 4, tradingPair.symbol.length) === "USDT"
                 })
                 .filter(tradingPair => parseFloat(tradingPair.quoteVolume) > minVolume)
-                .sort((a, b) => Math.abs(parseFloat(b.priceChangePercent)) - Math.abs(parseFloat(a.priceChangePercent)))
+                .sort((a, b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent))
                 .map(tradingPair => tradingPair.symbol);
 
-            if (topPriceChangePercent !== 0) {
-                return filteredTickers.slice(0, topPriceChangePercent);
-            } else {
-                return filteredTickers;
-            }
+            if (topPriceChangePercent !== 0) filteredTickers = filteredTickers.slice(0, topPriceChangePercent);
+
+            return filteredTickers;
         } catch (e) {
             throw e;
         }

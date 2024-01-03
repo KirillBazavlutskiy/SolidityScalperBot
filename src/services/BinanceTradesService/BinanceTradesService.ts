@@ -28,8 +28,6 @@ export class BinanceTradesService {
         this.client = client;
     }
 
-    SolidityQuantityHistory: number[];
-
     TradeSymbol = async (solidityModel: SolidityModel, SolidityFinderOptions: SolidityFinderOptionsModel, TradeStopsOptions: TradingOptionsModel): Promise<void | 0> => {
         let exchangeInfoSpot;
         let exchangeInfoFutures;
@@ -49,7 +47,7 @@ export class BinanceTradesService {
         let minNotionalFutures = parseFloat(BinanceTradesService.FetchMinNotionalFutures(exchangeInfoFutures, solidityModel.Symbol));
         let quantityPrecisionFutures: number = BinanceTradesService.GetQuantityPrecision(exchangeInfoFutures, solidityModel.Symbol);
 
-        const UP_TO_PRICE_ACCESS_SPOT_THRESHOLD: number = SolidityFinderOptions.UpToPriceAccess + 0.01;
+        const UP_TO_PRICE_ACCESS_SPOT_THRESHOLD: number = SolidityFinderOptions.UpToPriceAccess / 100 + 0.01;
 
         let OpenOrderPrice: number;
 
@@ -73,7 +71,7 @@ export class BinanceTradesService {
         const otm = new OpenTradesManager(this.client, solidityModel.Symbol, TradeStopsOptions, TradeType, tickSizeFutures);
 
         DocumentLogService.MadeTheNewLog(
-            [FontColor.FgGreen], `New Solidity on ${solidityModel.Symbol} | Solidity Price: ${solidityModel.Solidity.Price} | Solidity Ratio: ${solidityModel.Solidity.Ratio} | Up To Price: ${solidityModel.Solidity.UpToPrice} | Last Price: ${solidityModel.Price} | Quantity Precision: ${quantityPrecisionFutures}`,
+            [FontColor.FgGreen], `New Solidity on ${solidityModel.Symbol} | Solidity Price: ${solidityModel.Solidity.Price} | Solidity Ratio: ${solidityModel.Solidity.Ratio} | Up To Price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(solidityModel.Solidity.UpToPrice, solidityModel.Solidity.Type,4)} | Last Price: ${solidityModel.Price} | Quantity Precision: ${quantityPrecisionFutures}`,
             [ dls ], true);
 
         const WebSocketSpot: WebSocket = new WebSocket(`wss://stream.binance.com:9443/ws/${solidityModel.Symbol.toLowerCase()}@trade`);
@@ -111,7 +109,7 @@ export class BinanceTradesService {
                             DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} Solidity on ${solidityModel.Solidity.Price} has been destroyed! | Up to price: ${UpToPriceSpot} | Last Price: ${SpotLastPrice}`, [dls], true);
                             CloseTrade();
                         } else if (BinanceOrdersCalculatingKit.CalcSimplifiedRatio(UpToPriceSpot, solidityModel.Solidity.Type) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
-                            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} is too far! Up to price: ${UpToPriceSpot}`, [dls], true);
+                            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} is too far! Up to price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(UpToPriceSpot, solidityModel.Solidity.Type, 4)}`, [dls], true);
                             CloseTrade();
                         }
                         break;
@@ -127,7 +125,7 @@ export class BinanceTradesService {
                             WebSocketSpot.close();
                             WebSocketSpotBookDepth.close();
                         } else if (BinanceOrdersCalculatingKit.CalcSimplifiedRatio(UpToPriceSpot, solidityModel.Solidity.Type) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
-                            tcs.SendMessage(`${solidityModel.Symbol} is too far!\nUp To price: ${TradingPairsService.ShowUptoPrice(UpToPriceSpot, solidityModel.Solidity.Type)}`);
+                            tcs.SendMessage(`${solidityModel.Symbol} is too far!\nUp To price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(UpToPriceSpot, solidityModel.Solidity.Type, 4)}`);
                             DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} is too far!`, [dls], true);
                             CloseTrade();
                         }
@@ -264,48 +262,54 @@ export class BinanceTradesService {
     CheckSolidity = async (solidityModel: SolidityModel, SolidityBid: StreamBid, UpToPriceSpot: number, TradeStatus: TradeStatus, MaxSolidityQuantity: number, SolidityFinderOptions: SolidityFinderOptionsModel): Promise<SolidityStatus> => {
         const SOLIDITY_CHANGE_PER_UPDATE_THRESHOLD: number = 0.15;
 
-        let SolidityStatus: SolidityStatus;
+        let SolidityStatus: SolidityStatus = "ready";
 
-        const SolidityQuantityChange = SolidityBid[1] / solidityModel.Solidity.Quantity - 1;
+        try {
+            const SolidityQuantityChange = SolidityBid[1] / solidityModel.Solidity.Quantity - 1;
 
-        if (Math.abs(SolidityQuantityChange) < SOLIDITY_CHANGE_PER_UPDATE_THRESHOLD) {
-            solidityModel.Solidity.Quantity = SolidityBid[1];
-            SolidityStatus = 'ready';
-        } else if (UpToPriceSpot === 1) {
-            solidityModel.Solidity.Quantity = SolidityBid[1];
-
-            if (SolidityBid[1] / MaxSolidityQuantity < 0.3) {
-                SolidityStatus = 'ends';
-            } else {
+            if (Math.abs(SolidityQuantityChange) < SOLIDITY_CHANGE_PER_UPDATE_THRESHOLD) {
+                solidityModel.Solidity.Quantity = SolidityBid[1];
                 SolidityStatus = 'ready';
-            }
-        } else {
-            DocumentLogService.MadeTheNewLog([FontColor.FgCyan], `Trying to refresh solidity info on ${solidityModel.Symbol}...`, [ dls ], true);
-            const lastSolidity = await sfs.FindSolidity(solidityModel.Symbol);
+            } else if (UpToPriceSpot === 1) {
+                solidityModel.Solidity.Quantity = SolidityBid[1];
 
-            if (
-                lastSolidity.Solidity.Ratio >= SolidityFinderOptions.RatioAccess &&
-                lastSolidity.Solidity.UpToPrice >= SolidityFinderOptions.UpToPriceAccess &&
-                lastSolidity.Solidity?.Type === solidityModel.Solidity.Type
-            ) {
-                if (lastSolidity.Solidity.Price === solidityModel.Solidity.Price) {
-                    SolidityStatus = 'ready';
-                    solidityModel = lastSolidity;
-                    DocumentLogService.MadeTheNewLog([FontColor.FgCyan], `Solidity on ${solidityModel.Symbol} in ${solidityModel.Solidity.Price}!`, [ dls ], true);
+                if (SolidityBid[1] / MaxSolidityQuantity < 0.3) {
+                    SolidityStatus = 'ends';
                 } else {
-                    const checkForReachingPrice = await sfs.CheckPriceAtTargetTime(solidityModel.Symbol, lastSolidity.Price, SolidityFinderOptions.CheckReachingPriceDuration);
-                    if (!checkForReachingPrice) {
-                        SolidityStatus = 'moved';
-                        solidityModel = lastSolidity;
-                        DocumentLogService.MadeTheNewLog([FontColor.FgBlue], `Solidity on ${solidityModel.Symbol} has been moved to ${solidityModel.Solidity.Price} | Ratio: ${solidityModel.Solidity.Ratio}!`, [ dls ], true);
-                    } else {
-                        SolidityStatus = 'removed';
-                    }
+                    SolidityStatus = 'ready';
                 }
             } else {
-                SolidityStatus = 'removed';
+                DocumentLogService.MadeTheNewLog([FontColor.FgCyan], `Trying to refresh solidity info on ${solidityModel.Symbol}...`, [ dls ], true);
+                const lastSolidity = await sfs.FindSolidity(solidityModel.Symbol);
+
+                if (
+                    lastSolidity.Solidity.Ratio >= SolidityFinderOptions.RatioAccess &&
+                    lastSolidity.Solidity.UpToPrice >= SolidityFinderOptions.UpToPriceAccess &&
+                    lastSolidity.Solidity?.Type === solidityModel.Solidity.Type
+                ) {
+                    if (lastSolidity.Solidity.Price === solidityModel.Solidity.Price) {
+                        SolidityStatus = 'ready';
+                        solidityModel = lastSolidity;
+                        DocumentLogService.MadeTheNewLog([FontColor.FgCyan], `Solidity on ${solidityModel.Symbol} in ${solidityModel.Solidity.Price}!`, [ dls ], true);
+                    } else {
+                        const checkForReachingPrice = await sfs.CheckPriceAtTargetTime(solidityModel.Symbol, lastSolidity.Price, SolidityFinderOptions.PriceUninterruptedDuration);
+                        if (!checkForReachingPrice) {
+                            SolidityStatus = 'moved';
+                            solidityModel = lastSolidity;
+                            DocumentLogService.MadeTheNewLog([FontColor.FgBlue], `Solidity on ${solidityModel.Symbol} has been moved to ${solidityModel.Solidity.Price} | Ratio: ${solidityModel.Solidity.Ratio}!`, [ dls ], true);
+                        } else {
+                            SolidityStatus = 'removed';
+                        }
+                    }
+                } else {
+                    SolidityStatus = 'removed';
+                }
             }
+        } catch (e) {
+            e.message = `Error with CheckSolidity function: ${e.message}`;
+            throw e;
         }
+
         return SolidityStatus;
     }
 

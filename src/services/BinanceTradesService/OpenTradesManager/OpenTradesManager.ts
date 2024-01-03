@@ -74,8 +74,14 @@ export class OpenTradesManager {
             this.MaxProfit = 0;
             this.StopLossPrice = BinanceOrdersCalculatingKit.CalcPriceByRatio(this.MaxProfitPrice, this.TradeStopOptions.Stops.StopLoss.PercentValue, this.LimitType, this.TickSizeFutures);
 
-            await this.PlaceStopLossLimit();
-            if (this.TradeStopOptions.Stops.TakeProfit !== 0) await this.PlaceTakeProfitLimit();
+            try {
+                await this.PlaceStopLossLimit();
+                if (this.TradeStopOptions.Stops.TakeProfit !== 0) await this.PlaceTakeProfitLimit();
+            } catch (e) {
+                this.CloseOrder();
+                e.message = `Error with closing orders: ${e.message}`;
+                throw e;
+            }
 
             const orderMsg = `${this.Symbol} | Order Type: ${this.TradeType} | Nominal Quantity: ${parseFloat(this.OrderQuantity) * this.OpenOrderPrice} | LP: ${this.OpenOrderPrice} | SL: ${this.StopLossPrice}`;
             const orderMsgTg = `${this.Symbol}\nOrder Type: ${this.TradeType}\nNominal Quantity: ${parseFloat(this.OrderQuantity) * this.OpenOrderPrice}\nLP: ${this.OpenOrderPrice}\nSL: ${this.StopLossPrice}`;
@@ -84,7 +90,7 @@ export class OpenTradesManager {
             DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], orderMsg, [dls, tls], true);
         } catch (e) {
             DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `Error with placing order! Nominal quantity: ${parseFloat(this.OrderQuantityNominal)} | Open order price: ${LastPrice} | Quantity Precision: ${QuantityPrecisionFutures} | Calculated quantity: ${this.OrderQuantity}`, [dls, tls], true);
-            tcs.SendMessage(`${this.Symbol}\nError with placing order!\nNominal quantity: ${parseFloat(OrderQuantityNominal)}\nOpen order price: ${LastPrice}\nQuantity Precision: ${QuantityPrecisionFutures}\nCalculated quantity: ${this.OrderQuantity}`);
+            tcs.SendMessage(`${this.Symbol}\nError with orders!\n${e.message}\nNominal quantity: ${parseFloat(OrderQuantityNominal)}\nOpen order price: ${LastPrice}\nQuantity Precision: ${QuantityPrecisionFutures}\nCalculated quantity: ${this.OrderQuantity}`);
         }
 
         return this.OpenOrderPrice
@@ -109,6 +115,7 @@ export class OpenTradesManager {
                 this.StopLossPrice = BinanceOrdersCalculatingKit.CalcPriceByRatio(this.MaxProfitPrice, this.TradeStopOptions.Stops.StopLoss.PercentValue, this.LimitType, this.TickSizeFutures);
             }
         } catch (e) {
+            this.CloseOrder();
             throw e;
         }
 
@@ -132,12 +139,6 @@ export class OpenTradesManager {
             });
             this.TakeProfitStopLimitOrderId = orderId;
         } catch (e) {
-            await this.client.futuresOrder({
-                symbol: this.Symbol,
-                side: this.TradeType === 'long' ? 'SELL' : 'BUY',
-                type: 'MARKET',
-                quantity: this.OrderQuantity,
-            });
             throw e;
         }
     }
@@ -167,16 +168,18 @@ export class OpenTradesManager {
 
             this.StopLossStopLimitOrderId = orderId;
         } catch (e) {
-            await this.client.futuresOrder({
-                symbol: this.Symbol,
-                side: this.TradeType === 'long' ? 'SELL' : 'BUY',
-                type: "MARKET",
-                quantity: this.OrderQuantity,
-            });
             throw e;
         }
     }
 
+    CloseOrder = async () => {
+        await this.client.futuresOrder({
+            symbol: this.Symbol,
+            side: this.TradeType === 'long' ? 'SELL' : 'BUY',
+            type: "MARKET",
+            quantity: this.OrderQuantity,
+        });
+    }
 
     static ShowProfit = (UpToPrice: number, TradeType?: TradeType) => {
         return BinanceOrdersCalculatingKit.RoundUp(BinanceOrdersCalculatingKit.CalcSimplifiedRatio(UpToPrice, TradeType === 'long' ? 'asks' : 'bids') * 100, 5);

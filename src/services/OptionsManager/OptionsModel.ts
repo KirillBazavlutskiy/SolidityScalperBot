@@ -2,8 +2,8 @@ export interface SolidityFinderOptionsModel {
     MinimalVolume: number;
     RatioAccess: number;
     UpToPriceAccess: number;
-    CheckReachingPriceDuration: number;
-    TopPriceChangePercentCount: number;
+    PriceUninterruptedDuration: number;
+    TopGainersCount: number;
 }
 
 export interface TradingOptionsModel {
@@ -29,8 +29,8 @@ export const DefaultOptionsValues: OptionsModel = {
         MinimalVolume: 1000000,
         RatioAccess: 20,
         UpToPriceAccess: 1.2,
-        CheckReachingPriceDuration: 15,
-        TopPriceChangePercentCount: 20,
+        PriceUninterruptedDuration: 15,
+        TopGainersCount: 20,
     },
     TradingOptions: {
         Stops: {
