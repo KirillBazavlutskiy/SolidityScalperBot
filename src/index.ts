@@ -29,7 +29,7 @@ tcs.SendMessage('Bot has started!');
 const fetchSolidity = async (): Promise<void> => {
     if (tcs.GetTradeStatus()) {
         const Options = OptionsManager.GetOptions();
-        TradingPairsService.TPWithSolidity = await sfs.FindAllSolidity(Options.SolidityFinderOptions.MinimalVolume, Options.SolidityFinderOptions.RatioAccess, Options.SolidityFinderOptions.UpToPriceAccess, Options.SolidityFinderOptions.CheckReachingPriceDuration, 20);
+        TradingPairsService.TPWithSolidity = await sfs.FindAllSolidity(Options.SolidityFinderOptions.MinimalVolume, Options.SolidityFinderOptions.RatioAccess, Options.SolidityFinderOptions.UpToPriceAccess, Options.SolidityFinderOptions.CheckReachingPriceDuration, Options.SolidityFinderOptions.TopPriceChangePercentCount);
         DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `Found solidity: ${TradingPairsService.TPWithSolidity.length}`, [ dls ]);
         TradingPairsService.TPWithSolidity.forEach(tp => { if (!TradingPairsService.CheckTPInTrade(tp, true)) bts.TradeSymbol(tp, Options.SolidityFinderOptions, Options.TradingOptions) } );
     } else {

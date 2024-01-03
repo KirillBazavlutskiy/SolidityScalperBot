@@ -212,28 +212,29 @@ export class TelegramControllerService {
     private OnCallbackQuery = (callbackQuery: CallbackQuery) => {
         const chatId = callbackQuery.message.chat.id;
         const data = callbackQuery.data;
+        const Options = OptionsManager.GetOptions();
 
         switch (data) {
             case 'ChangeTopPriceChangePercentCount':
                 this.SetState(data);
-                this.Bot.sendMessage(chatId, 'Type a new value for top price change percent count:\nTips: 20 is normal\nOr choose other option:', { reply_markup: this.CreateReplySolidityFinderOptionsButtons() });
+                this.Bot.sendMessage(chatId, `Type a new value for top price change percent count:\nOld value: ${Options.SolidityFinderOptions.TopPriceChangePercentCount}\nTips: 20 is normal\nOr choose other option:`, { reply_markup: this.CreateReplySolidityFinderOptionsButtons() });
                 break;
             case 'ChangeCheckReachingPriceDuration':
                 this.SetState(data);
-                this.Bot.sendMessage(chatId, 'Type a new value for check reaching price duration:\nTips: 1 means 1 minute\nOr choose other option:', { reply_markup: this.CreateReplySolidityFinderOptionsButtons() });
+                this.Bot.sendMessage(chatId, `Type a new value for check reaching price duration:\nOld value: ${Options.SolidityFinderOptions.CheckReachingPriceDuration}\nTips: 1 means 1 minute\nOr choose other option:`, { reply_markup: this.CreateReplySolidityFinderOptionsButtons() });
                 break;
 
             case 'ChangeStopLossPercentValue':
                 this.SetState(data);
-                this.Bot.sendMessage(chatId, 'Type a new value for Stop Loss Percent Value:\nTips: 1 is 1%\nOr choose other option:', { reply_markup: this.CreateReplyTradeOptionsButtons() });
+                this.Bot.sendMessage(chatId, `Type a new value for Stop Loss Percent Value:\nOld value: ${Options.TradingOptions.Stops.StopLoss.PercentValue}\nTips: 1 is 1%\nOr choose other option:`, { reply_markup: this.CreateReplyTradeOptionsButtons() });
                 break;
             case 'ChangeStopLossTrailingValue':
                 this.SetState(data);
-                this.Bot.sendMessage(chatId, 'Type a new condition for trailing Stop Loss:\nTips: 0(false) or 1(true)\nOr choose other option:', { reply_markup: this.CreateReplyTradeOptionsButtons() });
+                this.Bot.sendMessage(chatId, `Type a new condition for trailing Stop Loss:\nOld value: ${Options.TradingOptions.Stops.StopLoss.IsTrailing}\nTips: 0(false) or 1(true)\nOr choose other option:`, { reply_markup: this.CreateReplyTradeOptionsButtons() });
                 break;
             case 'ChangeTakeProfitPercentValue':
                 this.SetState(data);
-                this.Bot.sendMessage(chatId, 'Type a new value for Take Profit Percent Value:\nTips: 1 is 1% | 0 means disabled\nOr choose other option:', { reply_markup: this.CreateReplyTradeOptionsButtons() });
+                this.Bot.sendMessage(chatId, `Type a new value for Take Profit Percent Value:\nOld value: ${Options.TradingOptions.Stops.TakeProfit}\nTips: 1 is 1% | 0 means disabled\nOr choose other option:`, { reply_markup: this.CreateReplyTradeOptionsButtons() });
                 break;
         }
     }

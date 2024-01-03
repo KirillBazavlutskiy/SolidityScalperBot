@@ -48,7 +48,11 @@ class SolidityFinderService {
                 .sort((a, b) => Math.abs(parseFloat(b.priceChangePercent)) - Math.abs(parseFloat(a.priceChangePercent)))
                 .map(tradingPair => tradingPair.symbol);
 
-            return filteredTickers.slice(0, topPriceChangePercent);
+            if (topPriceChangePercent !== 0) {
+                return filteredTickers.slice(0, topPriceChangePercent);
+            } else {
+                return filteredTickers;
+            }
         } catch (e) {
             throw e;
         }
@@ -117,7 +121,7 @@ class SolidityFinderService {
                         const solidityInfo = await this.FindSolidity(symbol);
                         if (
                             solidityInfo.Solidity.Ratio > ratioAccess &&
-                            BinanceOrdersCalculatingKit.CalcSimplifiedRatio(solidityInfo.Solidity.UpToPrice, solidityInfo.Solidity.Type) < upToPriceAccess
+                            BinanceOrdersCalculatingKit.CalcSimplifiedRatio(solidityInfo.Solidity.UpToPrice, solidityInfo.Solidity.Type) < upToPriceAccess / 100
                         ) {
                             symbolsWithSolidity.push(solidityInfo);
                         }
