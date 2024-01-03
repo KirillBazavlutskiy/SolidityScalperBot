@@ -3,3 +3,7 @@ export type SolidityStatus = 'ready' | 'moved' | 'removed' | 'ends';
 export type TradeType = 'long' | 'short';
 
 export type StreamBid = [ number, number ];
+export interface UpdateMessage {
+    Message: Buffer;
+    Type: 'Trade' | 'BookDepth';
+}
