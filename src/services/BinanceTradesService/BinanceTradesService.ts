@@ -11,7 +11,7 @@ import {
     SolidityStatus,
     StreamBid,
     TradeStatus,
-    TradeType
+    TradeType, UpdateMessage
 } from "./BinanceTradesModels";
 import WebSocket from 'ws';
 import DocumentLogService from "../DocumentLogService/DocumentLogService";
@@ -90,7 +90,6 @@ export class BinanceTradesService {
                 UpToPriceSpot = SpotLastPrice / solidityModel.Solidity.Price;
                 solidityModel.Solidity.UpToPrice = UpToPriceSpot;
                 solidityModel.Price = SpotLastPrice;
-                TradingPairsService.ChangeTPInTrade(solidityModel);
 
                 switch (TradeStatus) {
                     case "watching":
@@ -134,10 +133,82 @@ export class BinanceTradesService {
                         }
                         break;
                 }
+                TradingPairsService.ChangeTPInTrade(solidityModel);
             } catch (e) {
                 throw e;
             }
         }
+
+        const ProcessSpotBookDepthUpdate = async (data: Buffer) => {
+            try {
+                const strData = data.toString();
+                const parsedData = JSON.parse(strData);
+                const Bids: StreamBid[] = parsedData[solidityModel.Solidity.Type === 'asks' ? 'a' : 'b'];
+
+                const solidityChangeIndex = Bids.findIndex(bid => bid[0] == solidityModel.Solidity.Price);
+
+                if (solidityChangeIndex !== -1 && SolidityStatus !== 'removed' && TradeStatus !== 'inTrade') {
+                    const SolidityBid = Bids[solidityChangeIndex];
+
+                    if (SolidityBid[1] > MaxSolidityQuantity) MaxSolidityQuantity = SolidityBid[1];
+                    SolidityStatus = await this.CheckSolidity(solidityModel, SolidityBid, UpToPriceSpot, TradeStatus, MaxSolidityQuantity, SolidityFinderOptions);
+
+                    TradingPairsService.ChangeTPInTrade(solidityModel);
+                    if (SolidityStatus === 'removed') {
+                        if (TradeStatus === 'reached') tcs.SendMessage(`${solidityModel.Symbol}\nSolidity on ${solidityModel.Solidity.Price}$ has been removed!\nThe quantity is ${SolidityBid[1]}\nMax quantity was ${MaxSolidityQuantity}`);
+                        CloseTrade();
+                        DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} Solidity on ${solidityModel.Solidity.Price}$ has been removed. The quantity on ${SolidityBid[0]}$ is ${SolidityBid[1]}!`, [ dls ], true);
+                    } else if (SolidityStatus === 'ends') {
+                        TradeStatus = 'inTrade';
+                        WebSocketSpot.close();
+                        WebSocketSpotBookDepth.close();
+                        tcs.SendMessage(`${solidityModel.Symbol}\nSolidity on ${solidityModel.Solidity.Price}$ is almost ends\nThe quantity on ${SolidityBid[0]}$ is ${SolidityBid[1]}\nOpening Order...`);
+                        DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} Solidity on ${solidityModel.Solidity.Price}$ is almost ends. The quantity on ${SolidityBid[0]} is ${SolidityBid[1]}!`, [ dls ], true);
+                        FuturesOpenTradePrice = await otm.PlaceMarketOrder(FuturesLastPrice, TradeStopsOptions.TradeOptions.NominalQuantity.toString(), quantityPrecisionFutures);
+                    } else if (SolidityStatus === 'moved') {
+                        TradeStatus = 'watching';
+                        tcs.SendMessage(`${solidityModel.Symbol}\nSolidity has been moved to ${solidityModel.Solidity.Price}$\nUp to price: ${solidityModel.Solidity.UpToPrice}`)
+                    }
+                }
+            } catch (e) {
+                throw e;
+            }
+        }
+
+        const MessagesSpotUpdatesQueue: UpdateMessage[] = [];
+        let isProcessingSpotUpdate = false;
+
+        const ProcessSpotUpdateQueue = async () => {
+            if (isProcessingSpotUpdate) return;
+            isProcessingSpotUpdate = true;
+
+            try {
+                while (MessagesSpotUpdatesQueue.length > 0) {
+                    const UpdateMessage = MessagesSpotUpdatesQueue.shift();
+                    if (UpdateMessage.Type === 'Trade') await ProcessSpotTrade(UpdateMessage.Message);
+                    else await ProcessSpotBookDepthUpdate(UpdateMessage.Message)
+                }
+            } catch (e) {
+                DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Error with spot update ${e.message}`, [dls], true);
+                tcs.SendMessage(`Error with spot update on ${solidityModel.Symbol}:\n${e.message}`);
+            }
+
+            isProcessingSpotUpdate = false;
+        };
+
+        WebSocketSpot.on('message', (data: Buffer) => {
+            MessagesSpotUpdatesQueue.push({ Type: 'Trade', Message: data });
+            if (!isProcessingSpotUpdate) {
+                ProcessSpotUpdateQueue();
+            }
+        });
+
+        WebSocketSpotBookDepth.on('message', (data) => {
+            MessagesSpotUpdatesQueue.push({ Type: 'BookDepth', Message: data });
+            if (!isProcessingSpotUpdate) {
+                ProcessSpotUpdateQueue();
+            }
+        })
 
         WebSocketFutures.on('message', (data) => {
             try {
@@ -163,99 +234,8 @@ export class BinanceTradesService {
             }
         });
 
-        const ProcessSpotBookDepthUpdate = async (data: Buffer) => {
-            try {
-                const strData = data.toString();
-                const parsedData = JSON.parse(strData);
-                const Bids: StreamBid[] = parsedData[solidityModel.Solidity.Type === 'asks' ? 'a' : 'b'];
-
-                const solidityChangeIndex = Bids.findIndex(bid => bid[0] == solidityModel.Solidity.Price);
-
-                if (solidityChangeIndex !== -1 && SolidityStatus !== 'removed' && TradeStatus !== 'inTrade') {
-                    const SolidityBid = Bids[solidityChangeIndex];
-
-                    if (SolidityBid[1] > MaxSolidityQuantity) MaxSolidityQuantity = SolidityBid[1];
-                    SolidityStatus = await this.CheckSolidity(solidityModel, SolidityBid, UpToPriceSpot, TradeStatus, MaxSolidityQuantity, SolidityFinderOptions);
-
-                    TradingPairsService.ChangeTPInTrade(solidityModel);
-                    if (SolidityStatus === 'removed') {
-                        if (TradeStatus === 'reached') tcs.SendMessage(`${solidityModel.Symbol}\nSolidity on ${solidityModel.Solidity.Price}$ has been removed!\nThe quantity on ${SolidityBid[0]}$ is ${SolidityBid[1]}\n Max quantity was ${MaxSolidityQuantity}`);
-                        CloseTrade();
-                        DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} Solidity on ${solidityModel.Solidity.Price}$ has been removed. The quantity on ${SolidityBid[0]}$ is ${SolidityBid[1]}!`, [ dls ], true);
-                    } else if (SolidityStatus === 'ends') {
-                        TradeStatus = 'inTrade';
-                        WebSocketSpot.close();
-                        WebSocketSpotBookDepth.close();
-                        tcs.SendMessage(`${solidityModel.Symbol}\nSolidity on ${solidityModel.Solidity.Price}$ is almost ends\nThe quantity on ${SolidityBid[0]}$ is ${SolidityBid[1]}\nOpening Order...`);
-                        DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} Solidity on ${solidityModel.Solidity.Price}$ is almost ends. The quantity on ${SolidityBid[0]} is ${SolidityBid[1]}!`, [ dls ], true);
-                        FuturesOpenTradePrice = await otm.PlaceMarketOrder(FuturesLastPrice, TradeStopsOptions.TradeOptions.NominalQuantity.toString(), quantityPrecisionFutures);
-                    } else if (SolidityStatus === 'moved') {
-                        TradeStatus = 'watching';
-                        tcs.SendMessage(`${solidityModel.Symbol}\nSolidity has been moved to ${solidityModel.Solidity.Price}$\nUp to price: ${solidityModel.Solidity.UpToPrice}`)
-                    }
-                }
-            } catch (e) {
-                throw e;
-            }
-        }
-
-        // Websocket Spot
-        const messageSpotTradesQueue: Buffer[] = [];
-        let isProcessingSpotTrades = false;
-        const ProcessSpotTradeQueue = async () => {
-            if (isProcessingSpotTrades) return;
-            isProcessingSpotTrades = true;
-
-            try {
-                while (messageSpotTradesQueue.length > 0) {
-                    const message = messageSpotTradesQueue.shift();
-                    await ProcessSpotTrade(message);
-                }
-            } catch (e) {
-                DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Error with spot trade message ${e.message}`, [dls], true);
-                tcs.SendMessage(`Error with spot trade message on ${solidityModel.Symbol}:\n${e.message}`);
-                CloseTrade();
-            }
-
-            isProcessingSpotTrades = false;
-        };
-
-        WebSocketSpot.on('message', (data: Buffer) => {
-            messageSpotTradesQueue.push(data);
-            if (!isProcessingSpotTrades) {
-                ProcessSpotTradeQueue();
-            }
-        });
-
-        // Websocket Spot Book Depth
-        const messageSpotBookDepthQueue: Buffer[] = [];
-        let isProcessingSpotBookDepth = false;
-
-        const ProcessSpotBookDepthQueue = async () => {
-            if (isProcessingSpotBookDepth) return;
-            isProcessingSpotBookDepth = true;
-
-            try {
-                while (messageSpotBookDepthQueue.length > 0) {
-                    const message = messageSpotBookDepthQueue.shift();
-                    await ProcessSpotBookDepthUpdate(message);
-                }
-            } catch (e) {
-                DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Error with spot book depth update ${e.message}`, [dls], true);
-                tcs.SendMessage(`Error with spot book depth update on ${solidityModel.Symbol}:\n${e.message}`);
-            }
-
-            isProcessingSpotBookDepth = false;
-        };
-
-        WebSocketSpotBookDepth.on('message', (data) => {
-            messageSpotBookDepthQueue.push(data);
-            if (!isProcessingSpotBookDepth) {
-                ProcessSpotBookDepthQueue();
-            }
-        })
-
         const CloseTrade = () => {
+            this.client.futuresCancelAllOpenOrders({ symbol: solidityModel.Symbol });
             TradeStatus = 'disabled';
             WebSocketSpot.close();
             WebSocketSpotBookDepth.close();
@@ -285,10 +265,6 @@ export class BinanceTradesService {
         const SOLIDITY_CHANGE_PER_UPDATE_THRESHOLD: number = 0.15;
 
         let SolidityStatus: SolidityStatus;
-
-        // if (TradeStatus === 'reached') {
-        //     this.SolidityQuantityHistory.push(SolidityBid[1]);
-        // }
 
         const SolidityQuantityChange = SolidityBid[1] / solidityModel.Solidity.Quantity - 1;
 

@@ -95,7 +95,11 @@ export class OpenTradesManager {
             const CurrentProfit = OpenTradesManager.ShowProfit(this.OpenOrderPrice / price, this.TradeType);
             this.CurrentProfit = CurrentProfit;
 
-            if (BinanceOrdersCalculatingKit.CheckReachingPrice(price, this.StopLossPrice, this.TradeType)) {
+            if (BinanceOrdersCalculatingKit.CheckReachingPrice(price, this.StopLossPrice, this.TradeType === 'long' ? 'short' : 'long')) {
+                this.Status = 'Closed';
+            }
+
+            if (this.TakeProfitPrice !== undefined && BinanceOrdersCalculatingKit.CheckReachingPrice(price, this.TakeProfitPrice, this.TradeType)) {
                 this.Status = 'Closed';
             }
 
