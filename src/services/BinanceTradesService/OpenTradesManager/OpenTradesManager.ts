@@ -7,6 +7,7 @@ import DocumentLogService from "../../DocumentLogService/DocumentLogService";
 import {FontColor} from "../../FontStyleObjects";
 import {TradeStatus, UpdateLastPriceOutput} from "./OpenTradesManagerModels";
 import {TradingOptionsModel} from "../../OptionsManager/OptionsModel";
+import TradingPairsService from "../../TradingPairsListService/TradingPairsService";
 
 export class OpenTradesManager {
     private client: Binance;
@@ -78,7 +79,7 @@ export class OpenTradesManager {
                 await this.PlaceStopLossLimit();
                 if (this.TradeStopOptions.Stops.TakeProfit !== 0) await this.PlaceTakeProfitLimit();
             } catch (e) {
-                this.CloseOrder();
+                await this.CloseOrder();
                 e.message = `Error with closing orders: ${e.message}`;
                 throw e;
             }
@@ -88,6 +89,8 @@ export class OpenTradesManager {
 
             tcs.SendMessage(orderMsgTg);
             DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], orderMsg, [dls, tls], true);
+
+            this.WatchTheTrade();
         } catch (e) {
             DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `Error with placing order! Nominal quantity: ${parseFloat(this.OrderQuantityNominal)} | Open order price: ${LastPrice} | Quantity Precision: ${QuantityPrecisionFutures} | Calculated quantity: ${this.OrderQuantity}`, [dls, tls], true);
             tcs.SendMessage(`${this.Symbol}\nError with orders!\n${e.message}\nNominal quantity: ${parseFloat(OrderQuantityNominal)}\nOpen order price: ${LastPrice}\nQuantity Precision: ${QuantityPrecisionFutures}\nCalculated quantity: ${this.OrderQuantity}`);
@@ -96,26 +99,21 @@ export class OpenTradesManager {
         return this.OpenOrderPrice
     }
 
-    UpdateLastPrice = (price: number): UpdateLastPriceOutput => {
+    WatchTheTrade = () => {
         try {
-            const CurrentProfit = OpenTradesManager.ShowProfit(this.OpenOrderPrice / price, this.TradeType);
-            this.CurrentProfit = CurrentProfit;
-
-            if (BinanceOrdersCalculatingKit.CheckReachingPrice(price, this.StopLossPrice, this.TradeType === 'long' ? 'short' : 'long')) {
-                this.Status = 'Closed';
-            }
-
-            if (this.TakeProfitPrice !== undefined && BinanceOrdersCalculatingKit.CheckReachingPrice(price, this.TakeProfitPrice, this.TradeType)) {
-                this.Status = 'Closed';
-            }
-
-            if (CurrentProfit > this.MaxProfit) {
-                this.MaxProfit = CurrentProfit;
-                this.MaxProfitPrice = price;
-                this.StopLossPrice = BinanceOrdersCalculatingKit.CalcPriceByRatio(this.MaxProfitPrice, this.TradeStopOptions.Stops.StopLoss.PercentValue, this.LimitType, this.TickSizeFutures);
-            }
+            const ws = this.client.ws.futuresUser((event) => {
+                if (
+                    event.eventType === 'ORDER_TRADE_UPDATE' &&
+                    event.orderId === this.StopLossStopLimitOrderId &&
+                    event.orderStatus === 'FILLED'
+                ) {
+                    DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Order was closed! | Profit: ${event.realizedProfit}%`, [ dls, tls ], true);
+                    tcs.SendMessage(`${this.Symbol}\nOrder was closed!\nProfit: ${event.realizedProfit}%`);
+                    TradingPairsService.DeleteTPInTrade(this.Symbol);
+                }
+            })
         } catch (e) {
-            this.CloseOrder();
+            // this.CloseOrder();
             throw e;
         }
 

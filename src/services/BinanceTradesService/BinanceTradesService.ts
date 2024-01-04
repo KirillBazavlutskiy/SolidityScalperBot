@@ -44,7 +44,6 @@ export class BinanceTradesService {
         let tickSizeSpot: number = BinanceTradesService.FetchTickSize(exchangeInfoSpot, solidityModel.Symbol);
         let tickSizeFutures: number = BinanceTradesService.FetchTickSize(exchangeInfoFutures, solidityModel.Symbol);
 
-        let minNotionalFutures = parseFloat(BinanceTradesService.FetchMinNotionalFutures(exchangeInfoFutures, solidityModel.Symbol));
         let quantityPrecisionFutures: number = BinanceTradesService.GetQuantityPrecision(exchangeInfoFutures, solidityModel.Symbol);
 
         const UP_TO_PRICE_ACCESS_SPOT_THRESHOLD: number = SolidityFinderOptions.UpToPriceAccess / 100 + 0.01;
@@ -56,17 +55,12 @@ export class BinanceTradesService {
         let SolidityStatus: SolidityStatus = 'ready';
         let MaxSolidityQuantity = solidityModel.Solidity.Quantity;
 
-        let FuturesOpenTradePrice: number;
-        let FuturesLastPrice: number;
-        let FuturesWebsocketLastTradeTime: Date;
-
         let TradeStatus: TradeStatus = 'watching';
-
-        let minPriceFuturesInTrade = Number.MAX_VALUE;
-        let maxPriceFuturesInTrade = Number.MIN_VALUE;
 
         let OpenTradeTime: Date;
         let TradeType: TradeType = solidityModel.Solidity.Type === 'asks' ? 'long' : 'short';
+
+        let SpotLastPrice;
 
         const otm = new OpenTradesManager(this.client, solidityModel.Symbol, TradeStopsOptions, TradeType, tickSizeFutures);
 
@@ -75,7 +69,6 @@ export class BinanceTradesService {
             [ dls ], true);
 
         const WebSocketSpot: WebSocket = new WebSocket(`wss://stream.binance.com:9443/ws/${solidityModel.Symbol.toLowerCase()}@trade`);
-        const WebSocketFutures: WebSocket = new WebSocket(`wss://fstream.binance.com/ws/${solidityModel.Symbol.toLowerCase()}@trade`);
         const WebSocketSpotBookDepth: WebSocket = new WebSocket(`wss://stream.binance.com:9443/ws/${solidityModel.Symbol.toLowerCase()}@depth`);
 
         const ProcessSpotTrade = async (data: Buffer) => {
@@ -84,7 +77,7 @@ export class BinanceTradesService {
                 const strData = data.toString();
                 const trade = JSON.parse(strData);
 
-                const SpotLastPrice = parseFloat(trade.p);
+                SpotLastPrice = parseFloat(trade.p);
                 UpToPriceSpot = SpotLastPrice / solidityModel.Solidity.Price;
                 solidityModel.Solidity.UpToPrice = UpToPriceSpot;
                 solidityModel.Price = SpotLastPrice;
@@ -121,7 +114,7 @@ export class BinanceTradesService {
 
                             OpenTradeTime = new Date();
 
-                            FuturesOpenTradePrice = await otm.PlaceMarketOrder(FuturesLastPrice, TradeStopsOptions.TradeOptions.NominalQuantity.toString(), quantityPrecisionFutures);
+                            await otm.PlaceMarketOrder(SpotLastPrice, TradeStopsOptions.TradeOptions.NominalQuantity.toString(), quantityPrecisionFutures);
                             WebSocketSpot.close();
                             WebSocketSpotBookDepth.close();
                         } else if (BinanceOrdersCalculatingKit.CalcSimplifiedRatio(UpToPriceSpot, solidityModel.Solidity.Type) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
@@ -148,8 +141,8 @@ export class BinanceTradesService {
                 if (solidityChangeIndex !== -1 && SolidityStatus !== 'removed' && TradeStatus !== 'inTrade') {
                     const SolidityBid = Bids[solidityChangeIndex];
 
-                    if (SolidityBid[1] > MaxSolidityQuantity) MaxSolidityQuantity = SolidityBid[1];
                     SolidityStatus = await this.CheckSolidity(solidityModel, SolidityBid, UpToPriceSpot, TradeStatus, MaxSolidityQuantity, SolidityFinderOptions);
+                    if (SolidityBid[1] > MaxSolidityQuantity) MaxSolidityQuantity = SolidityBid[1];
 
                     TradingPairsService.ChangeTPInTrade(solidityModel);
                     if (SolidityStatus === 'removed') {
@@ -162,7 +155,7 @@ export class BinanceTradesService {
                         WebSocketSpotBookDepth.close();
                         tcs.SendMessage(`${solidityModel.Symbol}\nSolidity on ${solidityModel.Solidity.Price}$ is almost ends\nThe quantity on ${SolidityBid[0]}$ is ${SolidityBid[1]}\nOpening Order...`);
                         DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} Solidity on ${solidityModel.Solidity.Price}$ is almost ends. The quantity on ${SolidityBid[0]} is ${SolidityBid[1]}!`, [ dls ], true);
-                        FuturesOpenTradePrice = await otm.PlaceMarketOrder(FuturesLastPrice, TradeStopsOptions.TradeOptions.NominalQuantity.toString(), quantityPrecisionFutures);
+                        await otm.PlaceMarketOrder(SpotLastPrice, TradeStopsOptions.TradeOptions.NominalQuantity.toString(), quantityPrecisionFutures);
                     } else if (SolidityStatus === 'moved') {
                         TradeStatus = 'watching';
                         tcs.SendMessage(`${solidityModel.Symbol}\nSolidity has been moved to ${solidityModel.Solidity.Price}$\nUp to price: ${solidityModel.Solidity.UpToPrice}`)
@@ -208,41 +201,15 @@ export class BinanceTradesService {
             }
         })
 
-        WebSocketFutures.on('message', (data) => {
-            try {
-                const strData = data.toString();
-                const trade = JSON.parse(strData);
-                FuturesLastPrice = parseFloat(trade.p);
-                FuturesWebsocketLastTradeTime = new Date();
-
-                if (TradeStatus === 'inTrade') {
-                    if (FuturesLastPrice > maxPriceFuturesInTrade) maxPriceFuturesInTrade = FuturesLastPrice;
-                    else if (FuturesLastPrice < minPriceFuturesInTrade) minPriceFuturesInTrade = FuturesLastPrice;
-
-                    const TradeCondition = otm.UpdateLastPrice(FuturesLastPrice);
-
-                    if (TradeCondition.TradeStatus === 'Closed') {
-                        DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${solidityModel.Symbol} | Order was closed! | Profit: ${TradeCondition.CurrentProfit}%`, [ dls, tls ], true);
-                        tcs.SendMessage(`${solidityModel.Symbol}\nOrder was closed!\nProfit: ${TradeCondition.CurrentProfit}%`);
-                        CloseTrade();
-                    }
-                }
-            } catch (e) {
-                DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error in futures websocket with ${solidityModel.Symbol}! ${e.message}`);
-            }
-        });
-
         const CloseTrade = () => {
             this.client.futuresCancelAllOpenOrders({ symbol: solidityModel.Symbol });
             TradeStatus = 'disabled';
             WebSocketSpot.close();
             WebSocketSpotBookDepth.close();
-            WebSocketFutures.close();
             TradingPairsService.DeleteTPInTrade(solidityModel.Symbol);
         }
 
         WebSocketSpot.on('error', e => DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error in spot depth websocket with ${solidityModel.Symbol}! ${e.message}`));
-        WebSocketFutures.on('error', e => DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error in spot depth websocket with ${solidityModel.Symbol}! ${e.message}`));
         WebSocketSpotBookDepth.on('error', e => DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error in spot depth websocket with ${solidityModel.Symbol}! ${e.message}`));
 
         WebSocketSpot.on('close', () => {
@@ -251,11 +218,6 @@ export class BinanceTradesService {
 
         WebSocketSpotBookDepth.on('close', () => {
             DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Spot book depth websocket on ${solidityModel.Symbol} has been disabled!`, [ dls ], true);
-        });
-
-        WebSocketFutures.on('close', () => {
-            TradeStatus = 'disabled';
-            DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Futures trades websocket on ${solidityModel.Symbol} has been disabled!`, [ dls ], true);
         });
     };
 

@@ -54,7 +54,7 @@ export class TelegramControllerService {
             ],
             [
                 {
-                    text: 'Trades Info'
+                    text: 'Active Trading Pairs'
                 }
             ],
             [
@@ -130,7 +130,7 @@ export class TelegramControllerService {
                     const ping = await this.client.ping();
                     this.Bot.sendMessage(chatId, `Program is active!\n${ping ? 'Connection is active too!' : 'Isn`t connected to binance!'}`, { reply_markup: this.CreateKeyBoard() });
                     break;
-                case 'Trades Info':
+                case 'Active Trading Pairs':
                     this.Bot.sendMessage(chatId, TradingPairsService.LogTradingPairs(), { reply_markup: this.CreateKeyBoard() });
                     break;
 
