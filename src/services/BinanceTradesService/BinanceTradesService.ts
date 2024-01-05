@@ -202,7 +202,6 @@ export class BinanceTradesService {
         })
 
         const CloseTrade = () => {
-            this.client.futuresCancelAllOpenOrders({ symbol: solidityModel.Symbol });
             TradeStatus = 'disabled';
             WebSocketSpot.close();
             WebSocketSpotBookDepth.close();
