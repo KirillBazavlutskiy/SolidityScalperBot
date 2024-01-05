@@ -21,6 +21,8 @@ export class OpenTradesManager {
     private TickSizeFutures: number;
 
     private OpenOrderPrice: number;
+    private CloseOrderPrice: number;
+
     private TradeStopOptions: TradingOptionsModel;
 
     private CurrentProfit: number;
@@ -61,7 +63,7 @@ export class OpenTradesManager {
 
             this.MarketOrderId = order.orderId;
 
-            await new Promise(resolve => setTimeout(resolve, 150));
+            await new Promise(resolve => setTimeout(resolve, 300));
 
             const orderCheck = await this.client.futuresGetOrder({
                 symbol: this.Symbol,
@@ -74,29 +76,32 @@ export class OpenTradesManager {
             this.MaxProfitPrice = this.OpenOrderPrice;
             this.MaxProfit = 0;
             this.StopLossPrice = BinanceOrdersCalculatingKit.CalcPriceByRatio(this.MaxProfitPrice, this.TradeStopOptions.Stops.StopLoss.PercentValue, this.LimitType, this.TickSizeFutures);
-
-            try {
-                await this.PlaceStopLossLimit();
-                if (this.TradeStopOptions.Stops.TakeProfit !== 0) await this.PlaceTakeProfitLimit();
-            } catch (e) {
-                await this.CloseOrder();
-                e.message = `Error with closing orders: ${e.message}`;
-                throw e;
-            }
-
-            const orderMsg = `${this.Symbol} | Order Type: ${this.TradeType} | Nominal Quantity: ${parseFloat(this.OrderQuantity) * this.OpenOrderPrice} | LP: ${this.OpenOrderPrice} | SL: ${this.StopLossPrice}`;
-            const orderMsgTg = `${this.Symbol}\nOrder Type: ${this.TradeType}\nNominal Quantity: ${parseFloat(this.OrderQuantity) * this.OpenOrderPrice}\nLP: ${this.OpenOrderPrice}\nSL: ${this.StopLossPrice}`;
-
-            tcs.SendMessage(orderMsgTg);
-            DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], orderMsg, [dls, tls], true);
-
-            this.WatchTheTrade();
         } catch (e) {
-            DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `Error with placing order! Nominal quantity: ${parseFloat(this.OrderQuantityNominal)} | Open order price: ${LastPrice} | Quantity Precision: ${QuantityPrecisionFutures} | Calculated quantity: ${this.OrderQuantity}`, [dls, tls], true);
-            tcs.SendMessage(`${this.Symbol}\nError with orders!\n${e.message}\nNominal quantity: ${parseFloat(OrderQuantityNominal)}\nOpen order price: ${LastPrice}\nQuantity Precision: ${QuantityPrecisionFutures}\nCalculated quantity: ${this.OrderQuantity}`);
+            TradingPairsService.DeleteTPInTrade(this.Symbol);
+            DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `Error with placing open order! Nominal quantity: ${parseFloat(this.OrderQuantityNominal)} | Open order price: ${LastPrice} | Quantity Precision: ${QuantityPrecisionFutures} | Calculated quantity: ${this.OrderQuantity}`, [dls, tls], true);
+            tcs.SendMessage(`${this.Symbol}\nError with placing order!\n${e.message}\nNominal quantity: ${parseFloat(OrderQuantityNominal)}\nOpen order price: ${LastPrice}\nQuantity Precision: ${QuantityPrecisionFutures}\nCalculated quantity: ${this.OrderQuantity}`);
         }
 
-        return this.OpenOrderPrice
+        try {
+            await this.PlaceStopLossLimit();
+            if (this.TradeStopOptions.Stops.TakeProfit !== 0) await this.PlaceTakeProfitLimit();
+        } catch (e) {
+            await this.CloseOrder();
+            TradingPairsService.DeleteTPInTrade(this.Symbol);
+            e.message = `Error with placing closing orders: ${e.message}`;
+            DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `Error with placing closing orders! Nominal quantity: ${parseFloat(this.OrderQuantityNominal)} | Open order price: ${LastPrice} | Quantity Precision: ${QuantityPrecisionFutures} | Calculated quantity: ${this.OrderQuantity}`, [dls, tls], true);
+            tcs.SendMessage(`${this.Symbol}\nError with placing closing orders!\n${e.message}\nNominal quantity: ${parseFloat(OrderQuantityNominal)}\nOpen order price: ${LastPrice}\nQuantity Precision: ${QuantityPrecisionFutures}\nCalculated quantity: ${this.OrderQuantity}`);
+        }
+
+        const orderMsg = `${this.Symbol} | Order Type: ${this.TradeType} | Nominal Quantity: ${parseFloat(this.OrderQuantity) * this.OpenOrderPrice} | LP: ${this.OpenOrderPrice} | SL: ${this.StopLossPrice}`;
+        const orderMsgTg = `${this.Symbol}\nOrder Type: ${this.TradeType}\nNominal Quantity: ${parseFloat(this.OrderQuantity) * this.OpenOrderPrice}\nLP: ${this.OpenOrderPrice}\nSL: ${this.StopLossPrice}`;
+
+        tcs.SendMessage(orderMsgTg);
+        DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], orderMsg, [dls, tls], true);
+
+        this.WatchTheTrade();
+
+        return this.OpenOrderPrice;
     }
 
     WatchTheTrade = () => {
@@ -107,14 +112,19 @@ export class OpenTradesManager {
                     event.orderId === this.StopLossStopLimitOrderId &&
                     event.orderStatus === 'FILLED'
                 ) {
-                    DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Order was closed! | Profit: ${event.realizedProfit}%`, [ dls, tls ], true);
-                    tcs.SendMessage(`${this.Symbol}\nOrder was closed!\nProfit: ${event.realizedProfit}%`);
+                    this.CloseOrderPrice = parseFloat(event.priceLastTrade);
+
+                    const PercentageProfit = this.ShowProfit();
+
+                    DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Order was closed! | Profit: ${BinanceOrdersCalculatingKit.RoundUp(PercentageProfit, 3)}%`, [ dls, tls ], true);
+                    tcs.SendMessage(`${this.Symbol}\nOrder was closed!\nProfit: ${BinanceOrdersCalculatingKit.RoundUp(PercentageProfit, 3)}%`);
                     TradingPairsService.DeleteTPInTrade(this.Symbol);
                 }
             })
         } catch (e) {
             // this.CloseOrder();
-            throw e;
+            DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Error with user data websocket connection! ${e.message}`, [dls, tls], true);
+            tcs.SendMessage(`${this.Symbol}\nError with user data websocket connection!\n${e.message}`);
         }
 
         return {
@@ -179,7 +189,15 @@ export class OpenTradesManager {
         });
     }
 
-    static ShowProfit = (UpToPrice: number, TradeType?: TradeType) => {
-        return BinanceOrdersCalculatingKit.RoundUp(BinanceOrdersCalculatingKit.CalcSimplifiedRatio(UpToPrice, TradeType === 'long' ? 'asks' : 'bids') * 100, 5);
+    ShowProfit = (): number => {
+        let PercentageProfit: number;
+
+        if (this.TradeType === 'long') {
+            PercentageProfit = ((this.CloseOrderPrice - this.OpenOrderPrice) / this.OpenOrderPrice) * 100;
+        } else {
+            PercentageProfit = ((this.OpenOrderPrice - this.CloseOrderPrice) / this.OpenOrderPrice) * 100;
+        }
+
+        return PercentageProfit;
     }
 }
