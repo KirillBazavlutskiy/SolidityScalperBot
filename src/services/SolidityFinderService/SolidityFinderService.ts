@@ -46,11 +46,13 @@ class SolidityFinderService {
                 })
                 .filter(tradingPair => parseFloat(tradingPair.quoteVolume) > minVolume)
                 .sort((a, b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent))
-                .map(tradingPair => tradingPair.symbol);
 
-            if (topPriceChangePercent !== 0) filteredTickers = filteredTickers.slice(0, topPriceChangePercent);
+            if (topPriceChangePercent !== 0) {
+                filteredTickers.filter(ticker => parseFloat(ticker.priceChangePercent) > 0);
+                if (filteredTickers.length > topPriceChangePercent) filteredTickers = filteredTickers.slice(0, topPriceChangePercent);
+            }
 
-            return filteredTickers;
+            return filteredTickers.map(tradingPair => tradingPair.symbol);
         } catch (e) {
             throw e;
         }
