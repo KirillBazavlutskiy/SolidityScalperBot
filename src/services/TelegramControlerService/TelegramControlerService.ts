@@ -74,6 +74,7 @@ export class TelegramControllerService {
 
     private CreateReplySolidityFinderOptionsButtons = (empty: boolean = false): InlineKeyboardMarkup => ({
         inline_keyboard: empty ? [] : [
+            [{ text: 'RatioAccess', callback_data: 'ChangeRatioAccess' }],
             [{ text: 'PriceUninterruptedDuration', callback_data: 'ChangePriceUninterruptedDuration' }],
             [{ text: 'TopGainersCount', callback_data: 'ChangeTopGainersCount' }]
         ].filter(option => option[0].callback_data !== this.GetState())
@@ -144,6 +145,17 @@ export class TelegramControllerService {
 
                 default:
                     switch (this.GetState()) {
+                        case 'ChangeRatioAccess': {
+                            this.SetState('');
+                            const OldOptions = OptionsManager.GetOptions();
+                            const fixedValue = parseFloat(parseFloat(data).toFixed());
+                            OldOptions.SolidityFinderOptions.RatioAccess = fixedValue;
+                            OptionsManager.ChangeOptions(OldOptions);
+                            const msg = `"RatioAccess" value has been changed to ${fixedValue}`;
+                            this.Bot.sendMessage(chatId, msg, { reply_markup: this.CreateReplySolidityFinderOptionsButtons(true) });
+                            this.SendMessage(msg, chatId);
+                            break;
+                        }
                         case 'ChangePriceUninterruptedDuration': {
                             this.SetState('');
                             const OldOptions = OptionsManager.GetOptions();
@@ -215,6 +227,10 @@ export class TelegramControllerService {
         const Options = OptionsManager.GetOptions();
 
         switch (data) {
+            case 'ChangeRatioAccess':
+                this.SetState(data);
+                this.Bot.sendMessage(chatId, `Type a new value for "RatioAccess":\nOld value: ${Options.SolidityFinderOptions.RatioAccess}\nTips: 20 is normal\nOr choose other option:`, { reply_markup: this.CreateReplySolidityFinderOptionsButtons() });
+                break;
             case 'ChangePriceUninterruptedDuration':
                 this.SetState(data);
                 this.Bot.sendMessage(chatId, `Type a new value for "PriceUninterruptedDuration":\nOld value: ${Options.SolidityFinderOptions.TopGainersCount}\nTips: 20 is normal\nOr choose other option:`, { reply_markup: this.CreateReplySolidityFinderOptionsButtons() });
