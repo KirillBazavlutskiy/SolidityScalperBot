@@ -310,7 +310,8 @@ export class BinanceTradesService {
                         DocumentLogService.MadeTheNewLog([FontColor.FgCyan], `Solidity on ${solidityModel.Symbol} in ${solidityModel.Solidity.Price} | Ratio: ${lastSolidity.Solidity.Ratio} | ${solidityModel.Solidity.Quantity} -> ${SolidityBid[1]}`, [ dls ], true);
                         solidityModel.Solidity.Quantity = SolidityBid[1];
                     } else {
-                        const checkForReachingPrice = await sfs.CheckPriceAtTargetTime(solidityModel.Symbol, lastSolidity.Price, SolidityFinderOptions.PriceUninterruptedDuration);
+                        let checkForReachingPrice = true;
+                        if (SolidityFinderOptions.PriceUninterruptedDuration !== 0) checkForReachingPrice = await sfs.CheckPriceAtTargetTime(solidityModel.Symbol, lastSolidity.Price, SolidityFinderOptions.PriceUninterruptedDuration);
                         if (!checkForReachingPrice) {
                             SolidityStatus = 'moved';
                             solidityModel.Solidity = lastSolidity.Solidity;
