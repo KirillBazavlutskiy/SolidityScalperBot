@@ -59,6 +59,11 @@ export class TelegramControllerService {
             ],
             [
                 {
+                    text: 'General Options'
+                }
+            ],
+            [
+                {
                     text: 'Solidity Finder Options'
                 }
             ],
@@ -72,6 +77,11 @@ export class TelegramControllerService {
         one_time_keyboard: false
     });
 
+    private CreateReplyGeneralOptionsButtons = (empty: boolean = false): InlineKeyboardMarkup => ({
+        inline_keyboard: empty ? [] : [
+            [{ text: 'ScreenerMode', callback_data: 'ChangeScreenerMode' }],
+        ].filter(option => option[0].callback_data !== this.GetState())
+    })
     private CreateReplySolidityFinderOptionsButtons = (empty: boolean = false): InlineKeyboardMarkup => ({
         inline_keyboard: empty ? [] : [
             [{ text: 'RatioAccess', callback_data: 'ChangeRatioAccess' }],
@@ -135,16 +145,29 @@ export class TelegramControllerService {
                     this.Bot.sendMessage(chatId, TradingPairsService.LogTradingPairs(), { reply_markup: this.CreateKeyBoard() });
                     break;
 
+                case 'General Options':
+                    this.Bot.sendMessage(chatId, 'Choose the option:', { reply_markup: this.CreateReplyGeneralOptionsButtons() });
+                    break;
                 case 'Solidity Finder Options':
                     this.Bot.sendMessage(chatId, 'Choose the option:', { reply_markup: this.CreateReplySolidityFinderOptionsButtons() });
                     break;
-
                 case 'Trading Options':
                     this.Bot.sendMessage(chatId, 'Choose the option:', { reply_markup: this.CreateReplyTradeOptionsButtons() });
                     break;
 
                 default:
                     switch (this.GetState()) {
+                        case 'ChangeScreenerMode': {
+                            this.SetState('');
+                            const OldOptions = OptionsManager.GetOptions();
+                            OldOptions.GeneralOptions.ScreenerMode = data === '1';
+                            OptionsManager.ChangeOptions(OldOptions);
+                            const msg = `"ScreenerMode" value has been changed to ${data === '1'}`;
+                            this.Bot.sendMessage(chatId, msg, { reply_markup: this.CreateReplySolidityFinderOptionsButtons(true) });
+                            this.SendMessage(msg, chatId);
+                            break;
+                        }
+
                         case 'ChangeRatioAccess': {
                             this.SetState('');
                             const OldOptions = OptionsManager.GetOptions();
@@ -227,6 +250,11 @@ export class TelegramControllerService {
         const Options = OptionsManager.GetOptions();
 
         switch (data) {
+            case 'ChangeScreenerMode':
+                this.SetState(data);
+                this.Bot.sendMessage(chatId, `Type a new value for "ScreenerMode":\nOld value: ${Options.GeneralOptions.ScreenerMode}\nTips: Access for trades, only for watching\nOr choose other option:`, { reply_markup: this.CreateReplySolidityFinderOptionsButtons() });
+                break;
+
             case 'ChangeRatioAccess':
                 this.SetState(data);
                 this.Bot.sendMessage(chatId, `Type a new value for "RatioAccess":\nOld value: ${Options.SolidityFinderOptions.RatioAccess}\nTips: 20 is normal\nOr choose other option:`, { reply_markup: this.CreateReplySolidityFinderOptionsButtons() });
