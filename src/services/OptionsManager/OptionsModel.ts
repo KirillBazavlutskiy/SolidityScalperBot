@@ -1,3 +1,7 @@
+export interface GeneraOptions {
+    ScreenerMode: boolean;
+}
+
 export interface SolidityFinderOptionsModel {
     MinimalVolume: number;
     RatioAccess: number;
@@ -20,11 +24,15 @@ export interface TradingOptionsModel {
 }
 
 export interface OptionsModel {
+    GeneralOptions: GeneraOptions;
     SolidityFinderOptions: SolidityFinderOptionsModel;
     TradingOptions: TradingOptionsModel;
 }
 
 export const DefaultOptionsValues: OptionsModel = {
+    GeneralOptions: {
+        ScreenerMode: false,
+    },
     SolidityFinderOptions: {
         MinimalVolume: 1000000,
         RatioAccess: 20,

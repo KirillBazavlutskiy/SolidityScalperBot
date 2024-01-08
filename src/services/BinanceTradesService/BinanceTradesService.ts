@@ -19,7 +19,12 @@ import {FontColor} from "../FontStyleObjects";
 import beep from 'beepbeep';
 import {BinanceOrdersCalculatingKit} from "./BinanceOrdersCalculatingKit/BinanceOrdersCalculatingKit";
 import {OpenTradesManager} from "./OpenTradesManager/OpenTradesManager";
-import {SolidityFinderOptionsModel, TradingOptionsModel} from "../OptionsManager/OptionsModel";
+import {
+    GeneraOptions,
+    OptionsModel,
+    SolidityFinderOptionsModel,
+    TradingOptionsModel
+} from "../OptionsManager/OptionsModel";
 
 
 export class BinanceTradesService {
@@ -28,11 +33,15 @@ export class BinanceTradesService {
         this.client = client;
     }
 
-    TradeSymbol = async (solidityModel: SolidityModel, SolidityFinderOptions: SolidityFinderOptionsModel, TradeStopsOptions: TradingOptionsModel): Promise<void | 0> => {
-        let exchangeInfoSpot;
-        let exchangeInfoFutures;
+    TradeSymbol = async (solidityModel: SolidityModel, Options: OptionsModel): Promise<void | 0> => {
+        const GeneralOptions = Options.GeneralOptions;
+        const SolidityFinderOptions = Options.SolidityFinderOptions;
+        const TradingOptions = Options.TradingOptions;
 
         let TradingPairWithSolidity = solidityModel;
+
+        let exchangeInfoSpot;
+        let exchangeInfoFutures;
 
         exchangeInfoSpot = await this.client.exchangeInfo();
 
@@ -66,7 +75,7 @@ export class BinanceTradesService {
 
         let SpotLastPrice = TradingPairWithSolidity.Price;
 
-        const otm = new OpenTradesManager(this.client, TradingPairWithSolidity.Symbol, TradeStopsOptions, TradeType, tickSizeFutures);
+        const otm = new OpenTradesManager(this.client, TradingPairWithSolidity.Symbol, TradingOptions, TradeType, tickSizeFutures);
 
         DocumentLogService.MadeTheNewLog(
             [FontColor.FgGreen], `New Solidity on ${TradingPairWithSolidity.Symbol} | Solidity Price: ${TradingPairWithSolidity.Solidity.Price} | Solidity Ratio: ${TradingPairWithSolidity.Solidity.Ratio} | Up To Price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(TradingPairWithSolidity.Solidity.UpToPrice, TradingPairWithSolidity.Solidity.Type,4)} | Last Price: ${TradingPairWithSolidity.Price} | Quantity Precision: ${quantityPrecisionFutures}`,
@@ -106,7 +115,7 @@ export class BinanceTradesService {
                         } else if ((UpToPriceSpot > 1 && TradingPairWithSolidity.Solidity.Type === 'asks') || (UpToPriceSpot < 1 && TradingPairWithSolidity.Solidity.Type === 'bids')) {
                             if (TradeQuantity >=  TradingPairWithSolidity.Solidity.Quantity) {
                                 DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${TradingPairWithSolidity.Symbol} |Solidity on ${TradingPairWithSolidity.Solidity.Price} has been destroyed with ${TradeQuantity} Volume! | Last Price: ${SpotLastPrice}`, [dls], true);
-                                tcs.SendMessage(`${TradingPairWithSolidity.Symbol}\nSolidity on ${TradingPairWithSolidity.Solidity.Price} has been destroyed with ${TradeQuantity} Volume!\nLast Price: ${SpotLastPrice}`)
+                                tcs.SendMessage(`${TradingPairWithSolidity.Symbol}\nSolidity on ${TradingPairWithSolidity.Solidity.Price} has been destroyed with ${TradeQuantity} Volume!\nLast Price: ${SpotLastPrice}`);
                                 await OpenTrade();
                             } else {
                                 DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${TradingPairWithSolidity.Symbol} Solidity on ${TradingPairWithSolidity.Solidity.Price} has been destroyed! | Up to price: ${UpToPriceSpot} | Last Price: ${SpotLastPrice}`, [dls], true);
@@ -216,11 +225,15 @@ export class BinanceTradesService {
         })
 
         const OpenTrade = async  () => {
-            TradeStatus = 'inTrade';
-            SolidityStatus = 'removed';
-            await otm.PlaceMarketOrder(SpotLastPrice, TradeStopsOptions.TradeOptions.NominalQuantity.toString(), quantityPrecisionFutures);
-            WebSocketSpot.close();
-            WebSocketSpotBookDepth.close();
+            if (!GeneralOptions.ScreenerMode) {
+                TradeStatus = 'inTrade';
+                SolidityStatus = 'removed';
+                await otm.PlaceMarketOrder(SpotLastPrice, TradingOptions.TradeOptions.NominalQuantity.toString(), quantityPrecisionFutures);
+                WebSocketSpot.close();
+                WebSocketSpotBookDepth.close();
+            } else {
+                CloseWatching();
+            }
         }
 
         const CloseWatching = () => {
