@@ -35,7 +35,7 @@ export class BinanceOrdersCalculatingKit {
     }
 
     static ShowUptoPrice = (UpToPrice: number, LimitType: LimitType, fractionDigits: number = 0) => {
-        return `${LimitType === 'asks' ? '+' : '-'}${this.CalcSimplifiedRatio(UpToPrice, LimitType, fractionDigits) * 100}%`;
+        return `${LimitType === 'asks' ? '+' : '-'}${this.RoundUp(this.CalcSimplifiedRatio(UpToPrice, LimitType, fractionDigits) * 100, fractionDigits)}%`;
     }
 
     static CalcRealRatio = (UpToPrice: number, LimitType: LimitType): number => {

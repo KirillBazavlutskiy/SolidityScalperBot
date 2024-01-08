@@ -268,8 +268,8 @@ export class TelegramControllerService {
                 try {
                     this.Bot.sendMessage(userId, message, { reply_markup: this.CreateKeyBoard() });
                 } catch (e) {
-                    if (e.message === "ETELEGRAM: 403 Forbidden: bot was blocked by the user") {
-                        console.log(`Пользователь ${userId} заблокировал бота.`);
+                    if (e.message !== "ETELEGRAM: 403 Forbidden: bot was blocked by the user") {
+                        throw  e;
                     }
                     this.DeleteSubscriber(userId);
                 }

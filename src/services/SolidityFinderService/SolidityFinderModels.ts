@@ -11,6 +11,7 @@ export interface SolidityTicket {
     Type: LimitType;
     Price: number;
     Quantity: number;
+    MaxQuantity: number;
     Ratio: number;
     UpToPrice: number;
 }

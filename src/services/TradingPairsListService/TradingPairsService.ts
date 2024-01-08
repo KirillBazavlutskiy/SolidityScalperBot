@@ -1,4 +1,4 @@
-import {LimitType, SolidityModel} from "../SolidityFinderService/SolidityFinderModels";
+import {SolidityModel} from "../SolidityFinderService/SolidityFinderModels";
 import {BinanceOrdersCalculatingKit} from "../BinanceTradesService/BinanceOrdersCalculatingKit/BinanceOrdersCalculatingKit";
 
 class TradingPairsService {
@@ -15,6 +15,8 @@ class TradingPairsService {
                         `${TradingPair.Symbol}\n` +
                         `Up to price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(TradingPair.Solidity.UpToPrice, TradingPair.Solidity.Type, 4)}\n` +
                         `Trade type: ${TradingPair.Solidity.Type === 'asks' ? 'Long' : 'Short'}\n` +
+                        `Solidity Quantity: ${TradingPair.Solidity.Quantity}\n` +
+                        `Max Solidity Quantity: ${TradingPair.Solidity.MaxQuantity}\n` +
                         `Waiting for price: ${TradingPair.Solidity.Price}$\n` + 
                         `Last price: ${TradingPair.Price}$`
                     );
