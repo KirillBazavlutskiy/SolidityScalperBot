@@ -119,8 +119,7 @@ export class OpenTradesManager {
 
                 if (
                     event.eventType === 'ORDER_TRADE_UPDATE' &&
-                    event.orderId === this.StopLossStopLimitOrderId &&
-                    event.orderId === this.TakeProfitStopLimitOrderId &&
+                    (event.orderId === this.StopLossStopLimitOrderId || event.orderId === this.TakeProfitStopLimitOrderId) &&
                     event.orderStatus === 'FILLED'
                 ) {
                     this.CloseOrderPrice = parseFloat(event.priceLastTrade);
