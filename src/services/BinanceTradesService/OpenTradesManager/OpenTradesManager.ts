@@ -112,7 +112,7 @@ export class OpenTradesManager {
 
     WatchTheTrade = async () => {
         try {
-            const clean = await this.client.ws.futuresUser((event) => {
+            const clean = await this.client.ws.futuresUser(async (event) => {
                 if (this.Status === 'Closed') {
                     tcs.SendMessage(`${this.Symbol}\nFutures Trades Websocket is still getting messages!`);
                 }
@@ -126,17 +126,12 @@ export class OpenTradesManager {
 
                     const PercentageProfit = this.ShowProfit();
 
-                    if (event.orderId === this.StopLossStopLimitOrderId && this.TakeProfitActive) {
-                        this.TakeProfitCloseOrderFunc();
-                    } else if (event.orderId === this.TakeProfitStopLimitOrderId) {
-                        this.StopLossCloseOrderFunc();
-                    }
-
-                    DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Order was closed! | Profit: ${BinanceOrdersCalculatingKit.RoundUp(PercentageProfit, 3)}%`, [ dls, tls ], true);
-                    tcs.SendMessage(`${this.Symbol}\nOrder was closed!\nProfit: ${BinanceOrdersCalculatingKit.RoundUp(PercentageProfit, 3)}%`);
+                    DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Order was closed! | Profit: ${BinanceOrdersCalculatingKit.RoundUp(PercentageProfit, 3)}%`, [dls, tls], true);
+                    tcs.SendMessage(`${this.Symbol}\nOrder was closed by ${event.orderId === this.TakeProfitStopLimitOrderId ? 'take profit order' : 'stop loss order'}!\nProfit: ${BinanceOrdersCalculatingKit.RoundUp(PercentageProfit, 3)}%`);
                     TradingPairsService.DeleteTPInTrade(this.Symbol);
+                    await this.client.futuresCancelAllOpenOrders({ symbol: this.Symbol });
                     this.Status = 'Closed';
-                    clean({ delay: 0, fastClose: true, keepClosed: false });
+                    clean({delay: 0, fastClose: true, keepClosed: false});
                 }
             })
         } catch (e) {
