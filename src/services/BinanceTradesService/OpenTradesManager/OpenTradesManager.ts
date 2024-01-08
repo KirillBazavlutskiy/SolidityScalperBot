@@ -5,7 +5,7 @@ import {BinanceOrdersCalculatingKit} from "../BinanceOrdersCalculatingKit/Binanc
 import {LimitType} from "../../SolidityFinderService/SolidityFinderModels";
 import DocumentLogService from "../../DocumentLogService/DocumentLogService";
 import {FontColor} from "../../FontStyleObjects";
-import {TradeStatus, UpdateLastPriceOutput} from "./OpenTradesManagerModels";
+import {TradeStatus} from "./OpenTradesManagerModels";
 import {TradingOptionsModel} from "../../OptionsManager/OptionsModel";
 import TradingPairsService from "../../TradingPairsListService/TradingPairsService";
 
@@ -25,17 +25,19 @@ export class OpenTradesManager {
 
     private TradeStopOptions: TradingOptionsModel;
 
-    private CurrentProfit: number;
     private MaxProfit: number;
     private MaxProfitPrice: number;
 
     private MarketOrderId: number;
-    private StopLossStopLimitOrderId: number;
 
+    private StopLossCloseOrderFunc: () => Promise<void>;
+    private StopLossStopLimitOrderId: number;
+    private StopLossPrice: number;
+
+    private TakeProfitCloseOrderFunc: () => Promise<void>;
+    private TakeProfitActive: boolean = false;
     private TakeProfitPrice: number;
     private TakeProfitStopLimitOrderId: number;
-
-    private StopLossPrice: number;
 
     private Status: TradeStatus;
 
@@ -46,6 +48,7 @@ export class OpenTradesManager {
         this.LimitType = this.TradeType === 'long' ? 'asks' : 'bids';
         this.TickSizeFutures = TickSizeFutures;
         this.TradeStopOptions = TradeStopOptions;
+        this.TakeProfitActive = this.TradeStopOptions.Stops.TakeProfit !== 0;
     }
 
     PlaceMarketOrder = async (LastPrice: number, OrderQuantityNominal: string, QuantityPrecisionFutures: number) => {
@@ -75,20 +78,22 @@ export class OpenTradesManager {
             this.MaxProfitPrice = this.OpenOrderPrice;
             this.MaxProfitPrice = this.OpenOrderPrice;
             this.MaxProfit = 0;
-            this.StopLossPrice = BinanceOrdersCalculatingKit.CalcPriceByRatio(this.MaxProfitPrice, this.TradeStopOptions.Stops.StopLoss.PercentValue, this.LimitType, this.TickSizeFutures);
+
+            this.StopLossPrice = BinanceOrdersCalculatingKit.CalcPriceByRatio(this.MaxProfitPrice, this.TradeStopOptions.Stops.StopLoss.PercentValue / 100, this.LimitType, this.TickSizeFutures);
+            if (this.TakeProfitActive) this.TakeProfitPrice = BinanceOrdersCalculatingKit.CalcPriceByRatio(this.OpenOrderPrice, this.TradeStopOptions.Stops.TakeProfit  / 100, this.LimitType === 'asks' ? 'bids' : 'asks', this.TickSizeFutures);
         } catch (e) {
             TradingPairsService.DeleteTPInTrade(this.Symbol);
             DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `Error with placing open order! Nominal quantity: ${parseFloat(this.OrderQuantityNominal)} | Open order price: ${LastPrice} | Quantity Precision: ${QuantityPrecisionFutures} | Calculated quantity: ${this.OrderQuantity}`, [dls, tls], true);
             tcs.SendMessage(`${this.Symbol}\nError with placing order!\n${e.message}\nNominal quantity: ${parseFloat(OrderQuantityNominal)}\nOpen order price: ${LastPrice}\nQuantity Precision: ${QuantityPrecisionFutures}\nCalculated quantity: ${this.OrderQuantity}`);
+            return;
         }
 
         try {
-            await this.PlaceStopLossLimit();
-            if (this.TradeStopOptions.Stops.TakeProfit !== 0) await this.PlaceTakeProfitLimit();
+            this.StopLossCloseOrderFunc = await this.PlaceStopLossLimit();
+            if (this.TakeProfitActive) this.TakeProfitCloseOrderFunc = await this.PlaceTakeProfitLimit();
         } catch (e) {
             await this.CloseOrder();
             TradingPairsService.DeleteTPInTrade(this.Symbol);
-            e.message = `Error with placing closing orders: ${e.message}`;
             DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `Error with placing closing orders! Nominal quantity: ${parseFloat(this.OrderQuantityNominal)} | Open order price: ${LastPrice} | Quantity Precision: ${QuantityPrecisionFutures} | Calculated quantity: ${this.OrderQuantity}`, [dls, tls], true);
             tcs.SendMessage(`${this.Symbol}\nError with placing closing orders!\n${e.message}\nNominal quantity: ${parseFloat(OrderQuantityNominal)}\nOpen order price: ${LastPrice}\nQuantity Precision: ${QuantityPrecisionFutures}\nCalculated quantity: ${this.OrderQuantity}`);
         }
@@ -96,6 +101,7 @@ export class OpenTradesManager {
         const orderMsg = `${this.Symbol} | Order Type: ${this.TradeType} | Nominal Quantity: ${parseFloat(this.OrderQuantity) * this.OpenOrderPrice} | LP: ${this.OpenOrderPrice} | SL: ${this.StopLossPrice}`;
         const orderMsgTg = `${this.Symbol}\nOrder Type: ${this.TradeType}\nNominal Quantity: ${parseFloat(this.OrderQuantity) * this.OpenOrderPrice}\nLP: ${this.OpenOrderPrice}\nSL: ${this.StopLossPrice}`;
 
+        this.Status = 'Active';
         tcs.SendMessage(orderMsgTg);
         DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], orderMsg, [dls, tls], true);
 
@@ -106,20 +112,32 @@ export class OpenTradesManager {
 
     WatchTheTrade = async () => {
         try {
-            const ws = await this.client.ws.futuresUser((event) => {
+            const clean = await this.client.ws.futuresUser((event) => {
+                if (this.Status === 'Closed') {
+                    tcs.SendMessage(`${this.Symbol}\nFutures Trades Websocket is still getting messages!`);
+                }
+
                 if (
                     event.eventType === 'ORDER_TRADE_UPDATE' &&
                     event.orderId === this.StopLossStopLimitOrderId &&
+                    event.orderId === this.TakeProfitStopLimitOrderId &&
                     event.orderStatus === 'FILLED'
                 ) {
                     this.CloseOrderPrice = parseFloat(event.priceLastTrade);
 
                     const PercentageProfit = this.ShowProfit();
 
+                    if (event.orderId === this.StopLossStopLimitOrderId && this.TakeProfitActive) {
+                        this.TakeProfitCloseOrderFunc();
+                    } else if (event.orderId === this.TakeProfitStopLimitOrderId) {
+                        this.StopLossCloseOrderFunc();
+                    }
+
                     DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Order was closed! | Profit: ${BinanceOrdersCalculatingKit.RoundUp(PercentageProfit, 3)}%`, [ dls, tls ], true);
                     tcs.SendMessage(`${this.Symbol}\nOrder was closed!\nProfit: ${BinanceOrdersCalculatingKit.RoundUp(PercentageProfit, 3)}%`);
                     TradingPairsService.DeleteTPInTrade(this.Symbol);
-                    ws();
+                    this.Status = 'Closed';
+                    clean({ delay: 0, fastClose: true, keepClosed: false });
                 }
             })
         } catch (e) {
@@ -127,16 +145,9 @@ export class OpenTradesManager {
             DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Error with user data websocket connection! ${e.message}`, [dls, tls], true);
             tcs.SendMessage(`${this.Symbol}\nError with user data websocket connection!\n${e.message}`);
         }
-
-        return {
-            TradeStatus: this.Status,
-            CurrentProfit: this.CurrentProfit,
-        };
     }
 
     private PlaceTakeProfitLimit = async () => {
-        this.TakeProfitPrice = BinanceOrdersCalculatingKit.CalcPriceByRatio(this.OpenOrderPrice, this.TradeStopOptions.Stops.TakeProfit, this.LimitType === 'asks' ? 'bids' : 'asks', this.TickSizeFutures);
-
         try {
             const { orderId } = await this.client.futuresOrder({
                 symbol: this.Symbol,
@@ -147,6 +158,13 @@ export class OpenTradesManager {
                 timeInForce: 'GTC',
             });
             this.TakeProfitStopLimitOrderId = orderId;
+
+            return async () => {
+                await this.client.futuresCancelOrder({
+                    symbol: this.Symbol,
+                    orderId: this.TakeProfitStopLimitOrderId,
+                });
+            }
         } catch (e) {
             throw e;
         }
@@ -174,8 +192,14 @@ export class OpenTradesManager {
                         quantity: this.OrderQuantity,
                     }
             );
-
             this.StopLossStopLimitOrderId = orderId;
+
+            return async () => {
+                await this.client.futuresCancelOrder({
+                    symbol: this.Symbol,
+                    orderId: this.StopLossStopLimitOrderId,
+                });
+            }
         } catch (e) {
             throw e;
         }
