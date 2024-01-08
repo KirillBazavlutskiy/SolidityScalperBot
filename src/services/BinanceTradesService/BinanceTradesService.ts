@@ -57,6 +57,7 @@ export class BinanceTradesService {
 
         let SolidityStatus: SolidityStatus = 'ready';
         let MaxSolidityQuantity = solidityModel.Solidity.Quantity;
+        let VolumeToDestroyTheSolidity: number = 0;
 
         let TradeStatus: TradeStatus = 'watching';
 
@@ -104,7 +105,7 @@ export class BinanceTradesService {
                             }
                         } else if ((UpToPriceSpot > 1 && solidityModel.Solidity.Type === 'asks') || (UpToPriceSpot < 1 && solidityModel.Solidity.Type === 'bids')) {
                             if (TradeQuantity >=  solidityModel.Solidity.Quantity) {
-                                DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} |Solidity on ${solidityModel.Solidity.Price} has been destroyed with ${TradeQuantity} Volume! | Last Price: ${SpotLastPrice}`, [dls], true);
+                                DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${solidityModel.Symbol} |Solidity on ${solidityModel.Solidity.Price} has been destroyed with ${TradeQuantity} Volume! | Last Price: ${SpotLastPrice}`, [dls], true);
                                 tcs.SendMessage(`${solidityModel.Symbol}\nSolidity on ${solidityModel.Solidity.Price} has been destroyed with ${TradeQuantity} Volume!\nLast Price: ${SpotLastPrice}`)
                                 await OpenTrade();
                             } else {
@@ -117,9 +118,13 @@ export class BinanceTradesService {
                         }
                         break;
                     case "reached":
+                        if (UpToPriceSpot === 1) VolumeToDestroyTheSolidity += TradeQuantity;
+
                         if ((SpotLastPrice >= OpenOrderPrice && solidityModel.Solidity.Type === 'asks') || (SpotLastPrice <= OpenOrderPrice && solidityModel.Solidity.Type === 'bids')) {
                             beep();
                             OpenTradeTime = new Date();
+                            DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${solidityModel.Symbol} | Solidity on ${solidityModel.Solidity.Price} has been destroyed! | Volume used to destroy the solidity: ${VolumeToDestroyTheSolidity} | Last Price: ${SpotLastPrice}\nOpening order...`, [dls], true);
+                            tcs.SendMessage(`${solidityModel.Symbol}\nSolidity on ${solidityModel.Solidity.Price} has been destroyed!\nVolume used to destroy the solidity: ${VolumeToDestroyTheSolidity}\nMax solidity was: ${MaxSolidityQuantity}\nLast price: ${SpotLastPrice}\nOpening order...`)
                             await OpenTrade();
                         } else if (BinanceOrdersCalculatingKit.CalcSimplifiedRatio(UpToPriceSpot, solidityModel.Solidity.Type) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
                             tcs.SendMessage(`${solidityModel.Symbol} is too far!\nUp To price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(UpToPriceSpot, solidityModel.Solidity.Type, 4)}`);

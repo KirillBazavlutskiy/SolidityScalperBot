@@ -141,7 +141,6 @@ export class OpenTradesManager {
                 }
             })
         } catch (e) {
-            // this.CloseOrder();
             DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Error with user data websocket connection! ${e.message}`, [dls, tls], true);
             tcs.SendMessage(`${this.Symbol}\nError with user data websocket connection!\n${e.message}`);
         }
