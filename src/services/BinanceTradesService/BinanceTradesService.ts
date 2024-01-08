@@ -157,7 +157,7 @@ export class BinanceTradesService {
                     if (SolidityStatus === 'removed') {
                         if (TradeStatus === 'reached') tcs.SendMessage(`${solidityModel.Symbol}\nSolidity on ${solidityModel.Solidity.Price}$ has been removed!\nThe quantity is ${SolidityBid[1]}\nMax quantity was ${MaxSolidityQuantity}`);
                         CloseTrade();
-                        DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} Solidity on ${solidityModel.Solidity.Price}$ has been removed. The quantity on ${SolidityBid[0]}$ is ${SolidityBid[1]} | Max quantity was ${MaxSolidityQuantity} | Up to price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(UpToPriceSpot, solidityModel.Solidity.Type, 3)}`, [ dls ], true);
+                        DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${solidityModel.Symbol} Solidity on ${solidityModel.Solidity.Price}$ has been removed. The quantity on ${SolidityBid[0]}$ is ${SolidityBid[1]} | Max quantity was ${MaxSolidityQuantity} | Up to price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(UpToPriceSpot, solidityModel.Solidity.Type, 6)}`, [ dls ], true);
                     } else if (SolidityStatus === 'ends') {
                         TradeStatus = 'inTrade';
                         WebSocketSpot.close();

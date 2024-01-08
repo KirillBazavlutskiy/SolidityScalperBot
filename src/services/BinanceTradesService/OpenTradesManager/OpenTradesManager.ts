@@ -104,9 +104,9 @@ export class OpenTradesManager {
         return this.OpenOrderPrice;
     }
 
-    WatchTheTrade = () => {
+    WatchTheTrade = async () => {
         try {
-            const ws = this.client.ws.futuresUser((event) => {
+            const ws = await this.client.ws.futuresUser((event) => {
                 if (
                     event.eventType === 'ORDER_TRADE_UPDATE' &&
                     event.orderId === this.StopLossStopLimitOrderId &&
@@ -119,6 +119,7 @@ export class OpenTradesManager {
                     DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Order was closed! | Profit: ${BinanceOrdersCalculatingKit.RoundUp(PercentageProfit, 3)}%`, [ dls, tls ], true);
                     tcs.SendMessage(`${this.Symbol}\nOrder was closed!\nProfit: ${BinanceOrdersCalculatingKit.RoundUp(PercentageProfit, 3)}%`);
                     TradingPairsService.DeleteTPInTrade(this.Symbol);
+                    ws();
                 }
             })
         } catch (e) {
