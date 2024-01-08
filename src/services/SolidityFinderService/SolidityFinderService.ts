@@ -1,8 +1,8 @@
-import {SolidityModel, SolidityTicket, LimitType} from "./SolidityFinderModels";
-import {Bid, Binance, DailyStatsResult} from "binance-api-node";
-import {dls} from "../../index";
+import {LimitType, SolidityModel, SolidityTicket} from "./SolidityFinderModels";
+import {Bid, Binance, CandleChartInterval, DailyStatsResult, OrderBook} from "binance-api-node";
 import DocumentLogService from "../DocumentLogService/DocumentLogService";
 import {FontColor} from "../FontStyleObjects";
+import {BinanceOrdersCalculatingKit} from "../BinanceTradesService/BinanceOrdersCalculatingKit/BinanceOrdersCalculatingKit";
 
 class SolidityFinderService {
     client: Binance;
@@ -10,56 +10,71 @@ class SolidityFinderService {
         this.client = client;
     }
 
-    CalcRatioChange = (ratio: number) => {
-        if (ratio > 1) {
-            return ratio - 1;
-        } else if (ratio < 1) {
-            return 1 - ratio;
-        }
+    CheckPriceAtTargetTime = async (symbol: string, targetPrice: number, durationMinutes: number) => {
+            try {
+                const candles = await this.client.candles({
+                    symbol,
+                    interval: CandleChartInterval.ONE_MINUTE,
+                    limit: durationMinutes,
+                });
+
+                let checkResult = false;
+
+                candles.forEach(candle => {
+                    const result = parseFloat(candle.low) < targetPrice && targetPrice < parseFloat(candle.high);
+                    if (result) checkResult = true;
+                });
+
+                return checkResult;
+            } catch (e) {
+                throw e;
+            }
     }
 
-    CalcSimplifiedRatio = (UpToPrice: number, LimitType: LimitType): number => {
-        if (LimitType === 'asks') {
-            return 1 - UpToPrice;
-        } else if (LimitType === 'bids') {
-            return UpToPrice - 1;
-        }
-    }
-
-    CalcRealRatio = (UpToPrice: number, LimitType: LimitType): number => {
-        if (LimitType === 'asks') {
-            return 1 - UpToPrice;
-        } else if (LimitType === 'bids') {
-            return UpToPrice + 1;
-        }
-    }
-
-    FetchAllSymbols = async (minVolume: number) => {
+    FetchAllSymbols = async (minVolume: number, topPriceChangePercent: number) => {
         try {
             const tickers = await this.client.dailyStats();
             const futuresSymbolsInfo = await this.client.futuresExchangeInfo();
             const futuresSymbols = futuresSymbolsInfo.symbols.map(symbolInfo => symbolInfo.symbol);
             const tickersFixed: DailyStatsResult[] = JSON.parse(JSON.stringify(tickers));
 
-            return tickersFixed
+            let filteredTickers = tickersFixed
                 .filter(tradingPair => !(tradingPair.symbol.includes('BTC') || tradingPair.symbol.includes('ETH') || tradingPair.symbol.includes('USDC') || tradingPair.symbol.includes('FTT')))
                 .filter(tradingPair => futuresSymbols.includes(tradingPair.symbol))
                 .filter(tradingPair => {
                     return tradingPair.symbol.substring(tradingPair.symbol.length - 4, tradingPair.symbol.length) === "USDT"
                 })
                 .filter(tradingPair => parseFloat(tradingPair.quoteVolume) > minVolume)
-                .map(tradingPair => tradingPair.symbol);
+                .sort((a, b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent))
+
+            if (topPriceChangePercent !== 0) {
+                filteredTickers.filter(ticker => parseFloat(ticker.priceChangePercent) > 0);
+                if (filteredTickers.length > topPriceChangePercent) filteredTickers = filteredTickers.slice(0, topPriceChangePercent);
+            }
+
+            return filteredTickers.map(tradingPair => tradingPair.symbol);
         } catch (e) {
             throw e;
         }
     };
 
-    FindSolidity = async (symbol: string, ratioAccess: number, upToPriceAccess: number): Promise<SolidityModel | null> => {
+    FindSolidity = async (symbol: string, orderBookParams?: OrderBook, lastPriceParams?: number, quoteVolumeParams?: number): Promise<SolidityModel | null> => {
         try {
-            const orderBook = await this.client.book({ symbol });
-            const ticker = await this.client.dailyStats({ symbol });
+            let orderBook: OrderBook;
+            let lastPrice: number;
+            let quoteVolume: number;
 
-            const price = "lastPrice" in ticker ? parseFloat(ticker.lastPrice) : 0;
+            if (orderBookParams && lastPriceParams && quoteVolumeParams) {
+                orderBook = orderBookParams;
+                lastPrice = lastPriceParams;
+                quoteVolume = quoteVolumeParams;
+            } else {
+                orderBook = await this.client.book({ symbol });
+                const ticker = await this.client.dailyStats({ symbol });
+
+                lastPrice = "lastPrice" in ticker ? parseFloat(ticker.lastPrice) : 0;
+                quoteVolume = "quoteVolume" in ticker ? parseFloat(ticker.quoteVolume) : 0;
+            }
 
             const calculateMaxValue = (orders: Bid[]) => {
                 return orders.reduce((acc, order) => {
@@ -77,7 +92,7 @@ class SolidityFinderService {
 
             const { sum: sumOrders, max: maxOrder, maxPrice: maxOrderPrice } = calculateMaxValue(bindNAsks);
 
-            const upToPrice = price / maxOrderPrice;
+            const upToPrice = lastPrice / maxOrderPrice;
 
             const solidityRatio = maxOrder / (sumOrders / 100);
 
@@ -87,12 +102,12 @@ class SolidityFinderService {
                 solidityType = 'asks';
             }
 
-            const solidityTicket: SolidityTicket = { Type: solidityType, Price: maxOrderPrice, Quantity: maxOrder, Ratio: solidityRatio, UpToPrice: upToPrice };
+            const solidityTicket: SolidityTicket = { Type: solidityType, Price: maxOrderPrice, Quantity: maxOrder, MaxQuantity: maxOrder, Ratio: solidityRatio, UpToPrice: upToPrice };
 
             return {
                 Symbol: symbol,
-                Price: price,
-                QuoteVolume: "quoteVolume" in ticker ? parseFloat(ticker.quoteVolume) : 0,
+                Price: lastPrice,
+                QuoteVolume: quoteVolume,
                 Solidity: solidityTicket
             }
         } catch (e) {
@@ -101,11 +116,11 @@ class SolidityFinderService {
         }
     };
 
-    FindAllSolidity = async (minVolume: number, ratioAccess: number, upToPriceAccess: number) => {
+    FindAllSolidity = async (minVolume: number, ratioAccess: number, upToPriceAccess: number, checkReachingPriceDuration: number, topPriceChangePercent: number) => {
         const symbolsWithSolidity: SolidityModel[] = [];
 
         try {
-            const symbols = await this.FetchAllSymbols(minVolume);
+            const symbols = await this.FetchAllSymbols(minVolume, topPriceChangePercent);
             const symbolsGroupLength = 30;
 
             for (let i = 0; i < symbols.length; i += symbolsGroupLength) {
@@ -114,9 +129,11 @@ class SolidityFinderService {
 
                 await Promise.all(
                     symbolsGroup.map(async (symbol) => {
-                        const solidityInfo = await this.FindSolidity(symbol, ratioAccess, upToPriceAccess);
-                        if (solidityInfo.Solidity.Ratio > ratioAccess &&
-                            this.CalcSimplifiedRatio(solidityInfo.Solidity.UpToPrice, solidityInfo.Solidity.Type) < upToPriceAccess) {
+                        const solidityInfo = await this.FindSolidity(symbol);
+                        if (
+                            solidityInfo.Solidity.Ratio > ratioAccess &&
+                            BinanceOrdersCalculatingKit.CalcSimplifiedRatio(solidityInfo.Solidity.UpToPrice, solidityInfo.Solidity.Type) < upToPriceAccess / 100
+                        ) {
                             symbolsWithSolidity.push(solidityInfo);
                         }
                     })
@@ -126,7 +143,22 @@ class SolidityFinderService {
             DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `Error with fetching symbols! ${e.message}`, [], true);
         }
 
-        return symbolsWithSolidity;
+        if (checkReachingPriceDuration !== 0) {
+            let filteredSymbolsWithSolidity: SolidityModel[] = [];
+
+            await Promise.all(
+                symbolsWithSolidity.map(async (symbolWithSolidity) => {
+                    const result = !(await this.CheckPriceAtTargetTime(symbolWithSolidity.Symbol, symbolWithSolidity.Solidity.Price, checkReachingPriceDuration));
+                    if (result) {
+                        filteredSymbolsWithSolidity.push(symbolWithSolidity);
+                    }
+                })
+            );
+
+            return filteredSymbolsWithSolidity;
+        } else {
+            return symbolsWithSolidity;
+        }
     };
 }
 
