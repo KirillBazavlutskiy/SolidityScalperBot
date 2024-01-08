@@ -76,27 +76,35 @@ export class TelegramControllerService {
         resize_keyboard: true,
         one_time_keyboard: false
     });
+    private CreateReplyGeneralOptionsButtons = (empty: boolean = false): InlineKeyboardMarkup => {
+        const Options = OptionsManager.GetOptions();
+        return ({
+            inline_keyboard: empty ? [] : [
+                [{ text: `ScreenerMode: ${Options.GeneralOptions.ScreenerMode}`, callback_data: 'ChangeScreenerMode' }],
+            ].filter(option => option[0].callback_data !== this.GetState())
+        })
+    }
+    private CreateReplySolidityFinderOptionsButtons = (empty: boolean = false): InlineKeyboardMarkup => {
+        const Options = OptionsManager.GetOptions();
+        return ({
+            inline_keyboard: empty ? [] : [
+                [{ text: `RatioAccess: ${Options.SolidityFinderOptions.RatioAccess}`, callback_data: 'ChangeRatioAccess' }],
+                [{ text: `PriceUninterruptedDuration: ${Options.SolidityFinderOptions.PriceUninterruptedDuration}`, callback_data: 'ChangePriceUninterruptedDuration' }],
+                [{ text: `TopGainersCount: ${Options.SolidityFinderOptions.TopGainersCount}`, callback_data: 'ChangeTopGainersCount' }]
+            ].filter(option => option[0].callback_data !== this.GetState())
+        })
+    }
 
-    private CreateReplyGeneralOptionsButtons = (empty: boolean = false): InlineKeyboardMarkup => ({
-        inline_keyboard: empty ? [] : [
-            [{ text: 'ScreenerMode', callback_data: 'ChangeScreenerMode' }],
-        ].filter(option => option[0].callback_data !== this.GetState())
-    })
-    private CreateReplySolidityFinderOptionsButtons = (empty: boolean = false): InlineKeyboardMarkup => ({
-        inline_keyboard: empty ? [] : [
-            [{ text: 'RatioAccess', callback_data: 'ChangeRatioAccess' }],
-            [{ text: 'PriceUninterruptedDuration', callback_data: 'ChangePriceUninterruptedDuration' }],
-            [{ text: 'TopGainersCount', callback_data: 'ChangeTopGainersCount' }]
-        ].filter(option => option[0].callback_data !== this.GetState())
-    })
-
-    private CreateReplyTradeOptionsButtons = (empty: boolean = false): InlineKeyboardMarkup => ({
-        inline_keyboard: empty ? [] : [
-            [{ text: 'StopLossPercentValue', callback_data: 'ChangeStopLossPercentValue' }],
-            [{ text: 'StopLossTrailingValue', callback_data: 'ChangeStopLossTrailingValue' }],
-            [{ text: 'TakeProfitPercentValue', callback_data: 'ChangeTakeProfitPercentValue' }]
-        ].filter(option => option[0].callback_data !== this.GetState())
-    });
+    private CreateReplyTradeOptionsButtons = (empty: boolean = false): InlineKeyboardMarkup => {
+        const Options = OptionsManager.GetOptions();
+        return ({
+            inline_keyboard: empty ? [] : [
+                [{ text: `StopLossPercentValue: ${Options.TradingOptions.Stops.StopLoss.PercentValue}`, callback_data: 'ChangeStopLossPercentValue' }],
+                [{ text: `StopLossTrailingValue: ${Options.TradingOptions.Stops.StopLoss.IsTrailing}`, callback_data: 'ChangeStopLossTrailingValue' }],
+                [{ text: `TakeProfitPercentValue: ${Options.TradingOptions.Stops.TakeProfit}`, callback_data: 'ChangeTakeProfitPercentValue' }]
+            ].filter(option => option[0].callback_data !== this.GetState())
+        })
+    }
 
     private onStart = (msg: Message) => {
         const chatId = msg.chat.id;
@@ -163,7 +171,7 @@ export class TelegramControllerService {
                             OldOptions.GeneralOptions.ScreenerMode = data === '1';
                             OptionsManager.ChangeOptions(OldOptions);
                             const msg = `"ScreenerMode" value has been changed to ${data === '1'}`;
-                            this.Bot.sendMessage(chatId, msg, { reply_markup: this.CreateReplySolidityFinderOptionsButtons(true) });
+                            this.Bot.sendMessage(chatId, msg, { reply_markup: this.CreateReplyGeneralOptionsButtons(true) });
                             this.SendMessage(msg, chatId);
                             break;
                         }
