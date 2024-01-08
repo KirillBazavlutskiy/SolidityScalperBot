@@ -11,7 +11,15 @@ export class OptionsManager {
 
         try {
             const OptionsJson = fs.readFileSync(this.OptionsPath, 'utf-8');
-            return JSON.parse(OptionsJson);
+            const Options: OptionsModel = JSON.parse(OptionsJson);
+            if (Options satisfies OptionsModel) {
+                return Options;
+            } else {
+                DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Error with importing options! Trying to recreate files...`);
+                fs.writeFileSync(this.OptionsPath, JSON.stringify(DefaultOptionsValues, null, 2));
+                const OptionsJson = fs.readFileSync(this.OptionsPath, 'utf-8');
+                return JSON.parse(OptionsJson);
+            }
         } catch (e) {
             DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Error with importing options! Trying to recreate files...`);
             this.CreateOptionsFiles();
