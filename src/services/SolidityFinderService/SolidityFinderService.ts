@@ -102,7 +102,7 @@ class SolidityFinderService {
                 solidityType = 'asks';
             }
 
-            const solidityTicket: SolidityTicket = { Type: solidityType, Price: maxOrderPrice, Quantity: maxOrder, Ratio: solidityRatio, UpToPrice: upToPrice };
+            const solidityTicket: SolidityTicket = { Type: solidityType, Price: maxOrderPrice, Quantity: maxOrder, MaxQuantity: maxOrder, Ratio: solidityRatio, UpToPrice: upToPrice };
 
             return {
                 Symbol: symbol,
