@@ -1,4 +1,4 @@
-export interface GeneraOptions {
+export interface GeneraOptionsModel {
     ScreenerMode: boolean;
 }
 
@@ -8,6 +8,10 @@ export interface SolidityFinderOptionsModel {
     UpToPriceAccess: number;
     PriceUninterruptedDuration: number;
     TopGainersCount: number;
+}
+
+export interface SolidityWatchingOptionsModel {
+    SolidityRemainderForTrade: number;
 }
 
 export interface TradingOptionsModel {
@@ -24,8 +28,9 @@ export interface TradingOptionsModel {
 }
 
 export interface OptionsModel {
-    GeneralOptions: GeneraOptions;
+    GeneralOptions: GeneraOptionsModel;
     SolidityFinderOptions: SolidityFinderOptionsModel;
+    SolidityWatchingOptions: SolidityWatchingOptionsModel;
     TradingOptions: TradingOptionsModel;
 }
 
@@ -39,6 +44,9 @@ export const DefaultOptionsValues: OptionsModel = {
         UpToPriceAccess: 1.2,
         PriceUninterruptedDuration: 15,
         TopGainersCount: 20,
+    },
+    SolidityWatchingOptions: {
+        SolidityRemainderForTrade: 0.4
     },
     TradingOptions: {
         Stops: {

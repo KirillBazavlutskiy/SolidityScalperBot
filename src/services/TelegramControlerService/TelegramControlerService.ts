@@ -165,17 +165,6 @@ export class TelegramControllerService {
 
                 default:
                     switch (this.GetState()) {
-                        case 'ChangeScreenerMode': {
-                            this.SetState('');
-                            const OldOptions = OptionsManager.GetOptions();
-                            OldOptions.GeneralOptions.ScreenerMode = data === '1';
-                            OptionsManager.ChangeOptions(OldOptions);
-                            const msg = `"ScreenerMode" value has been changed to ${data === '1'}`;
-                            this.Bot.sendMessage(chatId, msg, { reply_markup: this.CreateReplyGeneralOptionsButtons(true) });
-                            this.SendMessage(msg, chatId);
-                            break;
-                        }
-
                         case 'ChangeRatioAccess': {
                             this.SetState('');
                             const OldOptions = OptionsManager.GetOptions();
@@ -258,36 +247,53 @@ export class TelegramControllerService {
         const Options = OptionsManager.GetOptions();
 
         switch (data) {
-            case 'ChangeScreenerMode':
-                this.SetState(data);
-                this.Bot.sendMessage(chatId, `Type a new value for "ScreenerMode":\nOld value: ${Options.GeneralOptions.ScreenerMode}\nTips: Access for trades, only for watching\nOr choose other option:`, { reply_markup: this.CreateReplySolidityFinderOptionsButtons() });
+            case 'ChangeScreenerMode': {
+                this.SetState('');
+                const OldOptions = OptionsManager.GetOptions();
+                OldOptions.GeneralOptions.ScreenerMode = !OldOptions.GeneralOptions.ScreenerMode;
+                OptionsManager.ChangeOptions(OldOptions);
+                const msg = `"ScreenerMode" value has been changed to ${OldOptions.GeneralOptions.ScreenerMode}`;
+                this.Bot.sendMessage(chatId, msg, { reply_markup: this.CreateReplyGeneralOptionsButtons(true) });
+                this.SendMessage(msg, chatId);
                 break;
+            }
 
-            case 'ChangeRatioAccess':
+            case 'ChangeRatioAccess': {
                 this.SetState(data);
                 this.Bot.sendMessage(chatId, `Type a new value for "RatioAccess":\nOld value: ${Options.SolidityFinderOptions.RatioAccess}\nTips: 20 is normal\nOr choose other option:`, { reply_markup: this.CreateReplySolidityFinderOptionsButtons() });
                 break;
-            case 'ChangePriceUninterruptedDuration':
+            }
+            case 'ChangePriceUninterruptedDuration': {
                 this.SetState(data);
                 this.Bot.sendMessage(chatId, `Type a new value for "PriceUninterruptedDuration":\nOld value: ${Options.SolidityFinderOptions.TopGainersCount}\nTips: 20 is normal\nOr choose other option:`, { reply_markup: this.CreateReplySolidityFinderOptionsButtons() });
                 break;
-            case 'ChangeTopGainersCount':
+            }
+            case 'ChangeTopGainersCount': {
                 this.SetState(data);
                 this.Bot.sendMessage(chatId, `Type a new value for "TopGainersCount":\nOld value: ${Options.SolidityFinderOptions.PriceUninterruptedDuration}\nTips: 1 means 1 minute\nOr choose other option:`, { reply_markup: this.CreateReplySolidityFinderOptionsButtons() });
                 break;
+            }
 
-            case 'ChangeStopLossPercentValue':
+            case 'ChangeStopLossPercentValue': {
                 this.SetState(data);
                 this.Bot.sendMessage(chatId, `Type a new value for "StopLossPercentValue":\nOld value: ${Options.TradingOptions.Stops.StopLoss.PercentValue}\nTips: 1 is 1%\nOr choose other option:`, { reply_markup: this.CreateReplyTradeOptionsButtons() });
                 break;
-            case 'ChangeStopLossTrailingValue':
-                this.SetState(data);
-                this.Bot.sendMessage(chatId, `Type a new condition "StopLossTrailingValue":\nOld value: ${Options.TradingOptions.Stops.StopLoss.IsTrailing}\nTips: 0(false) or 1(true)\nOr choose other option:`, { reply_markup: this.CreateReplyTradeOptionsButtons() });
+            }
+            case 'ChangeStopLossTrailingValue': {
+                this.SetState('');
+                const OldOptions = OptionsManager.GetOptions();
+                OldOptions.TradingOptions.Stops.StopLoss.IsTrailing = !OldOptions.TradingOptions.Stops.StopLoss.IsTrailing;
+                OptionsManager.ChangeOptions(OldOptions);
+                const msg = `"StopLossTrailingValue" has been changed to ${OldOptions.TradingOptions.Stops.StopLoss.IsTrailing }`;
+                this.Bot.sendMessage(chatId, msg, { reply_markup: this.CreateReplyGeneralOptionsButtons(true) });
+                this.SendMessage(msg, chatId);
                 break;
-            case 'ChangeTakeProfitPercentValue':
+            }
+            case 'ChangeTakeProfitPercentValue': {
                 this.SetState(data);
                 this.Bot.sendMessage(chatId, `Type a new value for "TakeProfitPercentValue":\nOld value: ${Options.TradingOptions.Stops.TakeProfit}\nTips: 1 is 1% | 0 means disabled\nOr choose other option:`, { reply_markup: this.CreateReplyTradeOptionsButtons() });
                 break;
+            }
         }
     }
 

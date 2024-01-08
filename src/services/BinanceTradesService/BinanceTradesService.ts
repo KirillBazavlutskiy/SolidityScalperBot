@@ -20,9 +20,9 @@ import beep from 'beepbeep';
 import {BinanceOrdersCalculatingKit} from "./BinanceOrdersCalculatingKit/BinanceOrdersCalculatingKit";
 import {OpenTradesManager} from "./OpenTradesManager/OpenTradesManager";
 import {
-    GeneraOptions,
+    GeneraOptionsModel,
     OptionsModel,
-    SolidityFinderOptionsModel,
+    SolidityFinderOptionsModel, SolidityWatchingOptionsModel,
     TradingOptionsModel
 } from "../OptionsManager/OptionsModel";
 
@@ -36,6 +36,7 @@ export class BinanceTradesService {
     TradeSymbol = async (solidityModel: SolidityModel, Options: OptionsModel): Promise<void | 0> => {
         const GeneralOptions = Options.GeneralOptions;
         const SolidityFinderOptions = Options.SolidityFinderOptions;
+        const SolidityWatchingOptions = Options.SolidityWatchingOptions;
         const TradingOptions = Options.TradingOptions;
 
         let TradingPairWithSolidity = solidityModel;
@@ -133,7 +134,7 @@ export class BinanceTradesService {
                             beep();
                             OpenTradeTime = new Date();
                             DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${TradingPairWithSolidity.Symbol} | Solidity on ${TradingPairWithSolidity.Solidity.Price} has been destroyed! | Volume used to destroy the solidity: ${VolumeToDestroyTheSolidity} | Last Price: ${SpotLastPrice}\nOpening order...`, [dls], true);
-                            tcs.SendMessage(`${TradingPairWithSolidity.Symbol}\nSolidity on ${TradingPairWithSolidity.Solidity.Price} has been destroyed!\nVolume used to destroy the solidity: ${VolumeToDestroyTheSolidity}\nMax solidity was: ${TradingPairWithSolidity.Solidity.MaxQuantity}\nLast price: ${SpotLastPrice}\nOpening order...`)
+                            tcs.SendMessage(`${TradingPairWithSolidity.Symbol}\nSolidity on ${TradingPairWithSolidity.Solidity.Price} has been destroyed!\nVolume used to destroy the solidity: ${VolumeToDestroyTheSolidity}\nLast solidity quantity was: ${TradingPairWithSolidity.Solidity.Quantity}\nLast price: ${SpotLastPrice}\nOpening order...`)
                             await OpenTrade();
                         } else if (BinanceOrdersCalculatingKit.CalcSimplifiedRatio(UpToPriceSpot, TradingPairWithSolidity.Solidity.Type) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
                             tcs.SendMessage(`${TradingPairWithSolidity.Symbol} is too far!\nUp To price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(UpToPriceSpot, TradingPairWithSolidity.Solidity.Type, 4)}`);
@@ -165,7 +166,17 @@ export class BinanceTradesService {
                 if (solidityChangeIndex !== -1 && SolidityStatus !== 'removed' && TradeStatus !== 'inTrade') {
                     const SolidityBid = SoliditySideBids[solidityChangeIndex];
 
-                    SolidityStatus = await this.CheckSolidity(TradingPairWithSolidity, SolidityBid, UpToPriceSpot, TradeStatus, TradingPairWithSolidity.Solidity.MaxQuantity, SolidityFinderOptions, OrderBookSpot, SpotLastPrice, TradingPairWithSolidity.QuoteVolume);
+                    SolidityStatus = await this.CheckSolidity(
+                        TradingPairWithSolidity, SolidityBid,
+                        UpToPriceSpot,
+                        TradeStatus,
+                        TradingPairWithSolidity.Solidity.MaxQuantity,
+                        SolidityFinderOptions,
+                        SolidityWatchingOptions,
+                        OrderBookSpot,
+                        SpotLastPrice,
+                        TradingPairWithSolidity.QuoteVolume
+                    );
                     if (parseFloat(SolidityBid[1]) > TradingPairWithSolidity.Solidity.MaxQuantity) TradingPairWithSolidity.Solidity.MaxQuantity = parseFloat(SolidityBid[1]);
 
                     TradingPairsService.ChangeTPInTrade(TradingPairWithSolidity);
@@ -174,7 +185,7 @@ export class BinanceTradesService {
                         CloseWatching();
                         DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${TradingPairWithSolidity.Symbol} Solidity on ${TradingPairWithSolidity.Solidity.Price}$ has been removed. The quantity on ${SolidityBid[0]}$ is ${SolidityBid[1]} | Max quantity was ${TradingPairWithSolidity.Solidity.MaxQuantity} | Up to price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(UpToPriceSpot, TradingPairWithSolidity.Solidity.Type, 6)}`, [ dls ], true);
                     } else if (SolidityStatus === 'ends') {
-                        tcs.SendMessage(`${TradingPairWithSolidity.Symbol}\nSolidity on ${TradingPairWithSolidity.Solidity.Price}$ is almost ends\nThe quantity on ${SolidityBid[0]}$ is ${SolidityBid[1]}\nOpening Order...`);
+                        tcs.SendMessage(`${TradingPairWithSolidity.Symbol}\nSolidity on ${TradingPairWithSolidity.Solidity.Price}$ is almost ends\n${BinanceOrdersCalculatingKit.RoundUp(parseFloat(SolidityBid[1]) / TradingPairWithSolidity.Solidity.MaxQuantity * 100, 0)}% of maximum quantity\nOpening Order...`);
                         DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${TradingPairWithSolidity.Symbol} Solidity on ${TradingPairWithSolidity.Solidity.Price}$ is almost ends. The quantity on ${SolidityBid[0]} is ${SolidityBid[1]}!`, [ dls ], true);
                         await OpenTrade();
                     } else if (SolidityStatus === 'moved') {
@@ -264,6 +275,7 @@ export class BinanceTradesService {
             TradeStatus: TradeStatus,
             MaxSolidityQuantity: number,
             SolidityFinderOptions: SolidityFinderOptionsModel,
+            SolidityWatchingOptions: SolidityWatchingOptionsModel,
             OrderBook: OrderBook,
             LastPrice: number,
             QuoteVolume: number,
@@ -278,7 +290,7 @@ export class BinanceTradesService {
             if (UpToPriceSpot === 1) {
                 solidityModel.Solidity.Quantity = parseFloat(SolidityBid[1]);
 
-                if (parseFloat(SolidityBid[1]) / MaxSolidityQuantity < 0.3) {
+                if (parseFloat(SolidityBid[1]) / MaxSolidityQuantity < SolidityWatchingOptions.SolidityRemainderForTrade) {
                     SolidityStatus = 'ends';
                 } else {
                     SolidityStatus = 'ready';
