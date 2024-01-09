@@ -12,6 +12,11 @@ export interface SolidityFinderOptionsModel {
 
 export interface SolidityWatchingOptionsModel {
     SolidityRemainderForTrade: number;
+    AllowSharpBreakout: boolean;
+    AcceptablePriceChange: {
+        Period: number,
+        PriceChange: number;
+    },
 }
 
 export interface TradingOptionsModel {
@@ -46,7 +51,12 @@ export const DefaultOptionsValues: OptionsModel = {
         TopGainersCount: 20,
     },
     SolidityWatchingOptions: {
-        SolidityRemainderForTrade: 0.4
+        SolidityRemainderForTrade: 0.45,
+        AllowSharpBreakout: false,
+        AcceptablePriceChange: {
+            Period: 5,
+            PriceChange: 2
+        }
     },
     TradingOptions: {
         Stops: {
