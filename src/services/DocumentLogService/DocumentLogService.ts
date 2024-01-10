@@ -1,4 +1,5 @@
 import * as fs from "fs";
+import {tcs} from "../../index";
 
 export class DocumentLogger {
     documentPath: string;
@@ -39,10 +40,14 @@ export default class DocumentLogService {
         return strDate;
     }
 
-     static MadeTheNewLog = (style: string[], newLine: string, writeInDocuments: DocumentLogger[] = [], showInConsole: boolean = false) => {
+     static MadeTheNewLog = (style: string[], newLine: string, writeInDocuments: DocumentLogger[] = [], showInConsole: boolean = false, sendToTelegram: boolean = false) => {
         const newLogLine = `${this.ShowTime()} | ${newLine}`;
 
         if (showInConsole) console.log(style.join('%s'), `${newLogLine}`);
+        if (sendToTelegram) {
+            const TelegramText = newLine.replace(/ \| /g, '\n');
+            tcs.SendMessage(TelegramText);
+        }
         writeInDocuments.forEach(document => document.WriteLine(newLogLine))
     }
 }

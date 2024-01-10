@@ -55,8 +55,13 @@ class SolidityFinderService {
 
     FetchAllSymbols = async (minVolume: number, topPriceChangePercent: number) => {
         try {
-            const tickers = await this.client.dailyStats();
-            const futuresSymbolsInfo = await this.client.futuresExchangeInfo();
+            const tickers = await this.client.dailyStats().catch(error => {
+                throw new Error('Failed to fetch daily stats');
+            });
+
+            const futuresSymbolsInfo = await this.client.futuresExchangeInfo().catch(error => {
+                throw new Error('Failed to fetch futures exchange info');
+            });
             const futuresSymbols = futuresSymbolsInfo.symbols.map(symbolInfo => symbolInfo.symbol);
             const tickersFixed: DailyStatsResult[] = JSON.parse(JSON.stringify(tickers));
 
@@ -133,12 +138,12 @@ class SolidityFinderService {
                 Solidity: solidityTicket
             }
         } catch (e) {
-            DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error with ${symbol}! ${e.message}`);
+            DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error with ${symbol}! ${e.message}`, [], true, false);
             return null;
         }
     };
 
-    FindAllSolidity = async (minVolume: number, ratioAccess: number, upToPriceAccess: number, checkReachingPriceDuration: number, topPriceChangePercent: number) => {
+    FindAllSolidity = async (minVolume: number, ratioAccess: number, upToPriceAccess: number, checkReachingPriceDuration: number, topPriceChangePercent: number):  Promise<SolidityModel[]> => {
         let symbolsWithSolidity: SolidityModel[] = [];
 
         try {
@@ -177,10 +182,10 @@ class SolidityFinderService {
                 symbolsWithSolidity = filteredSymbolsWithSolidity;
             }
 
-            return symbolsWithSolidity;
         } catch (e) {
-            DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `Error with fetching symbols! ${e.message}`, [], true);
+            DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `${e.message}`, [], true);
         }
+        return symbolsWithSolidity;
     };
 }
 
