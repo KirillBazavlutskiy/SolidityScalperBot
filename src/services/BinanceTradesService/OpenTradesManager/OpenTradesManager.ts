@@ -83,7 +83,7 @@ export class OpenTradesManager {
             if (this.TakeProfitActive) this.TakeProfitPrice = BinanceOrdersCalculatingKit.CalcPriceByRatio(this.OpenOrderPrice, this.TradeStopOptions.Stops.TakeProfit  / 100, this.LimitType === 'asks' ? 'bids' : 'asks', this.TickSizeFutures);
         } catch (e) {
             TradingPairsService.DeleteTPInTrade(this.Symbol);
-            DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `Error with placing open order! Nominal quantity: ${parseFloat(this.OrderQuantityNominal)} | Open order price: ${LastPrice} | Quantity Precision: ${QuantityPrecisionFutures} | Calculated quantity: ${this.OrderQuantity}`, [dls, tls], true);
+            DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Error with placing open order! Nominal quantity: ${parseFloat(this.OrderQuantityNominal)} | Open order price: ${LastPrice} | Quantity Precision: ${QuantityPrecisionFutures} | Calculated quantity: ${this.OrderQuantity}`, [dls, tls], true);
             tcs.SendMessage(`${this.Symbol}\nError with placing order!\n${e.message}\nNominal quantity: ${parseFloat(OrderQuantityNominal)}\nOpen order price: ${LastPrice}\nQuantity Precision: ${QuantityPrecisionFutures}\nCalculated quantity: ${this.OrderQuantity}`);
             return;
         }
@@ -113,10 +113,6 @@ export class OpenTradesManager {
     WatchTheTrade = async () => {
         try {
             const clean = await this.client.ws.futuresUser(async (event) => {
-                if (this.Status === 'Closed') {
-                    tcs.SendMessage(`${this.Symbol}\nFutures Trades Websocket is still getting messages!`);
-                }
-
                 if (
                     event.eventType === 'ORDER_TRADE_UPDATE' &&
                     (event.orderId === this.StopLossStopLimitOrderId || event.orderId === this.TakeProfitStopLimitOrderId) &&

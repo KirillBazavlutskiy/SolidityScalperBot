@@ -102,7 +102,7 @@ export class BinanceTradesService {
                     case "watching":
                         if (UpToPriceSpot === 1) {
                             const CheckForSharpBreakoutResult = await CheckForSharpBreakout();
-                            if (SolidityStatus === 'ready' && CheckForSharpBreakoutResult) {
+                            if (SolidityStatus === 'ready' && CheckForSharpBreakoutResult.access) {
                                 TradeStatus = 'reached';
 
                                 const processEndData = new Date();
@@ -120,10 +120,11 @@ export class BinanceTradesService {
                             }
                         } else if ((UpToPriceSpot > 1 && TradingPairWithSolidity.Solidity.Type === 'asks') || (UpToPriceSpot < 1 && TradingPairWithSolidity.Solidity.Type === 'bids')) {
                             if (TradeQuantity >=  TradingPairWithSolidity.Solidity.Quantity && SolidityWatchingOptions.AllowSharpBreakout) {
-                                DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${TradingPairWithSolidity.Symbol} |Solidity on ${TradingPairWithSolidity.Solidity.Price} has been destroyed with ${TradeQuantity} Volume! | Last Price: ${SpotLastPrice}`, [dls], true);
+                                DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${TradingPairWithSolidity.Symbol} | Solidity on ${TradingPairWithSolidity.Solidity.Price} has been destroyed with ${TradeQuantity} Volume! | Last Price: ${SpotLastPrice}`, [dls], true);
                                 tcs.SendMessage(`${TradingPairWithSolidity.Symbol}\nSolidity on ${TradingPairWithSolidity.Solidity.Price} has been destroyed with ${TradeQuantity} Volume!\nLast Price: ${SpotLastPrice}`);
                                 await OpenTrade();
                             } else {
+                                // tcs.SendMessage(`${TradingPairWithSolidity.Symbol}\nSolidity was destroyed!\nTrading is not allowed!`)
                                 DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${TradingPairWithSolidity.Symbol} Solidity on ${TradingPairWithSolidity.Solidity.Price} has been destroyed! | Up to price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(UpToPriceSpot, TradingPairWithSolidity.Solidity.Type, 4)} | Last Price: ${SpotLastPrice}`, [dls], true);
                                 CloseWatching();
                             }
@@ -158,17 +159,18 @@ export class BinanceTradesService {
             try {
                 BinanceTradesService.UpdateBookDepth(OrderBookSpot, BookDepth);
 
-                const SoliditySideBids: Bid[] = BookDepth[TradingPairWithSolidity.Solidity.Type === 'asks' ? 'asks' : 'bids'];
+                const SoliditySideBids: Bid[] = TradingPairWithSolidity.Solidity.Type === 'asks' ? BookDepth.asks : BookDepth.bids;
 
                 const solidityChangeIndex = SoliditySideBids.findIndex(Bid => parseFloat(Bid.price) == TradingPairWithSolidity.Solidity.Price);
 
                 if (solidityChangeIndex !== -1 && SolidityStatus !== 'removed' && TradeStatus !== 'inTrade') {
                     const SolidityBid = SoliditySideBids[solidityChangeIndex];
-                    const SolidityQuantity = parseFloat(SolidityBid[1]);
-                    const SolidityPrice = parseFloat(SolidityBid[0]);
+                    const SolidityQuantity = parseFloat(SolidityBid.quantity);
+                    const SolidityPrice = parseFloat(SolidityBid.price);
 
                     SolidityStatus = await this.CheckSolidity(
-                        TradingPairWithSolidity, SolidityBid,
+                        TradingPairWithSolidity, 
+                        SolidityBid,
                         UpToPriceSpot,
                         TradeStatus,
                         TradingPairWithSolidity.Solidity.MaxQuantity,
@@ -236,7 +238,7 @@ export class BinanceTradesService {
         });
 
         const CleanSpotBookDepthWebsocket = this.client.ws.partialDepth(
-            { symbol: `${TradingPairWithSolidity.Symbol}@100ms`, level: 20 },
+            { symbol: TradingPairWithSolidity.Symbol, level: 20 },
                 depth => {
             MessagesSpotUpdatesQueue.push({ Message: depth, Type: 'BookDepthUpdate' });
             if (!isProcessingSpotUpdate) {
