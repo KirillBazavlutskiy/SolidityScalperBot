@@ -100,7 +100,7 @@ export class OpenTradesManager {
 
         this.Status = 'Active';
         DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Order Type: ${this.TradeType} | Nominal Quantity: ${parseFloat(this.OrderQuantity) * this.OpenOrderPrice} | LP: ${this.OpenOrderPrice}${this.TakeProfitActive ? ` | TP: ${this.TakeProfitPrice}` : ''} | SL: ${this.StopLossPrice}`,
-            [dls, tls], true);
+            [dls, tls], true, true);
 
         this.WatchTheTrade();
 
@@ -119,14 +119,42 @@ export class OpenTradesManager {
 
                     const PercentageProfit = this.ShowProfit();
 
-                    DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Order was by ${event.orderId === this.TakeProfitStopLimitOrderId ? 'take profit order' : 'stop loss order'}! | Profit: ${BinanceOrdersCalculatingKit.RoundUp(PercentageProfit, 3)}%`,
+                    DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Order was closed by ${event.orderId === this.TakeProfitStopLimitOrderId ? 'take profit order' : 'stop loss order'}! | Profit: ${BinanceOrdersCalculatingKit.RoundUp(PercentageProfit, 3)}%`,
                         [dls, tls], true, true);
                     TradingPairsService.DeleteTPInTrade(this.Symbol);
                     await this.client.futuresCancelAllOpenOrders({ symbol: this.Symbol });
                     this.Status = 'Closed';
-                    clean({delay: 0, fastClose: false, keepClosed: false});
+                    clearInterval(cleanReq);
+                    clean({delay: 200, fastClose: false, keepClosed: false});
                 }
             })
+
+            const cleanReq = setInterval(async () => {
+                const stopLossOrderStatus = await this.client.futuresGetOrder({ symbol: this.Symbol, orderId: this.StopLossStopLimitOrderId });
+                const takeProfitOrderStatus = await this.client.futuresGetOrder({ symbol: this.Symbol, orderId: this.TakeProfitStopLimitOrderId });
+
+                if (stopLossOrderStatus.status === 'FILLED') {
+                    this.CloseOrderPrice = parseFloat(stopLossOrderStatus.cumQuote);
+                    const PercentageProfit = this.ShowProfit();
+                    DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Order was closed by stop loss order! | Profit: ${BinanceOrdersCalculatingKit.RoundUp(PercentageProfit, 3)}%`,
+                        [dls, tls], true, true);
+                    TradingPairsService.DeleteTPInTrade(this.Symbol);
+                    await this.client.futuresCancelAllOpenOrders({ symbol: this.Symbol });
+                    this.Status = 'Closed';
+                    clearInterval(cleanReq);
+                    clean({delay: 200, fastClose: false, keepClosed: false});
+                } else if (takeProfitOrderStatus.status === 'FILLED') {
+                    this.CloseOrderPrice = parseFloat(takeProfitOrderStatus.cumQuote);
+                    const PercentageProfit = this.ShowProfit();
+                    DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Order was closed by take profit order! | Profit: ${BinanceOrdersCalculatingKit.RoundUp(PercentageProfit, 3)}%`,
+                        [dls, tls], true, true);
+                    TradingPairsService.DeleteTPInTrade(this.Symbol);
+                    await this.client.futuresCancelAllOpenOrders({ symbol: this.Symbol });
+                    this.Status = 'Closed';
+                    clearInterval(cleanReq);
+                    clean({delay: 200, fastClose: false, keepClosed: false});
+                }
+            }, 2000);
         } catch (e) {
             DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Error with user data websocket connection! ${e.message}`,
                 [dls, tls], true, true);

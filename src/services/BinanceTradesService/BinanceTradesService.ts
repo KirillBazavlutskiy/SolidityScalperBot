@@ -155,6 +155,7 @@ export class BinanceTradesService {
                                 } else {
                                     DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${TradingPairWithSolidity.Symbol} | The price approached too quickly! | Price change for ${SolidityWatchingOptions.AcceptablePriceChange.Period}m: ${CheckForSharpBreakoutResult.priceChange}%`,
                                         [dls, tls], true, true);
+                                        CloseWatching();
                                 }
                             } else if ((UpToPriceSpot > 1 && TradingPairWithSolidity.Solidity.Type === 'asks') || (UpToPriceSpot < 1 && TradingPairWithSolidity.Solidity.Type === 'bids')) {
                                 if (TradeQuantity >=  TradingPairWithSolidity.Solidity.Quantity && SolidityWatchingOptions.AllowSharpBreakout) {
@@ -269,8 +270,8 @@ export class BinanceTradesService {
                 try {
                     TradeStatus = 'disabled';
                     SolidityStatus = 'removed';
-                    CleanSpotTradesWebsocket({delay: 0, fastClose: true, keepClosed: false});
-                    CleanSpotBookDepthWebsocket({delay: 0, fastClose: true, keepClosed: false});
+                    CleanSpotTradesWebsocket({delay: 200, fastClose: false, keepClosed: false});
+                    CleanSpotBookDepthWebsocket({delay: 200, fastClose: false, keepClosed: false});
                     TradingPairsService.DeleteTPInTrade(TradingPairWithSolidity.Symbol);
                 } catch (e) {
                     DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${TradingPairWithSolidity.Symbol} | Error with closing websockets! | ${e.message}`);
