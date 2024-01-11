@@ -234,7 +234,7 @@ export class BinanceTradesService {
                                     [ dls ], true, true);
                                 await OpenTrade();
                             } else {
-                                DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${TradingPairWithSolidity.Symbol} | The price approached too quickly! | Price change for ${SolidityWatchingOptions.AcceptablePriceChange.Period}m: ${CheckForSharpBreakoutResult.priceChange}%`,
+                                DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${TradingPairWithSolidity.Symbol} | The price approached too quickly! |  Price change for ${SolidityWatchingOptions.AcceptablePriceChange.Period}m: ${BinanceOrdersCalculatingKit.RoundUp(CheckForSharpBreakoutResult.priceChange, 4)}%`,
                                     [dls, tls], true, true);
                             }
                         } else if (SolidityStatus === 'moved') {
@@ -274,7 +274,7 @@ export class BinanceTradesService {
                     CleanSpotBookDepthWebsocket({delay: 200, fastClose: false, keepClosed: false});
                     TradingPairsService.DeleteTPInTrade(TradingPairWithSolidity.Symbol);
                 } catch (e) {
-                    DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${TradingPairWithSolidity.Symbol} | Error with closing websockets! | ${e.message}`);
+                    DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${TradingPairWithSolidity.Symbol} | Error with closing websockets! | ${e.message}`, [dls], true, true);
                 }
             }
         } catch (e) {
@@ -322,7 +322,8 @@ export class BinanceTradesService {
                 SolidityModel.Solidity.Quantity = SolidityQuantity;
                 SolidityStatus = 'ready';
             } else {
-                DocumentLogService.MadeTheNewLog([FontColor.FgCyan], `Trying to refresh solidity info on ${SolidityModel.Symbol}... (Quantity change: ${SolidityQuantityChange}, Up to price: ${UpToPriceSpot})`, [ dls ], true);
+                DocumentLogService.MadeTheNewLog([FontColor.FgCyan], `Trying to refresh solidity info on ${SolidityModel.Symbol}... (Quantity change: ${BinanceOrdersCalculatingKit.RoundUp(SolidityQuantityChange, 4)}, Up to price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(UpToPriceSpot,  SolidityModel.Solidity.Type, 4)})`,
+                    [ dls ], true, false);
                 const lastSolidity = await sfs.FindSolidity(SolidityModel.Symbol, OrderBook, LastPrice, QuoteVolume);
 
                 if (
@@ -332,7 +333,8 @@ export class BinanceTradesService {
                 ) {
                     if (lastSolidity.Solidity.Price === SolidityModel.Solidity.Price) {
                         SolidityStatus = 'ready';
-                        DocumentLogService.MadeTheNewLog([FontColor.FgCyan], `Solidity on ${SolidityModel.Symbol} in ${SolidityModel.Solidity.Price} | Ratio: ${lastSolidity.Solidity.Ratio} | ${SolidityModel.Solidity.Quantity} -> ${SolidityQuantity}`, [ dls ], true);
+                        DocumentLogService.MadeTheNewLog([FontColor.FgCyan], `Solidity on ${SolidityModel.Symbol} in ${SolidityModel.Solidity.Price} | Ratio: ${lastSolidity.Solidity.Ratio} | ${SolidityModel.Solidity.Quantity} -> ${SolidityQuantity}`,
+                            [ dls ], true, false);
                         SolidityModel = lastSolidity;
                     } else {
                         const checkForReachingPrice =
