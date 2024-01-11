@@ -8,6 +8,7 @@ import {FontColor} from "../../FontStyleObjects";
 import {TradeStatus} from "./OpenTradesManagerModels";
 import {TradingOptionsModel} from "../../OptionsManager/OptionsModel";
 import TradingPairsService from "../../TradingPairsListService/TradingPairsService";
+import {throws} from "assert";
 
 export class OpenTradesManager {
     private client: Binance;
@@ -30,14 +31,12 @@ export class OpenTradesManager {
 
     private MarketOrderId: number;
 
-    private StopLossCloseOrderFunc: () => Promise<void>;
     private StopLossStopLimitOrderId: number;
     private StopLossPrice: number;
 
-    private TakeProfitCloseOrderFunc: () => Promise<void>;
-    private TakeProfitActive: boolean = false;
-    private TakeProfitPrice: number;
     private TakeProfitStopLimitOrderId: number;
+    private TakeProfitPrice: number;
+    private TakeProfitActive: boolean = false;
 
     private Status: TradeStatus;
 
@@ -73,7 +72,7 @@ export class OpenTradesManager {
                 orderId: this.MarketOrderId,
             });
 
-            this.OpenOrderPrice = parseFloat(orderCheck.cumQuote) / parseFloat(orderCheck.executedQty);
+            this.OpenOrderPrice = BinanceOrdersCalculatingKit.FindClosestLimitOrder(parseFloat(orderCheck.cumQuote) / parseFloat(orderCheck.executedQty), this.TickSizeFutures);
 
             this.MaxProfitPrice = this.OpenOrderPrice;
             this.MaxProfitPrice = this.OpenOrderPrice;
@@ -89,8 +88,10 @@ export class OpenTradesManager {
         }
 
         try {
-            this.StopLossCloseOrderFunc = await this.PlaceStopLossLimit();
-            if (this.TakeProfitActive) this.TakeProfitCloseOrderFunc = await this.PlaceTakeProfitLimit();
+            await Promise.all([
+                this.PlaceStopLossLimit(),
+                this.PlaceTakeProfitLimit()
+            ]);
         } catch (e) {
             await this.CloseOrder();
             TradingPairsService.DeleteTPInTrade(this.Symbol);
@@ -109,30 +110,70 @@ export class OpenTradesManager {
 
     WatchTheTrade = async () => {
         try {
-            const clean = await this.client.ws.futuresUser(async (event) => {
-                if (
-                    event.eventType === 'ORDER_TRADE_UPDATE' &&
-                    (event.orderId === this.StopLossStopLimitOrderId || event.orderId === this.TakeProfitStopLimitOrderId) &&
-                    event.orderStatus === 'FILLED'
-                ) {
-                    this.CloseOrderPrice = parseFloat(event.priceLastTrade);
+            const CloseFuturesUserConnection = await this.client.ws.futuresUser(async (event) => {
+                try {
+                    if (
+                        event.eventType === 'ORDER_TRADE_UPDATE' &&
+                        (event.orderId === this.StopLossStopLimitOrderId || event.orderId === this.TakeProfitStopLimitOrderId) &&
+                        event.orderStatus === 'FILLED'
+                    ) {
+                        this.CloseOrderPrice = parseFloat(event.priceLastTrade);
 
-                    const PercentageProfit = this.ShowProfit();
+                        const PercentageProfit = this.ShowProfit();
 
-                    DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Order was closed by ${event.orderId === this.TakeProfitStopLimitOrderId ? 'take profit order' : 'stop loss order'}! | Profit: ${BinanceOrdersCalculatingKit.RoundUp(PercentageProfit, 3)}%`,
-                        [dls, tls], true, true);
-                    TradingPairsService.DeleteTPInTrade(this.Symbol);
-                    await this.client.futuresCancelAllOpenOrders({ symbol: this.Symbol });
-                    this.Status = 'Closed';
-                    clean({delay: 200, fastClose: false, keepClosed: false});
+                        DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Order was closed by ${event.orderId === this.TakeProfitStopLimitOrderId ? 'take profit order' : 'stop loss order'}! | Profit: ${BinanceOrdersCalculatingKit.RoundUp(PercentageProfit, 3)}%`,
+                            [dls, tls], true, true);
+                        TradingPairsService.DeleteTPInTrade(this.Symbol);
+                        await this.client.futuresCancelAllOpenOrders({ symbol: this.Symbol });
+                        this.Status = 'Closed';
+                        clearInterval(CleanOrdersStatusRequestsInterval);
+                        CloseFuturesUserConnection({delay: 200, fastClose: false, keepClosed: false});
+                    }
+                } catch (e) {
+                    throw e;
                 }
-            })
+            });
+
+            const CheckOrdersStatus = async (OrderType: 'TakeProfit' | 'StopLoss') => {
+                try {
+                    const orderStatus = await this.client.futuresGetOrder({
+                        symbol: this.Symbol,
+                        orderId: OrderType === 'TakeProfit' ? this.TakeProfitStopLimitOrderId : this.StopLossStopLimitOrderId
+                    });
+                    if (orderStatus.status === 'FILLED') {
+                        this.CloseOrderPrice = parseFloat(orderStatus.price);
+                        const PercentageProfit = this.ShowProfit();
+                        DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Order was closed by ${orderStatus.orderId === this.TakeProfitStopLimitOrderId.toString() ? 'take profit order' : 'stop loss order'}! | Profit: ${BinanceOrdersCalculatingKit.RoundUp(PercentageProfit, 3)}%`,
+                            [dls, tls], true, true);
+                        TradingPairsService.DeleteTPInTrade(this.Symbol);
+                        await this.client.futuresCancelAllOpenOrders({ symbol: this.Symbol });
+                        this.Status = 'Closed';
+                        clearInterval(CleanOrdersStatusRequestsInterval);
+                        CloseFuturesUserConnection({delay: 200, fastClose: false, keepClosed: false});
+                    }
+                } catch (e) {
+                    DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Error with checking order status! | ${e.message}`,
+                        [dls, tls], true, true);
+                }
+            }
+
+            const CleanOrdersStatusRequestsInterval =  setInterval(async () => {
+                await Promise.all([
+                    CheckOrdersStatus('TakeProfit'),
+                    CheckOrdersStatus('StopLoss')
+                ]);
+            }, 20000);
 
             setInterval(() => {
-                this.client.futuresPing();
+                try {
+                    this.client.futuresPing();
+                } catch (e) {
+                    DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Error with ping futures connection! | ${e.message}`,
+                        [dls, tls], true, true);
+                }
             }, 30000);
         } catch (e) {
-            DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Error with user data websocket connection! ${e.message}`,
+            DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Error with user data websocket connection! | ${e.message}`,
                 [dls, tls], true, true);
         }
     }
@@ -148,13 +189,6 @@ export class OpenTradesManager {
                 timeInForce: 'GTC',
             });
             this.TakeProfitStopLimitOrderId = orderId;
-
-            return async () => {
-                await this.client.futuresCancelOrder({
-                    symbol: this.Symbol,
-                    orderId: this.TakeProfitStopLimitOrderId,
-                });
-            }
         } catch (e) {
             throw e;
         }
@@ -183,13 +217,6 @@ export class OpenTradesManager {
                     }
             );
             this.StopLossStopLimitOrderId = orderId;
-
-            return async () => {
-                await this.client.futuresCancelOrder({
-                    symbol: this.Symbol,
-                    orderId: this.StopLossStopLimitOrderId,
-                });
-            }
         } catch (e) {
             throw e;
         }
