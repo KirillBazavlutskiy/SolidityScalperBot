@@ -19,6 +19,7 @@ export class TelegramControllerService {
     private dataPath = './data/TelegramUsers.json';
 
     private _state: string;
+    static ignoreCommands: boolean = false;
 
     private SetState = (state: string) => {
         this._state = state;
@@ -59,17 +60,17 @@ export class TelegramControllerService {
             ],
             [
                 {
-                    text: 'General Options'
+                    text: 'General Config'
                 }
             ],
             [
                 {
-                    text: 'Solidity Finder Options'
+                    text: 'Solidity Finder Config'
                 }
             ],
             [
                 {
-                    text: 'Trading Options'
+                    text: 'Trading Config'
                 }
             ]
         ],
@@ -153,13 +154,13 @@ export class TelegramControllerService {
                     this.Bot.sendMessage(chatId, TradingPairsService.LogTradingPairs(), { reply_markup: this.CreateKeyBoard() });
                     break;
 
-                case 'General Options':
+                case 'General Config':
                     this.Bot.sendMessage(chatId, 'Choose the option:', { reply_markup: this.CreateReplyGeneralOptionsButtons() });
                     break;
-                case 'Solidity Finder Options':
+                case 'Solidity Finder Config':
                     this.Bot.sendMessage(chatId, 'Choose the option:', { reply_markup: this.CreateReplySolidityFinderOptionsButtons() });
                     break;
-                case 'Trading Options':
+                case 'Trading Config':
                     this.Bot.sendMessage(chatId, 'Choose the option:', { reply_markup: this.CreateReplyTradeOptionsButtons() });
                     break;
 
@@ -303,19 +304,21 @@ export class TelegramControllerService {
 
     SendMessage = (message: string, sendingUser?: number) => {
         try {
-            const subscribedUsersJson = fs.readFileSync(this.dataPath, 'utf-8');
-            const subscribedUsers: number[] = JSON.parse(subscribedUsersJson);
+            if (!TelegramControllerService.ignoreCommands) {
+                const subscribedUsersJson = fs.readFileSync(this.dataPath, 'utf-8');
+                const subscribedUsers: number[] = JSON.parse(subscribedUsersJson);
 
-            subscribedUsers.filter(user => user !== sendingUser).forEach(userId => {
-                try {
-                    this.Bot.sendMessage(userId, message, { reply_markup: this.CreateKeyBoard() });
-                } catch (e) {
-                    if (e.message !== "ETELEGRAM: 403 Forbidden: bot was blocked by the user") {
-                        throw  e;
+                subscribedUsers.filter(user => user !== sendingUser).forEach(userId => {
+                    try {
+                        this.Bot.sendMessage(userId, message, { reply_markup: this.CreateKeyBoard() });
+                    } catch (e) {
+                        if (e.message !== "ETELEGRAM: 403 Forbidden: bot was blocked by the user") {
+                            throw  e;
+                        }
+                        this.DeleteSubscriber(userId);
                     }
-                    this.DeleteSubscriber(userId);
-                }
-            })
+                })
+            }
         } catch (e) {
             DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error with sending message: ${e.message}`, [dls], true);
         }
