@@ -23,9 +23,9 @@ try {
     DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Binance client wasn't authenticated!`);
 }
 
-try {
+if (ApiKeys.TelegramBotKey !== undefined) {
     tcs = new TelegramControllerService(ApiKeys.TelegramBotKey, client);
-} catch (e) {
+} else {
     TelegramControllerService.ignoreCommands = true;
     DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Telegram bot wasn't authenticated!`);
 }
