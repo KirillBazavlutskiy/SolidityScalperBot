@@ -101,6 +101,7 @@ export class TelegramControllerService {
         const Options = OptionsManager.GetOptions();
         return ({
             inline_keyboard: empty ? [] : [
+                [{ text: `MinimalVolume: ${Options.SolidityFinderOptions.MinimalVolume}`, callback_data: 'ChangeMinimalVolume' }],
                 [{ text: `RatioAccess: ${Options.SolidityFinderOptions.RatioAccess}`, callback_data: 'ChangeRatioAccess' }],
                 [{ text: `PriceUninterruptedDuration: ${Options.SolidityFinderOptions.PriceUninterruptedDuration}`, callback_data: 'ChangePriceUninterruptedDuration' }],
                 [{ text: `TopGainersCount: ${Options.SolidityFinderOptions.TopGainersCount}`, callback_data: 'ChangeTopGainersCount' }]
@@ -230,6 +231,11 @@ export class TelegramControllerService {
     // Solidity Finder Options
     HandleSolidityFinderOptionsChange = (data: string, chatId: number, SolidityFinderOptions: SolidityFinderOptionsModel): void => {
         switch (data) {
+            case 'ChangeMinimalVolume': {
+                this.SetState(data);
+                this.Bot.sendMessage(chatId, `Type a new value for "RatioAccess":\nOld value: ${SolidityFinderOptions.MinimalVolume}\nTips: 2mil (2000000) is normal\nOr choose other option:`, { reply_markup: this.CreateReplySolidityFinderOptionsButtons() });
+                break;
+            }
             case 'ChangeRatioAccess': {
                 this.SetState(data);
                 this.Bot.sendMessage(chatId, `Type a new value for "RatioAccess":\nOld value: ${SolidityFinderOptions.RatioAccess}\nTips: 20 is normal\nOr choose other option:`, { reply_markup: this.CreateReplySolidityFinderOptionsButtons() });
@@ -237,18 +243,29 @@ export class TelegramControllerService {
             }
             case 'ChangePriceUninterruptedDuration': {
                 this.SetState(data);
-                this.Bot.sendMessage(chatId, `Type a new value for "PriceUninterruptedDuration":\nOld value: ${SolidityFinderOptions.TopGainersCount}\nTips: 20 is normal\nOr choose other option:`, { reply_markup: this.CreateReplySolidityFinderOptionsButtons() });
+                this.Bot.sendMessage(chatId, `Type a new value for "PriceUninterruptedDuration":\nOld value: ${SolidityFinderOptions.PriceUninterruptedDuration}\nTips: 20 is normal\nOr choose other option:`, { reply_markup: this.CreateReplySolidityFinderOptionsButtons() });
                 break;
             }
             case 'ChangeTopGainersCount': {
                 this.SetState(data);
-                this.Bot.sendMessage(chatId, `Type a new value for "TopGainersCount":\nOld value: ${SolidityFinderOptions.PriceUninterruptedDuration}\nTips: 1 means 1 minute\nOr choose other option:`, { reply_markup: this.CreateReplySolidityFinderOptionsButtons() });
+                this.Bot.sendMessage(chatId, `Type a new value for "TopGainersCount":\nOld value: ${SolidityFinderOptions.TopGainersCount}\nTips: 1 means 1 minute\nOr choose other option:`, { reply_markup: this.CreateReplySolidityFinderOptionsButtons() });
                 break;
             }
         }
     }
     ChangeSolidityFinderOptions = (optionName: string, value: string, chatId: number) => {
         switch (optionName) {
+            case 'ChangeMinimalVolume': {
+                this.SetState('');
+                const OldOptions = OptionsManager.GetOptions();
+                const fixedValue = parseFloat(parseFloat(value).toFixed());
+                OldOptions.SolidityFinderOptions.MinimalVolume = fixedValue;
+                OptionsManager.ChangeOptions(OldOptions);
+                const msg = `"MinimalVolume" value has been changed to ${fixedValue}`;
+                this.Bot.sendMessage(chatId, msg, { reply_markup: this.CreateReplySolidityFinderOptionsButtons(true) });
+                this.SendMessage(msg, chatId);
+                break;
+            }
             case 'ChangeRatioAccess': {
                 this.SetState('');
                 const OldOptions = OptionsManager.GetOptions();
@@ -264,7 +281,7 @@ export class TelegramControllerService {
                 this.SetState('');
                 const OldOptions = OptionsManager.GetOptions();
                 const fixedValue = parseFloat(parseFloat(value).toFixed());
-                OldOptions.SolidityFinderOptions.TopGainersCount = fixedValue;
+                OldOptions.SolidityFinderOptions.PriceUninterruptedDuration = fixedValue;
                 OptionsManager.ChangeOptions(OldOptions);
                 const msg = `"PriceUninterruptedDuration" value has been changed to ${fixedValue}`;
                 this.Bot.sendMessage(chatId, msg, { reply_markup: this.CreateReplySolidityFinderOptionsButtons(true) });
@@ -275,7 +292,7 @@ export class TelegramControllerService {
                 this.SetState('');
                 const OldOptions = OptionsManager.GetOptions();
                 const fixedValue = parseFloat(parseFloat(value).toFixed());
-                OldOptions.SolidityFinderOptions.PriceUninterruptedDuration = fixedValue;
+                OldOptions.SolidityFinderOptions.TopGainersCount = fixedValue;
                 OptionsManager.ChangeOptions(OldOptions);
                 const msg = `"TopGainersCount" value has been changed to ${fixedValue}`;
                 this.Bot.sendMessage(chatId, msg, { reply_markup: this.CreateReplySolidityFinderOptionsButtons(true) });
