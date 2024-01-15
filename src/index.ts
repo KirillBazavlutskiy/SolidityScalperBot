@@ -23,12 +23,7 @@ try {
     DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Binance client wasn't authenticated!`);
 }
 
-if (ApiKeys.TelegramBotKey !== undefined) {
-    tcs = new TelegramControllerService(ApiKeys.TelegramBotKey, client);
-} else {
-    TelegramControllerService.ignoreCommands = true;
-    DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Telegram bot wasn't authenticated!`);
-}
+tcs = new TelegramControllerService(ApiKeys.TelegramBotKey, client);
 
 export const sfs = new SolidityFinderService(client);
 const bts = new BinanceTradesService(client);
