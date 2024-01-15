@@ -36,13 +36,18 @@ export class TelegramControllerService {
     }
 
     constructor(token: string, client: Binance) {
-        this.client = client;
         try {
-            this.Bot = new TelegramBot(token, { polling: true });
-            this.setupBotListeners();
+            this.client = client;
+            if (token !== '') {
+                this.Bot = new TelegramBot(token, { polling: true });
+                this.setupBotListeners();
+            } else {
+                TelegramControllerService.ignoreCommands = true;
+                DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Telegram bot wasn't authenticated!`, [], true, false);
+            }
         } catch (e) {
             TelegramControllerService.ignoreCommands = true;
-            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Telegram bot wasn't authenticated!`);
+            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Telegram bot wasn't authenticated!`, [], true, false);
         }
     }
 

@@ -153,7 +153,7 @@ export class BinanceTradesService {
                                     DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${TradingPairWithSolidity.Symbol} | Solidity on ${TradingPairWithSolidity.Solidity.Price} was reached! | Price change for ${SolidityWatchingOptions.AcceptablePriceChange.Period}m: ${BinanceOrdersCalculatingKit.RoundUp(CheckForSharpBreakoutResult.priceChange, 4)}% | Waiting for price ${OpenOrderPrice}`,
                                         [dls, tls], true, true);
                                 } else {
-                                    DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${TradingPairWithSolidity.Symbol} | The price approached too quickly! | Price change for ${SolidityWatchingOptions.AcceptablePriceChange.Period}m: ${CheckForSharpBreakoutResult.priceChange}%`,
+                                    DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${TradingPairWithSolidity.Symbol} | The price approached too quickly! | Price change for ${SolidityWatchingOptions.AcceptablePriceChange.Period}m: ${BinanceOrdersCalculatingKit.RoundUp(CheckForSharpBreakoutResult.priceChange, 3)}%`,
                                         [dls, tls], true, true);
                                         CloseWatching();
                                 }
