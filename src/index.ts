@@ -26,7 +26,6 @@ try {
 tcs = new TelegramControllerService(ApiKeys?.TelegramBotKey || '', client);
 
 export const sfs = new SolidityFinderService(client);
-const bts = new BinanceTradesService(client);
 export const dls = new DocumentLogger('./Logs/Logs.txt');
 export const tls = new DocumentLogger('./Logs/TradeLogs.txt')
 
@@ -37,7 +36,12 @@ const fetchSolidity = async (): Promise<void> => {
         const Options = OptionsManager.GetOptions();
         TradingPairsService.TPWithSolidity = await sfs.FindAllSolidity(Options.SolidityFinderOptions.MinimalVolume, Options.SolidityFinderOptions.RatioAccess, Options.SolidityFinderOptions.UpToPriceAccess, Options.SolidityFinderOptions.PriceUninterruptedDuration, Options.SolidityFinderOptions.TopGainersCount);
         DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `Found solidity: ${TradingPairsService.TPWithSolidity.length}`, [ dls ], true);
-        TradingPairsService.TPWithSolidity.forEach(tp => { if (!TradingPairsService.CheckTPInTrade(tp, true)) bts.WatchTheSymbol(tp, Options) } );
+        TradingPairsService.TPWithSolidity.forEach(tp => {
+            if (!TradingPairsService.CheckTPInTrade(tp, true)) {
+                const BinanceTrader = new BinanceTradesService(client, tp, Options);
+                BinanceTrader.StartWatching();
+            }
+        } );
     } else {
         DocumentLogService.MadeTheNewLog([FontColor.FgGray], 'Search was canceled! Start id with telegram chat!', [ dls ], true);
     }
