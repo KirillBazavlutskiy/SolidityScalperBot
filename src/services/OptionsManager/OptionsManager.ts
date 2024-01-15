@@ -4,8 +4,8 @@ import DocumentLogService from "../DocumentLogService/DocumentLogService";
 import {FontColor} from "../FontStyleObjects";
 
 export class OptionsManager {
-    static OptionsFolderPath = './Options';
-    static OptionsPath = './Options/Options.json';
+    static OptionsFolderPath = './Config';
+    static OptionsPath = './Config/Options.json';
     static GetOptions = (): OptionsModel => {
         this.CheckOptions();
 

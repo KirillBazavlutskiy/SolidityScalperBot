@@ -6,23 +6,29 @@ import DocumentLogService, {DocumentLogger} from "./services/DocumentLogService/
 import {FontColor} from "./services/FontStyleObjects";
 import {TelegramControllerService} from "./services/TelegramControlerService/TelegramControlerService";
 import {OptionsManager} from "./services/OptionsManager/OptionsManager";
+import {ApiKeysService} from "./services/ApiKeysService/ApiKeysService";
 
-const apiKey = "PmEpiESene4CCbHpmjHO8Uz7hKqc9u57bEla9ibkP14ZmXIdtf8QAsqBcFt15YKB";
-const secretKey = "5f97dmaPN48kNXYmcdEBtNKRwopfsaDWogJ9btKE1gCAIKO4z0q2IhLb4m1MfKxE";
-const soundFilePath = './dist/sounds/notification-sound.mp3';
-const TelegramBotKey = "6829379412:AAEYaXtF0T4aBZk4RSQyjbbpmRKcTkaHDgc";
+let client;
+export let tcs;
+const ApiKeys = ApiKeysService.FetchApiKeys();
 
-const client = Binance({
-    apiKey: apiKey,
-    apiSecret: secretKey,
-    getTime: () => new Date().getTime(),
-});
+try {
+    client = Binance({
+        apiKey: ApiKeys.BinanceKeys.apiKey,
+        apiSecret: ApiKeys.BinanceKeys.apiSecret,
+        getTime: () => new Date().getTime(),
+    });
+} catch (e) {
+    client =Binance();
+    DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Binance client wasn't authenticated!`);
+}
+
+tcs = new TelegramControllerService(ApiKeys?.TelegramBotKey || '', client);
 
 export const sfs = new SolidityFinderService(client);
 const bts = new BinanceTradesService(client);
 export const dls = new DocumentLogger('./Logs/Logs.txt');
 export const tls = new DocumentLogger('./Logs/TradeLogs.txt')
-export const tcs = new TelegramControllerService(TelegramBotKey, client);
 
 tcs.SendMessage('Bot has started!');
 
@@ -31,7 +37,7 @@ const fetchSolidity = async (): Promise<void> => {
         const Options = OptionsManager.GetOptions();
         TradingPairsService.TPWithSolidity = await sfs.FindAllSolidity(Options.SolidityFinderOptions.MinimalVolume, Options.SolidityFinderOptions.RatioAccess, Options.SolidityFinderOptions.UpToPriceAccess, Options.SolidityFinderOptions.PriceUninterruptedDuration, Options.SolidityFinderOptions.TopGainersCount);
         DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `Found solidity: ${TradingPairsService.TPWithSolidity.length}`, [ dls ], true);
-        TradingPairsService.TPWithSolidity.forEach(tp => { if (!TradingPairsService.CheckTPInTrade(tp, true)) bts.TradeSymbol(tp, Options) } );
+        TradingPairsService.TPWithSolidity.forEach(tp => { if (!TradingPairsService.CheckTPInTrade(tp, true)) bts.WatchTheSymbol(tp, Options) } );
     } else {
         DocumentLogService.MadeTheNewLog([FontColor.FgGray], 'Search was canceled! Start id with telegram chat!', [ dls ], true);
     }

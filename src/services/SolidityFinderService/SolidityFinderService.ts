@@ -2,12 +2,34 @@ import {LimitType, SolidityModel, SolidityTicket} from "./SolidityFinderModels";
 import {Bid, Binance, CandleChartInterval, DailyStatsResult, OrderBook} from "binance-api-node";
 import DocumentLogService from "../DocumentLogService/DocumentLogService";
 import {FontColor} from "../FontStyleObjects";
-import {BinanceOrdersCalculatingKit} from "../BinanceTradesService/BinanceOrdersCalculatingKit/BinanceOrdersCalculatingKit";
+import {
+    BinanceOrdersCalculatingKit
+} from "../BinanceTradesService/BinanceOrdersCalculatingKit/BinanceOrdersCalculatingKit";
 
 class SolidityFinderService {
     client: Binance;
     constructor(client: Binance) {
         this.client = client;
+    }
+
+    CheckForAcceptablePriceChange = async (symbol: string, durationMinutes: number, acceptablePriceChange: number) => {
+        const priceChange = await this.GetPriceChange(symbol, durationMinutes);
+        return ({ access: Math.abs(priceChange)  <= acceptablePriceChange, priceChange: priceChange });
+    }
+
+    GetPriceChange = async (symbol: string, durationMinutes: number): Promise<number> =>  {
+        const candles = await this.client.candles({
+            symbol,
+            interval: CandleChartInterval.ONE_MINUTE,
+            limit: durationMinutes
+        });
+
+        const lastCandles = candles.slice(-durationMinutes);
+
+        const firstCandle = lastCandles[0];
+        const lastCandle = lastCandles[lastCandles.length - 1];
+
+        return ((parseFloat(lastCandle.close) - parseFloat(firstCandle.open)) / parseFloat(firstCandle.open)) * 100;
     }
 
     CheckPriceAtTargetTime = async (symbol: string, targetPrice: number, durationMinutes: number) => {
@@ -33,8 +55,13 @@ class SolidityFinderService {
 
     FetchAllSymbols = async (minVolume: number, topPriceChangePercent: number) => {
         try {
-            const tickers = await this.client.dailyStats();
-            const futuresSymbolsInfo = await this.client.futuresExchangeInfo();
+            const tickers = await this.client.dailyStats().catch(error => {
+                throw new Error('Failed to fetch daily stats');
+            });
+
+            const futuresSymbolsInfo = await this.client.futuresExchangeInfo().catch(error => {
+                throw new Error('Failed to fetch futures exchange info');
+            });
             const futuresSymbols = futuresSymbolsInfo.symbols.map(symbolInfo => symbolInfo.symbol);
             const tickersFixed: DailyStatsResult[] = JSON.parse(JSON.stringify(tickers));
 
@@ -111,13 +138,13 @@ class SolidityFinderService {
                 Solidity: solidityTicket
             }
         } catch (e) {
-            DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error with ${symbol}! ${e.message}`);
+            DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error with ${symbol}! ${e.message}`, [], true, false);
             return null;
         }
     };
 
-    FindAllSolidity = async (minVolume: number, ratioAccess: number, upToPriceAccess: number, checkReachingPriceDuration: number, topPriceChangePercent: number) => {
-        const symbolsWithSolidity: SolidityModel[] = [];
+    FindAllSolidity = async (minVolume: number, ratioAccess: number, upToPriceAccess: number, checkReachingPriceDuration: number, topPriceChangePercent: number):  Promise<SolidityModel[]> => {
+        let symbolsWithSolidity: SolidityModel[] = [];
 
         try {
             const symbols = await this.FetchAllSymbols(minVolume, topPriceChangePercent);
@@ -139,26 +166,26 @@ class SolidityFinderService {
                     })
                 );
             }
+
+            if (checkReachingPriceDuration !== 0) {
+                let filteredSymbolsWithSolidity: SolidityModel[] = [];
+
+                await Promise.all(
+                    symbolsWithSolidity.map(async (symbolWithSolidity) => {
+                        const result = !(await this.CheckPriceAtTargetTime(symbolWithSolidity.Symbol, symbolWithSolidity.Solidity.Price, checkReachingPriceDuration));
+                        if (result) {
+                            filteredSymbolsWithSolidity.push(symbolWithSolidity);
+                        }
+                    })
+                );
+
+                symbolsWithSolidity = filteredSymbolsWithSolidity;
+            }
+
         } catch (e) {
-            DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `Error with fetching symbols! ${e.message}`, [], true);
+            DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `${e.message}`, [], true);
         }
-
-        if (checkReachingPriceDuration !== 0) {
-            let filteredSymbolsWithSolidity: SolidityModel[] = [];
-
-            await Promise.all(
-                symbolsWithSolidity.map(async (symbolWithSolidity) => {
-                    const result = !(await this.CheckPriceAtTargetTime(symbolWithSolidity.Symbol, symbolWithSolidity.Solidity.Price, checkReachingPriceDuration));
-                    if (result) {
-                        filteredSymbolsWithSolidity.push(symbolWithSolidity);
-                    }
-                })
-            );
-
-            return filteredSymbolsWithSolidity;
-        } else {
-            return symbolsWithSolidity;
-        }
+        return symbolsWithSolidity;
     };
 }
 
