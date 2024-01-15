@@ -74,7 +74,7 @@ export class BinanceTradesService {
 
             DocumentLogService.MadeTheNewLog(
                 [FontColor.FgGreen], `New Solidity on ${TradingPairWithSolidity.Symbol} | Solidity Price: ${TradingPairWithSolidity.Solidity.Price} | Solidity Ratio: ${TradingPairWithSolidity.Solidity.Ratio.toFixed()} | Up To Price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(TradingPairWithSolidity.Solidity.UpToPrice, TradingPairWithSolidity.Solidity.Type,4)} | Last Price: ${TradingPairWithSolidity.Price}`,
-                [ dls ], true, false);
+                [ dls ], true,  GeneralOptions.ScreenerMode);
 
             const MessagesSpotUpdatesQueue: UpdateMessage[] = [];
             let isProcessingSpotUpdate = false;
@@ -90,8 +90,8 @@ export class BinanceTradesService {
                         else await ProcessSpotBookDepthUpdate(UpdateMessage.Message)
                     }
                 } catch (e) {
-                    DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Error with spot update ${e.message}`, [dls], true);
-                    tcs.SendMessage(`Error with spot update on ${TradingPairWithSolidity.Symbol}:\n${e.message}`);
+                    DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Error with spot update | ${e.message}`,
+                        [dls], true, true);
                 }
 
                 isProcessingSpotUpdate = false;
@@ -164,12 +164,12 @@ export class BinanceTradesService {
                                     await OpenTrade();
                                 } else {
                                     DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${TradingPairWithSolidity.Symbol} | Solidity on ${TradingPairWithSolidity.Solidity.Price} has been destroyed! | Up to price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(UpToPriceSpot, TradingPairWithSolidity.Solidity.Type, 4)} | Last Price: ${SpotLastPrice}`,
-                                        [dls], true, false);
+                                        [dls], true, GeneralOptions.ScreenerMode);
                                     CloseWatching();
                                 }
                             } else if (BinanceOrdersCalculatingKit.CalcSimplifiedRatio(UpToPriceSpot, TradingPairWithSolidity.Solidity.Type) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
                                 DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${TradingPairWithSolidity.Symbol} | Price is too far! | Up to price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(UpToPriceSpot, TradingPairWithSolidity.Solidity.Type, 4)}`,
-                                    [dls], true, false);
+                                    [dls], true, GeneralOptions.ScreenerMode);
                                 CloseWatching();
                             }
                             break;
@@ -177,11 +177,17 @@ export class BinanceTradesService {
                             if (UpToPriceSpot === 1) VolumeToDestroyTheSolidity += TradeQuantity;
 
                             if ((SpotLastPrice >= OpenOrderPrice && TradingPairWithSolidity.Solidity.Type === 'asks') || (SpotLastPrice <= OpenOrderPrice && TradingPairWithSolidity.Solidity.Type === 'bids')) {
-                                beep();
-                                OpenTradeTime = new Date();
-                                DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${TradingPairWithSolidity.Symbol} | Solidity on ${TradingPairWithSolidity.Solidity.Price} has been broken! | Volume used to destroy the solidity: ${VolumeToDestroyTheSolidity} | Last solidity quantity was: ${TradingPairWithSolidity.Solidity.Quantity} | Last Price: ${SpotLastPrice}\nOpening order...`,
-                                    [dls], true, true);
-                                await OpenTrade();
+                                if (VolumeToDestroyTheSolidity >= TradingPairWithSolidity.Solidity.Quantity) {
+                                    beep();
+                                    OpenTradeTime = new Date();
+                                    DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${TradingPairWithSolidity.Symbol} | Solidity on ${TradingPairWithSolidity.Solidity.Price} has been broken! | Volume used to destroy the solidity: ${VolumeToDestroyTheSolidity} | Last solidity quantity was: ${TradingPairWithSolidity.Solidity.Quantity} | Last Price: ${SpotLastPrice}\n${GeneralOptions.ScreenerMode ? '' : 'Opening order...'}`,
+                                        [dls], true, true);
+                                    await OpenTrade();
+                                } else {
+                                    DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${TradingPairWithSolidity.Symbol} | Solidity on ${TradingPairWithSolidity.Solidity.Price} was removed! | Volume used to destroy the solidity: ${VolumeToDestroyTheSolidity} | Last solidity quantity was: ${TradingPairWithSolidity.Solidity.Quantity} | Last Price: ${SpotLastPrice}`,
+                                        [dls], true, true);
+                                    CloseWatching();
+                                }
                             } else if (BinanceOrdersCalculatingKit.CalcSimplifiedRatio(UpToPriceSpot, TradingPairWithSolidity.Solidity.Type) > UP_TO_PRICE_ACCESS_SPOT_THRESHOLD) {
                                 DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${TradingPairWithSolidity.Symbol} is too far! | Up To price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(UpToPriceSpot, TradingPairWithSolidity.Solidity.Type, 4)}`,
                                     [dls], true, true);
@@ -270,8 +276,8 @@ export class BinanceTradesService {
                 try {
                     TradeStatus = 'disabled';
                     SolidityStatus = 'removed';
-                    CleanSpotTradesWebsocket({delay: 200, fastClose: false, keepClosed: false});
-                    CleanSpotBookDepthWebsocket({delay: 200, fastClose: false, keepClosed: false});
+                    CleanSpotTradesWebsocket({delay: 500, fastClose: false, keepClosed: false});
+                    CleanSpotBookDepthWebsocket({delay: 500, fastClose: false, keepClosed: false});
                     TradingPairsService.DeleteTPInTrade(TradingPairWithSolidity.Symbol);
                 } catch (e) {
                     DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${TradingPairWithSolidity.Symbol} | Error with closing websockets! | ${e.message}`, [dls], true, true);

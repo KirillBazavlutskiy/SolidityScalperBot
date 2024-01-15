@@ -127,7 +127,7 @@ export class OpenTradesManager {
                         await this.client.futuresCancelAllOpenOrders({ symbol: this.Symbol });
                         this.Status = 'Closed';
                         clearInterval(CleanOrdersStatusRequestsInterval);
-                        CloseFuturesUserConnection({delay: 200, fastClose: false, keepClosed: false});
+                        CloseFuturesUserConnection({delay: 500, fastClose: false, keepClosed: false});
                     }
                 } catch (e) {
                     throw e;
