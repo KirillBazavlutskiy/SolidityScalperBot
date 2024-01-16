@@ -1,16 +1,18 @@
 import {SolidityModel} from "../SolidityFinderService/SolidityFinderModels";
 import {BinanceOrdersCalculatingKit} from "../BinanceTradesService/BinanceOrdersCalculatingKit/BinanceOrdersCalculatingKit";
+import {BinanceTradesService} from "../BinanceTradesService/BinanceTradesService";
 
 class TradingPairsService {
     static TPWithSolidity: SolidityModel[] = [];
-    private static TPWithSolidityInTrade: SolidityModel[] = [];
+    private static TPWithSolidityInTrade: BinanceTradesService[] = [];
 
     static LogTradingPairs = (): string => {
         let result;
 
         if (this.TPWithSolidityInTrade.length !== 0) {
             result =
-                `${this.TPWithSolidityInTrade.map(TradingPair => {
+                `${this.TPWithSolidityInTrade.map(BinanceTrader => {
+                    const TradingPair = BinanceTrader.GetTradingPairData();
                     return (
                         `${TradingPair.Symbol}\n` +
                         `Up to price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(TradingPair.Solidity.UpToPrice, TradingPair.Solidity.Type, 4)}\n` +
@@ -29,31 +31,19 @@ class TradingPairsService {
         return result;
     }
 
-    static AddTPInTrade = (solidityModel: SolidityModel) => {
-        this.TPWithSolidityInTrade.push(solidityModel);
-    }
-
-    static ChangeTPInTrade = (solidityModel: SolidityModel) => {
-        const TradingPairIndex = this.TPWithSolidityInTrade.findIndex(TradingPair => TradingPair.Symbol === solidityModel.Symbol);
-
-        if (TradingPairIndex !== -1) {
-            this.TPWithSolidityInTrade[TradingPairIndex] = solidityModel;
-        }
+    static AddTPInTrade = (BinanceTrader: BinanceTradesService) => {
+        this.TPWithSolidityInTrade.push(BinanceTrader);
     }
 
     static DeleteTPInTrade = (symbol: string) => {
-        this.TPWithSolidityInTrade = this.TPWithSolidityInTrade.filter(e => e.Symbol !== symbol);
+        this.TPWithSolidityInTrade = this.TPWithSolidityInTrade.filter(BinanceTrader => BinanceTrader.Symbol !== symbol);
     }
 
-    static CheckTPInTrade = (solidityModel: SolidityModel, addToList: boolean = false): boolean => {
-        const TradingPairIndex = this.TPWithSolidityInTrade.findIndex(TradingPair => TradingPair.Symbol === solidityModel.Symbol);
+    static CheckTPInTrade = (Symbol: string): boolean => {
+        const TradingPairIndex = this.TPWithSolidityInTrade.findIndex(BinanceTraderInWork =>
+            BinanceTraderInWork.Symbol === Symbol);
 
-        if (TradingPairIndex === -1) {
-            if (addToList) this.AddTPInTrade(solidityModel);
-            return false;
-        } else {
-            return true
-        }
+        return TradingPairIndex !== -1;
     };
 }
 

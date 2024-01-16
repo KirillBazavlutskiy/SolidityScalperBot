@@ -37,9 +37,10 @@ const fetchSolidity = async (): Promise<void> => {
         TradingPairsService.TPWithSolidity = await sfs.FindAllSolidity(Options.SolidityFinderOptions.MinimalVolume, Options.SolidityFinderOptions.RatioAccess, Options.SolidityFinderOptions.UpToPriceAccess, Options.SolidityFinderOptions.PriceUninterruptedDuration, Options.SolidityFinderOptions.TopGainersCount);
         DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `Found solidity: ${TradingPairsService.TPWithSolidity.length}`, [ dls ], true);
         TradingPairsService.TPWithSolidity.forEach(tp => {
-            if (!TradingPairsService.CheckTPInTrade(tp, true)) {
+            if (!TradingPairsService.CheckTPInTrade(tp.Symbol)) {
                 const BinanceTrader = new BinanceTradesService(client, tp, Options);
                 BinanceTrader.StartWatching();
+                TradingPairsService.AddTPInTrade(BinanceTrader);
             }
         } );
     } else {

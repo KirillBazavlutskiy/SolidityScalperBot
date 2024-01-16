@@ -21,45 +21,52 @@ import {OptionsModel, SolidityFinderOptionsModel, SolidityWatchingOptionsModel,}
 
 
 export class BinanceTradesService {
-    client: Binance;
-    TradingPairWithSolidity: SolidityModel;
-    Options: OptionsModel;
+    private client: Binance;
+    private TradingPairWithSolidity: SolidityModel;
+    private Options: OptionsModel;
 
-    ExchangeInfoSpot: ExchangeInfo<OrderType_LT>;
-    ExchangeInfoFutures: ExchangeInfo<FuturesOrderType_LT>;
+    Symbol: string;
 
-    CleanSpotTradesWebsocket: ReconnectingWebSocketHandler;
-    CleanSpotBookDepthWebsocket: ReconnectingWebSocketHandler;
+    private ExchangeInfoSpot: ExchangeInfo<OrderType_LT>;
+    private ExchangeInfoFutures: ExchangeInfo<FuturesOrderType_LT>;
 
-    MessagesSpotUpdatesQueue: UpdateMessage[];
-    isProcessingSpotUpdate: boolean;
+    private CleanSpotTradesWebsocket: ReconnectingWebSocketHandler;
+    private CleanSpotBookDepthWebsocket: ReconnectingWebSocketHandler;
 
-    OrderBookSpot: OrderBook;
+    private MessagesSpotUpdatesQueue: UpdateMessage[];
+    private isProcessingSpotUpdate: boolean;
 
-    TickSizeSpot: number;
-    TickSizeFutures: number;
+    private OrderBookSpot: OrderBook;
 
-    QuantityPrecisionFutures: number;
+    private TickSizeSpot: number;
+    private TickSizeFutures: number;
 
-    UpToPriceAccessSpotThreshold: number;
+    private QuantityPrecisionFutures: number;
 
-    OpenOrderPrice: number;
+    private UpToPriceAccessSpotThreshold: number;
 
-    UpToPriceSpot: number
+    private OpenOrderPrice: number;
 
-    SolidityStatus: SolidityStatus;
-    VolumeToDestroyTheSolidity: number;
+    private UpToPriceSpot: number
 
-    TradeStatus: TradeStatus;
-    TradeType: TradeType;
+    private SolidityStatus: SolidityStatus;
+    private VolumeToDestroyTheSolidity: number;
 
-    SpotLastPrice: number;
+    private TradeStatus: TradeStatus;
+    private TradeType: TradeType;
 
-    OpenTradesManager: OpenTradesManager;
+    private SpotLastPrice: number;
+
+    private OpenTradesManager: OpenTradesManager;
+
+    GetTradingPairData = () => {
+        return this.TradingPairWithSolidity;
+    }
 
     constructor(client: Binance, SolidityModel: SolidityModel, OptionsParams: OptionsModel) {
         this.client = client;
         this.TradingPairWithSolidity = SolidityModel;
+        this.Symbol = this.TradingPairWithSolidity.Symbol;
         this.Options = OptionsParams;
 
         this.TradeStatus = 'watching';
@@ -75,7 +82,7 @@ export class BinanceTradesService {
         this.isProcessingSpotUpdate = false;
     }
 
-    PrepareExchangeInfoDataForTrade = async () => {
+    private PrepareExchangeInfoDataForTrade = async () => {
         try {
             const orderBookPromise = this.client.book({ symbol: this.TradingPairWithSolidity.Symbol })
                 .then(data => this.OrderBookSpot = data);
@@ -114,86 +121,7 @@ export class BinanceTradesService {
             [ dls ], true,  this.Options.GeneralOptions.ScreenerMode);
     }
 
-    ProcessSpotUpdateQueue = async () => {
-        if (this.isProcessingSpotUpdate) return;
-        this.isProcessingSpotUpdate = true;
-
-        try {
-            while (this.MessagesSpotUpdatesQueue.length > 0) {
-                const UpdateMessage = this.MessagesSpotUpdatesQueue.shift();
-                if (UpdateMessage.Type === 'TradeUpdate') await this.ProcessSpotTrade(UpdateMessage.Message);
-                else await this.ProcessSpotBookDepthUpdate(UpdateMessage.Message)
-            }
-        } catch (e) {
-            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Error with spot update | ${e.message}`,
-                [dls], true, true);
-        }
-
-        this.isProcessingSpotUpdate = false;
-    };
-
-    ConfigureSpotTradesUpdates = () => {
-        this.CleanSpotTradesWebsocket = this.client.ws.trades(`${this.TradingPairWithSolidity.Symbol}`, trade => {
-            this.MessagesSpotUpdatesQueue.push({ Message: trade, Type: "TradeUpdate" });
-            if (!this.isProcessingSpotUpdate) {
-                this.ProcessSpotUpdateQueue();
-            }
-        });
-    }
-
-    ConfigureSpotBookDepthUpdate = () => {
-        this.CleanSpotBookDepthWebsocket = this.client.ws.partialDepth(
-            { symbol: this.TradingPairWithSolidity.Symbol, level: 20 },
-            depth => {
-                this.MessagesSpotUpdatesQueue.push({ Message: depth, Type: 'BookDepthUpdate' });
-                if (!this.isProcessingSpotUpdate) {
-                    this.ProcessSpotUpdateQueue();
-                }
-            });
-    }
-
-    CheckForSharpBreakout = async () => {
-        return this.Options.SolidityWatchingOptions.AllowSharpBreakout ?
-            {
-                access: true,
-                priceChange: null
-            } :
-            await sfs.CheckForAcceptablePriceChange(
-                this.TradingPairWithSolidity.Symbol,
-                this.Options.SolidityWatchingOptions.AcceptablePriceChange.Period,
-                this.Options.SolidityWatchingOptions.AcceptablePriceChange.PriceChange
-            );
-    }
-
-    OpenTrade = async  () => {
-        try {
-            if (!this.Options.GeneralOptions.ScreenerMode) {
-                this.TradeStatus = 'inTrade';
-                this.SolidityStatus = 'removed';
-                await this.OpenTradesManager.PlaceMarketOrder(this.SpotLastPrice, this.Options.TradingOptions.TradeOptions.NominalQuantity.toString(), this.QuantityPrecisionFutures);
-               this.CleanSpotTradesWebsocket({delay: 0, fastClose: false, keepClosed: false});
-               this.CleanSpotBookDepthWebsocket({delay: 0, fastClose: false, keepClosed: false});
-            } else {
-                this.CloseWatching();
-            }
-        } catch (e) {
-            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${this.TradingPairWithSolidity.Symbol} | Error with placing orders! | ${e.message}`);
-        }
-    }
-
-    CloseWatching = () => {
-        try {
-            this.TradeStatus = 'disabled';
-            this.SolidityStatus = 'removed';
-            this.CleanSpotTradesWebsocket({delay: 500, fastClose: false, keepClosed: false});
-            this.CleanSpotBookDepthWebsocket({delay: 500, fastClose: false, keepClosed: false});
-            TradingPairsService.DeleteTPInTrade(this.TradingPairWithSolidity.Symbol);
-        } catch (e) {
-            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${this.TradingPairWithSolidity.Symbol} | Error with closing websockets! | ${e.message}`, [dls], true, true);
-        }
-    }
-
-    ProcessSpotTrade = async (Trade: WSTrade) => {
+    private ProcessSpotTrade = async (Trade: WSTrade) => {
         try {
             this.SpotLastPrice = parseFloat(Trade.price);
             const TradeQuantity = parseFloat(Trade.quantity);
@@ -259,14 +187,13 @@ export class BinanceTradesService {
                     }
                     break;
             }
-            TradingPairsService.ChangeTPInTrade(this.TradingPairWithSolidity);
         } catch (e) {
             e.message = ` trade: ${e.message}`;
             throw e;
         }
     }
 
-    ProcessSpotBookDepthUpdate = async (BookDepth: PartialDepth) => {
+    private ProcessSpotBookDepthUpdate = async (BookDepth: PartialDepth) => {
         try {
             BinanceTradesService.UpdateBookDepth(this.OrderBookSpot, BookDepth);
 
@@ -279,7 +206,7 @@ export class BinanceTradesService {
                 const SolidityQuantity = parseFloat(SolidityBid.quantity);
                 const SolidityPrice = parseFloat(SolidityBid.price);
 
-                this.SolidityStatus = await this.CheckSolidity(
+                this.SolidityStatus = await BinanceTradesService.CheckSolidity(
                     this.TradingPairWithSolidity,
                     SolidityBid,
                    this.UpToPriceSpot,
@@ -293,7 +220,6 @@ export class BinanceTradesService {
                 );
                 if (SolidityQuantity > this.TradingPairWithSolidity.Solidity.MaxQuantity) this.TradingPairWithSolidity.Solidity.MaxQuantity = SolidityQuantity;
 
-                TradingPairsService.ChangeTPInTrade(this.TradingPairWithSolidity);
                 if (this.SolidityStatus === 'removed') {
                     this.CloseWatching();
                     DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${this.TradingPairWithSolidity.Symbol} Solidity on ${this.TradingPairWithSolidity.Solidity.Price}$ has been removed. The quantity on ${SolidityPrice}$ is ${SolidityQuantity} | Max quantity was ${this.TradingPairWithSolidity.Solidity.MaxQuantity} | Up to price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(this.UpToPriceSpot, this.TradingPairWithSolidity.Solidity.Type, 6)}`,
@@ -319,6 +245,85 @@ export class BinanceTradesService {
         } catch (e) {
             e.message = ` book depth: ${e.message}`;
             throw e;
+        }
+    }
+
+    private CheckForSharpBreakout = async () => {
+        return this.Options.SolidityWatchingOptions.AllowSharpBreakout ?
+            {
+                access: true,
+                priceChange: null
+            } :
+            await sfs.CheckForAcceptablePriceChange(
+                this.TradingPairWithSolidity.Symbol,
+                this.Options.SolidityWatchingOptions.AcceptablePriceChange.Period,
+                this.Options.SolidityWatchingOptions.AcceptablePriceChange.PriceChange
+            );
+    }
+
+    private ConfigureSpotTradesUpdates = () => {
+        this.CleanSpotTradesWebsocket = this.client.ws.trades(`${this.TradingPairWithSolidity.Symbol}`, trade => {
+            this.MessagesSpotUpdatesQueue.push({ Message: trade, Type: "TradeUpdate" });
+            if (!this.isProcessingSpotUpdate) {
+                this.ProcessSpotUpdateQueue();
+            }
+        });
+    }
+
+    private ConfigureSpotBookDepthUpdate = () => {
+        this.CleanSpotBookDepthWebsocket = this.client.ws.partialDepth(
+            { symbol: this.TradingPairWithSolidity.Symbol, level: 20 },
+            depth => {
+                this.MessagesSpotUpdatesQueue.push({ Message: depth, Type: 'BookDepthUpdate' });
+                if (!this.isProcessingSpotUpdate) {
+                    this.ProcessSpotUpdateQueue();
+                }
+            });
+    }
+
+    private ProcessSpotUpdateQueue = async () => {
+        if (this.isProcessingSpotUpdate) return;
+        this.isProcessingSpotUpdate = true;
+
+        try {
+            while (this.MessagesSpotUpdatesQueue.length > 0) {
+                const UpdateMessage = this.MessagesSpotUpdatesQueue.shift();
+                if (UpdateMessage.Type === 'TradeUpdate') await this.ProcessSpotTrade(UpdateMessage.Message);
+                else await this.ProcessSpotBookDepthUpdate(UpdateMessage.Message)
+            }
+        } catch (e) {
+            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Error with spot update | ${e.message}`,
+                [dls], true, true);
+        }
+
+        this.isProcessingSpotUpdate = false;
+    };
+
+    private OpenTrade = async  () => {
+        try {
+            if (!this.Options.GeneralOptions.ScreenerMode) {
+                this.TradeStatus = 'inTrade';
+                this.SolidityStatus = 'removed';
+                await this.OpenTradesManager.PlaceMarketOrder(this.SpotLastPrice, this.Options.TradingOptions.TradeOptions.NominalQuantity.toString(), this.QuantityPrecisionFutures);
+                this.CleanSpotTradesWebsocket({delay: 0, fastClose: false, keepClosed: false});
+                this.CleanSpotBookDepthWebsocket({delay: 0, fastClose: false, keepClosed: false});
+            } else {
+                this.CloseWatching();
+            }
+        } catch (e) {
+            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${this.TradingPairWithSolidity.Symbol} | Error with placing orders! | ${e.message}`);
+        }
+    }
+
+    private CloseWatching = () => {
+        try {
+            this.TradeStatus = 'disabled';
+            this.SolidityStatus = 'removed';
+            this.CleanSpotTradesWebsocket({delay: 500, fastClose: false, keepClosed: false});
+            this.CleanSpotBookDepthWebsocket({delay: 500, fastClose: false, keepClosed: false});
+            TradingPairsService.DeleteTPInTrade(this.Symbol);
+        } catch (e) {
+            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${this.TradingPairWithSolidity.Symbol} | Error with closing websockets! | ${e.message}`, [dls], true, true);
         }
     }
 
@@ -352,7 +357,7 @@ export class BinanceTradesService {
         });
     }
 
-    CheckSolidity =
+    static CheckSolidity =
         async (
             SolidityModel: SolidityModel,
             SolidityBid: Bid,
