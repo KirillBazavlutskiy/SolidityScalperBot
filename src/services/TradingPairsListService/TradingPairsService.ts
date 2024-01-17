@@ -15,11 +15,9 @@ class TradingPairsService {
                     const TradingPair = BinanceTrader.GetTradingPairData();
                     return (
                         `${TradingPair.Symbol}\n` +
-                        `Up to price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(TradingPair.Solidity.UpToPrice, TradingPair.Solidity.Type, 4)}\n` +
+                        `Up to price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(TradingPair.Solidity.UpToPrice, TradingPair.Solidity.Type, 6)}\n` +
                         `Trade type: ${TradingPair.Solidity.Type === 'asks' ? 'Long' : 'Short'}\n` +
-                        `Solidity Quantity: ${TradingPair.Solidity.Quantity}\n` +
-                        `Max Solidity Quantity: ${TradingPair.Solidity.MaxQuantity}\n` +
-                        `Waiting for price: ${TradingPair.Solidity.Price}$\n` + 
+                        `Solidity price: ${TradingPair.Solidity.Price}$\n` + 
                         `Last price: ${TradingPair.Price}$`
                     );
                 }).join('\n\n')

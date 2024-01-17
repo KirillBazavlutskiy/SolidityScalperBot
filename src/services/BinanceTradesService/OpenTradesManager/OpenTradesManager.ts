@@ -95,12 +95,12 @@ export class OpenTradesManager {
         } catch (e) {
             await this.CloseOrder();
             TradingPairsService.DeleteTPInTrade(this.Symbol);
-            DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `Error with placing closing orders! | ${e.message} | Nominal quantity: ${parseFloat(this.OrderQuantityNominal)} | Open order price: ${LastPrice} | Quantity Precision: ${QuantityPrecisionFutures} | Calculated quantity: ${this.OrderQuantity}`,
+            DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `Error with placing closing orders! | ${e.message} | Nominal quantity: ${BinanceOrdersCalculatingKit.RoundUp(parseFloat(this.OrderQuantityNominal), 4)} | Open order price: ${LastPrice} | Quantity Precision: ${QuantityPrecisionFutures} | Calculated quantity: ${this.OrderQuantity}`,
                 [dls, tls], true, true);
         }
 
         this.Status = 'Active';
-        DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Order Type: ${this.TradeType} | Nominal Quantity: ${parseFloat(this.OrderQuantity) * this.OpenOrderPrice} | LP: ${this.OpenOrderPrice}${this.TakeProfitActive ? ` | TP: ${this.TakeProfitPrice}` : ''} | SL: ${this.StopLossPrice}`,
+        DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Order Type: ${this.TradeType} | Nominal Quantity: ${parseFloat(this.OrderQuantity) * this.OpenOrderPrice} | LP: ${this.OpenOrderPrice} | ${this.TakeProfitActive ? ` TP: ${this.TakeProfitPrice}` : ''} SL: ${this.StopLossPrice}`,
             [dls, tls], true, true);
 
         this.WatchTheTrade();
@@ -231,15 +231,5 @@ export class OpenTradesManager {
         });
     }
 
-    ShowProfit = (): number => {
-        let PercentageProfit: number;
-
-        if (this.TradeType === 'long') {
-            PercentageProfit = ((this.CloseOrderPrice - this.OpenOrderPrice) / this.OpenOrderPrice) * 100;
-        } else {
-            PercentageProfit = ((this.OpenOrderPrice - this.CloseOrderPrice) / this.OpenOrderPrice) * 100;
-        }
-
-        return PercentageProfit;
-    }
+    ShowProfit = (): number =>  ((Math.abs(this.OpenOrderPrice) - this.CloseOrderPrice)  / this.OpenOrderPrice) * 100;
 }

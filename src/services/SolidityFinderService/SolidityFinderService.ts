@@ -66,7 +66,7 @@ class SolidityFinderService {
             const tickersFixed: DailyStatsResult[] = JSON.parse(JSON.stringify(tickers));
 
             let filteredTickers = tickersFixed
-                .filter(tradingPair => !(tradingPair.symbol.includes('BTC') || tradingPair.symbol.includes('ETH') || tradingPair.symbol.includes('USDC') || tradingPair.symbol.includes('FTT')))
+                .filter(tradingPair => !(tradingPair.symbol.includes('BTC') || tradingPair.symbol.includes('ETH') || tradingPair.symbol.includes('USDC') || tradingPair.symbol.includes('FTT') || tradingPair.symbol.includes('RAY')))
                 .filter(tradingPair => futuresSymbols.includes(tradingPair.symbol))
                 .filter(tradingPair => {
                     return tradingPair.symbol.substring(tradingPair.symbol.length - 4, tradingPair.symbol.length) === "USDT"

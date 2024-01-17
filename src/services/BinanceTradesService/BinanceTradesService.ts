@@ -172,7 +172,7 @@ export class BinanceTradesService {
                     if ((this.SpotLastPrice >= this.OpenOrderPrice && this.TradingPairWithSolidity.Solidity.Type === 'asks') || (this.SpotLastPrice <= this.OpenOrderPrice && this.TradingPairWithSolidity.Solidity.Type === 'bids')) {
                         if (this.VolumeToDestroyTheSolidity >= this.TradingPairWithSolidity.Solidity.Quantity) {
                             beep();
-                            DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${this.TradingPairWithSolidity.Symbol} | Solidity on ${this.TradingPairWithSolidity.Solidity.Price} has been broken! | Volume used to destroy the solidity: ${this.VolumeToDestroyTheSolidity} | Last solidity quantity was: ${this.TradingPairWithSolidity.Solidity.Quantity} | Last Price: ${this.SpotLastPrice}\n${this.Options.GeneralOptions.ScreenerMode ? '' : 'Opening order...'}`,
+                            DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${this.TradingPairWithSolidity.Symbol} | Solidity on ${this.TradingPairWithSolidity.Solidity.Price} has been broken! | Volume used to destroy the solidity: ${this.VolumeToDestroyTheSolidity.toFixed()} | Last solidity quantity was: ${this.TradingPairWithSolidity.Solidity.Quantity.toFixed()} | Last Price: ${this.SpotLastPrice}\n${this.Options.GeneralOptions.ScreenerMode ? '' : 'Opening order...'}`,
                                 [dls], true, true);
                             await this.OpenTrade();
                         } else {
@@ -222,7 +222,7 @@ export class BinanceTradesService {
 
                 if (this.SolidityStatus === 'removed') {
                     this.CloseWatching();
-                    DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${this.TradingPairWithSolidity.Symbol} Solidity on ${this.TradingPairWithSolidity.Solidity.Price}$ has been removed. The quantity on ${SolidityPrice}$ is ${SolidityQuantity} | Max quantity was ${this.TradingPairWithSolidity.Solidity.MaxQuantity} | Up to price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(this.UpToPriceSpot, this.TradingPairWithSolidity.Solidity.Type, 6)}`,
+                    DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${this.TradingPairWithSolidity.Symbol} Solidity on ${this.TradingPairWithSolidity.Solidity.Price}$ has been removed. The quantity on ${SolidityPrice}$ is ${SolidityQuantity.toFixed()} | Max quantity was ${this.TradingPairWithSolidity.Solidity.MaxQuantity.toFixed()} | Up to price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(this.UpToPriceSpot, this.TradingPairWithSolidity.Solidity.Type, 6)}`,
                         [ dls ], true, this.TradeStatus === 'reached');
                 } else if (this.SolidityStatus === 'ends') {
                     const CheckForSharpBreakoutResult = await this.CheckForSharpBreakout();
@@ -248,19 +248,6 @@ export class BinanceTradesService {
         }
     }
 
-    private CheckForSharpBreakout = async () => {
-        return this.Options.SolidityWatchingOptions.AllowSharpBreakout ?
-            {
-                access: true,
-                priceChange: null
-            } :
-            await sfs.CheckForAcceptablePriceChange(
-                this.TradingPairWithSolidity.Symbol,
-                this.Options.SolidityWatchingOptions.AcceptablePriceChange.Period,
-                this.Options.SolidityWatchingOptions.AcceptablePriceChange.PriceChange
-            );
-    }
-
     private ConfigureSpotTradesUpdates = () => {
         this.CleanSpotTradesWebsocket = this.client.ws.trades(`${this.TradingPairWithSolidity.Symbol}`, trade => {
             this.MessagesSpotUpdatesQueue.push({ Message: trade, Type: "TradeUpdate" });
@@ -272,7 +259,7 @@ export class BinanceTradesService {
 
     private ConfigureSpotBookDepthUpdate = () => {
         this.CleanSpotBookDepthWebsocket = this.client.ws.partialDepth(
-            { symbol: this.TradingPairWithSolidity.Symbol, level: 20 },
+            { symbol: `${this.TradingPairWithSolidity.Symbol}@100ms`, level: 20 },
             depth => {
                 this.MessagesSpotUpdatesQueue.push({ Message: depth, Type: 'BookDepthUpdate' });
                 if (!this.isProcessingSpotUpdate) {
@@ -327,34 +314,17 @@ export class BinanceTradesService {
         }
     }
 
-    static UpdateBookDepth = (OrderBook: OrderBook, PartialBookDepth: PartialDepth) => {
-        PartialBookDepth.bids.forEach(({ price, quantity }) => {
-            const bidIndex = OrderBook.bids.findIndex(bid => bid.price === price);
-
-            if (bidIndex !== -1) {
-                if (parseFloat(quantity) === 0) {
-                    OrderBook.bids.splice(bidIndex, 1);
-                } else {
-                    OrderBook.bids[bidIndex].quantity = quantity;
-                }
-            } else {
-                OrderBook.bids.push({ price: price, quantity: quantity });
-            }
-        });
-
-        PartialBookDepth.asks.forEach(({ price, quantity }) => {
-            const askIndex = OrderBook.asks.findIndex(ask => ask.price === price);
-
-            if (askIndex !== -1) {
-                if (parseFloat(quantity) === 0) {
-                    OrderBook.asks.splice(askIndex, 1);
-                } else {
-                    OrderBook.asks[askIndex].quantity = quantity;
-                }
-            } else {
-                OrderBook.asks.push({ price: price, quantity: quantity });
-            }
-        });
+    private CheckForSharpBreakout = async () => {
+        return this.Options.SolidityWatchingOptions.AllowSharpBreakout ?
+            {
+                access: true,
+                priceChange: null
+            } :
+            await sfs.CheckForAcceptablePriceChange(
+                this.TradingPairWithSolidity.Symbol,
+                this.Options.SolidityWatchingOptions.AcceptablePriceChange.Period,
+                this.Options.SolidityWatchingOptions.AcceptablePriceChange.PriceChange
+            );
     }
 
     static CheckSolidity =
@@ -434,6 +404,36 @@ export class BinanceTradesService {
 
             return SolidityStatus;
         }
+
+    static UpdateBookDepth = (OrderBook: OrderBook, PartialBookDepth: PartialDepth) => {
+        PartialBookDepth.bids.forEach(({ price, quantity }) => {
+            const bidIndex = OrderBook.bids.findIndex(bid => bid.price === price);
+
+            if (bidIndex !== -1) {
+                if (parseFloat(quantity) === 0) {
+                    OrderBook.bids.splice(bidIndex, 1);
+                } else {
+                    OrderBook.bids[bidIndex].quantity = quantity;
+                }
+            } else {
+                OrderBook.bids.push({ price: price, quantity: quantity });
+            }
+        });
+
+        PartialBookDepth.asks.forEach(({ price, quantity }) => {
+            const askIndex = OrderBook.asks.findIndex(ask => ask.price === price);
+
+            if (askIndex !== -1) {
+                if (parseFloat(quantity) === 0) {
+                    OrderBook.asks.splice(askIndex, 1);
+                } else {
+                    OrderBook.asks[askIndex].quantity = quantity;
+                }
+            } else {
+                OrderBook.asks.push({ price: price, quantity: quantity });
+            }
+        });
+    }
 
     static GetQuantityPrecision = (exchangeInfo: ExchangeInfo<OrderType_LT> | ExchangeInfo<FuturesOrderType_LT>, symbol: string) => {
         for (const pair of exchangeInfo.symbols) {
