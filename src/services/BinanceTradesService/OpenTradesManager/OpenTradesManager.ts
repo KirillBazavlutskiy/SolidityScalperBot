@@ -152,8 +152,9 @@ export class OpenTradesManager {
                         CloseFuturesUserConnection({delay: 200, fastClose: false, keepClosed: false});
                     }
                 } catch (e) {
-                    DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Error with checking order status! | ${e.message}`,
+                    DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Error with checking order status! | ${e.message} | Trying to close the order...`,
                         [dls, tls], true, true);
+                    await this.CloseOrder()
                 }
             }
 
@@ -229,6 +230,7 @@ export class OpenTradesManager {
             type: "MARKET",
             quantity: this.OrderQuantity,
         });
+        await this.client.futuresCancelAllOpenOrders({ symbol: this.Symbol });
     }
 
     ShowProfit = (): number => {
