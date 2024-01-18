@@ -100,7 +100,7 @@ export class OpenTradesManager {
         }
 
         this.Status = 'Active';
-        DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Order Type: ${this.TradeType} | Nominal Quantity: ${parseFloat(this.OrderQuantity) * this.OpenOrderPrice} | LP: ${this.OpenOrderPrice} | ${this.TakeProfitActive ? ` TP: ${this.TakeProfitPrice}` : ''} SL: ${this.StopLossPrice}`,
+        DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Order Type: ${this.TradeType} | Nominal Quantity: ${parseFloat(this.OrderQuantity) * this.OpenOrderPrice} | LP: ${this.OpenOrderPrice} | ${this.TakeProfitActive ? `TP: ${this.TakeProfitPrice} ` : ''}SL: ${this.StopLossPrice}`,
             [dls, tls], true, true);
 
         this.WatchTheTrade();
@@ -231,5 +231,15 @@ export class OpenTradesManager {
         });
     }
 
-    ShowProfit = (): number =>  ((Math.abs(this.OpenOrderPrice) - this.CloseOrderPrice)  / this.OpenOrderPrice) * 100;
+    ShowProfit = (): number => {
+        let PercentageProfit: number;
+
+        if (this.TradeType === 'long') {
+            PercentageProfit = BinanceOrdersCalculatingKit.RoundUp((this.CloseOrderPrice - this.OpenOrderPrice) / this.OpenOrderPrice, 4) * 100;
+        } else {
+            PercentageProfit = BinanceOrdersCalculatingKit.RoundUp((this.OpenOrderPrice - this.CloseOrderPrice) / this.OpenOrderPrice, 4) * 100;
+        }
+
+        return PercentageProfit;
+    }
 }

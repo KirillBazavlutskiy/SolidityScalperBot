@@ -438,14 +438,13 @@ export class TelegramControllerService {
                 const subscribedUsers: number[] = JSON.parse(subscribedUsersJson);
 
                 subscribedUsers.filter(user => user !== sendingUser).forEach(userId => {
-                    try {
-                        this.Bot.sendMessage(userId, message, { reply_markup: this.CreateKeyBoard() });
-                    } catch (e) {
+                    this.Bot.sendMessage(userId, message, { reply_markup: this.CreateKeyBoard() }).catch((e) => {
                         if (e.message !== "ETELEGRAM: 403 Forbidden: bot was blocked by the user") {
                             throw  e;
                         }
+                        DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `One of the users blocked the chat, the ID was removed from the list.`, [dls], true, false)
                         this.DeleteSubscriber(userId);
-                    }
+                    })
                 })
             }
         } catch (e) {
