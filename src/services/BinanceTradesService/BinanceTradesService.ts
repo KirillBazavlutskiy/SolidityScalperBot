@@ -129,6 +129,7 @@ export class BinanceTradesService {
             this.TradingPairWithSolidity.Solidity.UpToPrice = this.UpToPriceSpot;
             this.TradingPairWithSolidity.Price = this.SpotLastPrice;
 
+            if (this.UpToPriceSpot === 1) this.VolumeToDestroyTheSolidity += TradeQuantity;
             switch (this.TradeStatus) {
                 case "watching":
                     if (this.UpToPriceSpot === 1) {
@@ -167,8 +168,6 @@ export class BinanceTradesService {
                     }
                     break;
                 case "reached":
-                    if (this.UpToPriceSpot === 1) this.VolumeToDestroyTheSolidity += TradeQuantity;
-
                     if ((this.SpotLastPrice >= this.OpenOrderPrice && this.TradingPairWithSolidity.Solidity.Type === 'asks') || (this.SpotLastPrice <= this.OpenOrderPrice && this.TradingPairWithSolidity.Solidity.Type === 'bids')) {
                         this.VolumeToDestroyTheSolidity += TradeQuantity;
                         if (this.VolumeToDestroyTheSolidity >= this.TradingPairWithSolidity.Solidity.Quantity) {

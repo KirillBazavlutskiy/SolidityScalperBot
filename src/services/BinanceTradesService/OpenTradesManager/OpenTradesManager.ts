@@ -149,9 +149,13 @@ export class OpenTradesManager {
                         await this.client.futuresCancelAllOpenOrders({ symbol: this.Symbol });
                         this.Status = 'Closed';
                         clearInterval(CleanOrdersStatusRequestsInterval);
+                        clearInterval(CleanFuturesPingInterval);
                         CloseFuturesUserConnection({delay: 200, fastClose: false, keepClosed: false});
                     }
                 } catch (e) {
+                    this.Status = 'Closed';
+                    clearInterval(CleanOrdersStatusRequestsInterval);
+                    clearInterval(CleanFuturesPingInterval);
                     DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Error with checking order status! | ${e.message} | Trying to close the order...`,
                         [dls, tls], true, true);
                     await this.CloseOrder()
@@ -165,7 +169,7 @@ export class OpenTradesManager {
                 ]);
             }, 20000);
 
-            setInterval(async () => {
+            const CleanFuturesPingInterval = setInterval(async () => {
                 try {
                     await this.client.futuresPing();
                 } catch (e) {
@@ -237,9 +241,9 @@ export class OpenTradesManager {
         let PercentageProfit: number;
 
         if (this.TradeType === 'long') {
-            PercentageProfit = BinanceOrdersCalculatingKit.RoundUp((this.CloseOrderPrice - this.OpenOrderPrice) / this.OpenOrderPrice, 6) * 100;
+            PercentageProfit = BinanceOrdersCalculatingKit.RoundUp((this.CloseOrderPrice - this.OpenOrderPrice) / this.OpenOrderPrice, 4) * 100;
         } else {
-            PercentageProfit = BinanceOrdersCalculatingKit.RoundUp((this.OpenOrderPrice - this.CloseOrderPrice) / this.OpenOrderPrice, 6) * 100;
+            PercentageProfit = BinanceOrdersCalculatingKit.RoundUp((this.OpenOrderPrice - this.CloseOrderPrice) / this.OpenOrderPrice, 4) * 100;
         }
 
         return PercentageProfit;
