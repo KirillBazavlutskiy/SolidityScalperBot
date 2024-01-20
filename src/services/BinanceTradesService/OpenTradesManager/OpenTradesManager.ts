@@ -165,9 +165,9 @@ export class OpenTradesManager {
                 ]);
             }, 20000);
 
-            setInterval(() => {
+            setInterval(async () => {
                 try {
-                    this.client.futuresPing();
+                    await this.client.futuresPing();
                 } catch (e) {
                     DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Error with ping futures connection! | ${e.message}`,
                         [dls, tls], true, true);
@@ -237,9 +237,9 @@ export class OpenTradesManager {
         let PercentageProfit: number;
 
         if (this.TradeType === 'long') {
-            PercentageProfit = BinanceOrdersCalculatingKit.RoundUp((this.CloseOrderPrice - this.OpenOrderPrice) / this.OpenOrderPrice, 4) * 100;
+            PercentageProfit = BinanceOrdersCalculatingKit.RoundUp((this.CloseOrderPrice - this.OpenOrderPrice) / this.OpenOrderPrice, 6) * 100;
         } else {
-            PercentageProfit = BinanceOrdersCalculatingKit.RoundUp((this.OpenOrderPrice - this.CloseOrderPrice) / this.OpenOrderPrice, 4) * 100;
+            PercentageProfit = BinanceOrdersCalculatingKit.RoundUp((this.OpenOrderPrice - this.CloseOrderPrice) / this.OpenOrderPrice, 6) * 100;
         }
 
         return PercentageProfit;
