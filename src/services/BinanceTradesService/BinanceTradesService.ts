@@ -169,14 +169,21 @@ export class BinanceTradesService {
                     break;
                 case "reached":
                     if ((this.SpotLastPrice >= this.OpenOrderPrice && this.TradingPairWithSolidity.Solidity.Type === 'asks') || (this.SpotLastPrice <= this.OpenOrderPrice && this.TradingPairWithSolidity.Solidity.Type === 'bids')) {
-                        this.VolumeToDestroyTheSolidity += TradeQuantity;
-                        if (this.VolumeToDestroyTheSolidity >= this.TradingPairWithSolidity.Solidity.Quantity) {
-                            beep();
-                            DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${this.TradingPairWithSolidity.Symbol} | Solidity on ${this.TradingPairWithSolidity.Solidity.Price} has been broken! | Volume used to destroy the solidity: ${this.VolumeToDestroyTheSolidity.toFixed()} | Last solidity quantity was: ${this.TradingPairWithSolidity.Solidity.Quantity.toFixed()} | Last Price: ${this.SpotLastPrice}\n${this.Options.GeneralOptions.ScreenerMode ? '' : 'Opening order...'}`,
-                                [dls], true, true);
-                            await this.OpenTrade();
+                        const Slippage = Math.abs(BinanceOrdersCalculatingKit.CalcSimplifiedRatio(this.UpToPriceSpot, this.TradingPairWithSolidity.Solidity.Type));
+                        if (Slippage <= this.Options.SolidityWatchingOptions.AllowableSlippageDuringPenetration) {
+                            this.VolumeToDestroyTheSolidity += TradeQuantity;
+                            if (this.VolumeToDestroyTheSolidity >= this.TradingPairWithSolidity.Solidity.Quantity) {
+                                beep();
+                                DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${this.TradingPairWithSolidity.Symbol} | Solidity on ${this.TradingPairWithSolidity.Solidity.Price} has been broken! | Volume used to destroy the solidity: ${this.VolumeToDestroyTheSolidity.toFixed()} | Last solidity quantity was: ${this.TradingPairWithSolidity.Solidity.Quantity.toFixed()} | Slippage: ${BinanceOrdersCalculatingKit.RoundUp(Slippage, 6)}%} | ${this.Options.GeneralOptions.ScreenerMode ? '' : 'Opening order...'}`,
+                                    [dls], true, true);
+                                await this.OpenTrade();
+                            } else {
+                                DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${this.TradingPairWithSolidity.Symbol} | Solidity on ${this.TradingPairWithSolidity.Solidity.Price} was removed! | Volume used to destroy the solidity: ${this.VolumeToDestroyTheSolidity} | Last solidity quantity was: ${this.TradingPairWithSolidity.Solidity.Quantity} | Last Price: ${this.SpotLastPrice}`,
+                                    [dls], true, true);
+                                this.CloseWatching();
+                            }
                         } else {
-                            DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${this.TradingPairWithSolidity.Symbol} | Solidity on ${this.TradingPairWithSolidity.Solidity.Price} was removed! | Volume used to destroy the solidity: ${this.VolumeToDestroyTheSolidity} | Last solidity quantity was: ${this.TradingPairWithSolidity.Solidity.Quantity} | Last Price: ${this.SpotLastPrice}`,
+                            DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${this.TradingPairWithSolidity.Symbol} | Too much slippage (${BinanceOrdersCalculatingKit.RoundUp(Slippage, 6)}%) when solidity on ${this.TradingPairWithSolidity.Solidity.Price} is broken! | The order will not be placed!`,
                                 [dls], true, true);
                             this.CloseWatching();
                         }
@@ -368,7 +375,7 @@ export class BinanceTradesService {
                     SolidityStatus = 'ready';
                 } else {
                     DocumentLogService.MadeTheNewLog([FontColor.FgCyan], `Trying to refresh solidity info on ${SolidityModel.Symbol}... (Quantity change: ${BinanceOrdersCalculatingKit.RoundUp(SolidityQuantityChange, 4)}, Up to price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(UpToPriceSpot,  SolidityModel.Solidity.Type, 4)})`,
-                        [ dls ], true, TradeStatus === 'reached');
+                        [ dls ], true, false);
                     const lastSolidity = await sfs.FindSolidity(SolidityModel.Symbol, OrderBook, LastPrice, QuoteVolume);
 
                     if (
@@ -379,7 +386,7 @@ export class BinanceTradesService {
                         if (lastSolidity.Solidity.Price === SolidityModel.Solidity.Price) {
                             SolidityStatus = 'ready';
                             DocumentLogService.MadeTheNewLog([FontColor.FgCyan], `Solidity on ${SolidityModel.Symbol} in ${SolidityModel.Solidity.Price} | Ratio: ${lastSolidity.Solidity.Ratio} | ${SolidityModel.Solidity.Quantity} -> ${SolidityQuantity}`,
-                                [ dls ], true, TradeStatus === 'reached');
+                                [ dls ], true, false);
                             SolidityModel = lastSolidity;
                         } else {
                             const checkForReachingPrice =
