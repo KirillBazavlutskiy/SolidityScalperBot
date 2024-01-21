@@ -14,14 +14,6 @@ export class BinanceOrdersCalculatingKit {
         return this.FindClosestLimitOrder(price * realRatio, tickSize);
     }
 
-    static CalcRatioChange = (ratio: number) => {
-        if (ratio > 1) {
-            return ratio - 1;
-        } else if (ratio < 1) {
-            return 1 - ratio;
-        }
-    }
-
     static CalcSimplifiedRatio = (UpToPrice: number, LimitType: LimitType, fractionDigits: number = 0): number => {
         let ratio;
         if (LimitType === 'asks') {

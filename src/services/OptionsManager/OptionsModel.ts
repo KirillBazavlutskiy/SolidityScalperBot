@@ -12,6 +12,7 @@ export interface SolidityFinderOptionsModel {
 
 export interface SolidityWatchingOptionsModel {
     SolidityRemainderForTrade: number;
+    AllowableSlippageDuringPenetration: number;
     AllowSharpBreakout: boolean;
     AcceptablePriceChange: {
         Period: number,
@@ -52,6 +53,7 @@ export const DefaultOptionsValues: OptionsModel = {
     },
     SolidityWatchingOptions: {
         SolidityRemainderForTrade: 0.45,
+        AllowableSlippageDuringPenetration: 0.3,
         AllowSharpBreakout: false,
         AcceptablePriceChange: {
             Period: 5,

@@ -95,12 +95,12 @@ export class OpenTradesManager {
         } catch (e) {
             await this.CloseOrder();
             TradingPairsService.DeleteTPInTrade(this.Symbol);
-            DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `Error with placing closing orders! | ${e.message} | Nominal quantity: ${parseFloat(this.OrderQuantityNominal)} | Open order price: ${LastPrice} | Quantity Precision: ${QuantityPrecisionFutures} | Calculated quantity: ${this.OrderQuantity}`,
+            DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `Error with placing closing orders! | ${e.message} | Nominal quantity: ${BinanceOrdersCalculatingKit.RoundUp(parseFloat(this.OrderQuantityNominal), 4)} | Open order price: ${LastPrice} | Quantity Precision: ${QuantityPrecisionFutures} | Calculated quantity: ${this.OrderQuantity}`,
                 [dls, tls], true, true);
         }
 
         this.Status = 'Active';
-        DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Order Type: ${this.TradeType} | Nominal Quantity: ${parseFloat(this.OrderQuantity) * this.OpenOrderPrice} | LP: ${this.OpenOrderPrice}${this.TakeProfitActive ? ` | TP: ${this.TakeProfitPrice}` : ''} | SL: ${this.StopLossPrice}`,
+        DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Order Type: ${this.TradeType} | Nominal Quantity: ${parseFloat(this.OrderQuantity) * this.OpenOrderPrice} | LP: ${this.OpenOrderPrice} | ${this.TakeProfitActive ? `TP: ${this.TakeProfitPrice} ` : ''}SL: ${this.StopLossPrice}`,
             [dls, tls], true, true);
 
         this.WatchTheTrade();
@@ -149,11 +149,16 @@ export class OpenTradesManager {
                         await this.client.futuresCancelAllOpenOrders({ symbol: this.Symbol });
                         this.Status = 'Closed';
                         clearInterval(CleanOrdersStatusRequestsInterval);
+                        clearInterval(CleanFuturesPingInterval);
                         CloseFuturesUserConnection({delay: 200, fastClose: false, keepClosed: false});
                     }
                 } catch (e) {
-                    DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Error with checking order status! | ${e.message}`,
+                    this.Status = 'Closed';
+                    clearInterval(CleanOrdersStatusRequestsInterval);
+                    clearInterval(CleanFuturesPingInterval);
+                    DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Error with checking order status! | ${e.message} | Trying to close the order...`,
                         [dls, tls], true, true);
+                    await this.CloseOrder()
                 }
             }
 
@@ -164,9 +169,9 @@ export class OpenTradesManager {
                 ]);
             }, 20000);
 
-            setInterval(() => {
+            const CleanFuturesPingInterval = setInterval(async () => {
                 try {
-                    this.client.futuresPing();
+                    await this.client.futuresPing();
                 } catch (e) {
                     DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Error with ping futures connection! | ${e.message}`,
                         [dls, tls], true, true);
@@ -229,15 +234,16 @@ export class OpenTradesManager {
             type: "MARKET",
             quantity: this.OrderQuantity,
         });
+        await this.client.futuresCancelAllOpenOrders({ symbol: this.Symbol });
     }
 
     ShowProfit = (): number => {
         let PercentageProfit: number;
 
         if (this.TradeType === 'long') {
-            PercentageProfit = ((this.CloseOrderPrice - this.OpenOrderPrice) / this.OpenOrderPrice) * 100;
+            PercentageProfit = BinanceOrdersCalculatingKit.RoundUp((this.CloseOrderPrice - this.OpenOrderPrice) / this.OpenOrderPrice, 4) * 100;
         } else {
-            PercentageProfit = ((this.OpenOrderPrice - this.CloseOrderPrice) / this.OpenOrderPrice) * 100;
+            PercentageProfit = BinanceOrdersCalculatingKit.RoundUp((this.OpenOrderPrice - this.CloseOrderPrice) / this.OpenOrderPrice, 4) * 100;
         }
 
         return PercentageProfit;
