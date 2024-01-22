@@ -18,6 +18,7 @@ import beep from 'beepbeep';
 import {BinanceOrdersCalculatingKit} from "./BinanceOrdersCalculatingKit/BinanceOrdersCalculatingKit";
 import {OpenTradesManager} from "./OpenTradesManager/OpenTradesManager";
 import {OptionsModel, SolidityFinderOptionsModel, SolidityWatchingOptionsModel,} from "../OptionsManager/OptionsModel";
+import {CandleAnalyzeService} from "../SolidityFinderService/CandleAnalyzeService/CandleAnalyzeService";
 
 
 export class BinanceTradesService {
@@ -141,7 +142,9 @@ export class BinanceTradesService {
                                 ? this.TradingPairWithSolidity.Solidity.Price + this.TickSizeSpot
                                 : this.TradingPairWithSolidity.Solidity.Price - this.TickSizeSpot, this.TickSizeSpot);
 
-                            DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${this.TradingPairWithSolidity.Symbol} | Solidity on ${this.TradingPairWithSolidity.Solidity.Price} was reached! | Price change for ${this.Options.SolidityWatchingOptions.AcceptablePriceChange.Period}m: ${BinanceOrdersCalculatingKit.RoundUp(CheckForSharpBreakoutResult.priceChange, 4)}% | Waiting for price ${this.OpenOrderPrice}`,
+                            const VolumeForAPeriod  = await CandleAnalyzeService.GetVolumeOnPeriod(this.Symbol, this.Options.SolidityWatchingOptions.ExceedingVolumeDensityOverPeriod);
+
+                            DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${this.TradingPairWithSolidity.Symbol} | Solidity on ${this.TradingPairWithSolidity.Solidity.Price} was reached! | Price change for ${this.Options.SolidityWatchingOptions.AcceptablePriceChange.Period}m: ${BinanceOrdersCalculatingKit.RoundUp(CheckForSharpBreakoutResult.priceChange, 4)}% | Solidity quantity: ${this.TradingPairWithSolidity.Solidity.Quantity}| Volume for a last ${this.Options.SolidityWatchingOptions.ExceedingVolumeDensityOverPeriod}m: ${VolumeForAPeriod.toFixed()} | Waiting for price ${this.OpenOrderPrice}`,
                                 [dls, tls], true, true);
                         } else {
                             DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${this.TradingPairWithSolidity.Symbol} | The price approached too quickly! | Price change for ${this.Options.SolidityWatchingOptions.AcceptablePriceChange.Period}m: ${BinanceOrdersCalculatingKit.RoundUp(CheckForSharpBreakoutResult.priceChange, 3)}%`,
@@ -327,7 +330,7 @@ export class BinanceTradesService {
                 access: true,
                 priceChange: null
             } :
-            await sfs.CheckForAcceptablePriceChange(
+            await CandleAnalyzeService.CheckForAcceptablePriceChange(
                 this.TradingPairWithSolidity.Symbol,
                 this.Options.SolidityWatchingOptions.AcceptablePriceChange.Period,
                 this.Options.SolidityWatchingOptions.AcceptablePriceChange.PriceChange
@@ -391,7 +394,7 @@ export class BinanceTradesService {
                         } else {
                             const checkForReachingPrice =
                                 SolidityFinderOptions.PriceUninterruptedDuration === 0 ? false :
-                                    await sfs.CheckPriceAtTargetTime(SolidityModel.Symbol, lastSolidity.Price, SolidityFinderOptions.PriceUninterruptedDuration);
+                                    await CandleAnalyzeService.CheckPriceTouchingOnPeriod(SolidityModel.Symbol, lastSolidity.Price, SolidityFinderOptions.PriceUninterruptedDuration);
                             if (!checkForReachingPrice) {
                                 SolidityStatus = 'moved';
                                 SolidityModel.Solidity = lastSolidity.Solidity;

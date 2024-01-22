@@ -7,6 +7,7 @@ import {FontColor} from "./services/FontStyleObjects";
 import {TelegramControllerService} from "./services/TelegramControlerService/TelegramControlerService";
 import {OptionsManager} from "./services/OptionsManager/OptionsManager";
 import {ApiKeysService} from "./services/ApiKeysService/ApiKeysService";
+import {CandleAnalyzeService} from "./services/SolidityFinderService/CandleAnalyzeService/CandleAnalyzeService";
 
 let client;
 export let tcs;
@@ -33,6 +34,7 @@ process.on('uncaughtException', function (err) {
   DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Unhandled error! | ${err.message}`, [ dls ], true, true);
 });
 
+CandleAnalyzeService.SetBinanceClient(client);
 
 DocumentLogService.MadeTheNewLog([FontColor.FgGreen], `The bot was launched! | Version: ${process.env.npm_package_version}`,
     [dls], true, true);

@@ -5,52 +5,12 @@ import {FontColor} from "../FontStyleObjects";
 import {
     BinanceOrdersCalculatingKit
 } from "../BinanceTradesService/BinanceOrdersCalculatingKit/BinanceOrdersCalculatingKit";
+import {CandleAnalyzeService} from "./CandleAnalyzeService/CandleAnalyzeService";
 
 class SolidityFinderService {
     client: Binance;
     constructor(client: Binance) {
         this.client = client;
-    }
-
-    CheckForAcceptablePriceChange = async (symbol: string, durationMinutes: number, acceptablePriceChange: number) => {
-        const priceChange = await this.GetPriceChange(symbol, durationMinutes);
-        return ({ access: Math.abs(priceChange)  <= acceptablePriceChange, priceChange: priceChange });
-    }
-
-    GetPriceChange = async (symbol: string, durationMinutes: number): Promise<number> =>  {
-        const candles = await this.client.candles({
-            symbol,
-            interval: CandleChartInterval.ONE_MINUTE,
-            limit: durationMinutes
-        });
-
-        const lastCandles = candles.slice(-durationMinutes);
-
-        const firstCandle = lastCandles[0];
-        const lastCandle = lastCandles[lastCandles.length - 1];
-
-        return ((parseFloat(lastCandle.close) - parseFloat(firstCandle.open)) / parseFloat(firstCandle.open)) * 100;
-    }
-
-    CheckPriceAtTargetTime = async (symbol: string, targetPrice: number, durationMinutes: number) => {
-            try {
-                const candles = await this.client.candles({
-                    symbol,
-                    interval: CandleChartInterval.ONE_MINUTE,
-                    limit: durationMinutes,
-                });
-
-                let checkResult = false;
-
-                candles.forEach(candle => {
-                    const result = parseFloat(candle.low) < targetPrice && targetPrice < parseFloat(candle.high);
-                    if (result) checkResult = true;
-                });
-
-                return checkResult;
-            } catch (e) {
-                throw e;
-            }
     }
 
     FetchAllSymbols = async (minVolume: number, topPriceChangePercent: number) => {
@@ -172,7 +132,7 @@ class SolidityFinderService {
 
                 await Promise.all(
                     symbolsWithSolidity.map(async (symbolWithSolidity) => {
-                        const result = !(await this.CheckPriceAtTargetTime(symbolWithSolidity.Symbol, symbolWithSolidity.Solidity.Price, checkReachingPriceDuration));
+                        const result = !(await CandleAnalyzeService.CheckPriceTouchingOnPeriod(symbolWithSolidity.Symbol, symbolWithSolidity.Solidity.Price, checkReachingPriceDuration));
                         if (result) {
                             filteredSymbolsWithSolidity.push(symbolWithSolidity);
                         }
