@@ -137,7 +137,7 @@ export class TelegramControllerService {
     }
 
     private onStart = (msg: Message) => {
-        FilesManager.CheckAndCreateFiles(this.TelegramUsersFilePath, "[]");
+        FilesManager.CheckAndCreateFiles(this.TelegramUsersFilePath, []);
         const chatId = msg.chat.id;
         this.Bot.sendMessage(chatId, 'Hello! Now you subscribed for live trades!', {
             reply_markup:  {
@@ -436,7 +436,7 @@ export class TelegramControllerService {
     SendMessage = (message: string, sendingUser?: number) => {
         try {
             if (!TelegramControllerService.ignoreCommands) {
-                FilesManager.CheckAndCreateFiles(this.TelegramUsersFilePath, "[]");
+                FilesManager.CheckAndCreateFiles(this.TelegramUsersFilePath, []);
                 const subscribedUsers: number[] = FilesManager.ReadFile<number[]>(this.TelegramUsersFilePath);
 
                 subscribedUsers.filter(user => user !== sendingUser).forEach(userId => {
