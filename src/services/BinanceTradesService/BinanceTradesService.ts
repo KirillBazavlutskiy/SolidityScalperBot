@@ -181,7 +181,7 @@ export class BinanceTradesService {
                                     [dls], true, true);
                                 await this.OpenTrade();
                             } else {
-                                DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${this.TradingPairWithSolidity.Symbol} | Slippage: ${BinanceOrdersCalculatingKit.RoundUp(Slippage, 6)}% | Last Price: ${this.SpotLastPrice}`,
+                                DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${this.TradingPairWithSolidity.Symbol} | Solidity on ${this.TradingPairWithSolidity.Solidity.Price} was removed! | Last solidity quantity: ${this.TradingPairWithSolidity.Solidity.Quantity} | Volume used to break: ${this.VolumeToDestroyTheSolidity} | Slippage: ${BinanceOrdersCalculatingKit.RoundUp(Slippage, 6)}% | Last Price: ${this.SpotLastPrice}`,
                                     [dls], true, true);
                                 this.CloseWatching();
                             }
