@@ -17,12 +17,13 @@ import {
     SolidityWatchingOptionsModel,
     TradingOptionsModel
 } from "../OptionsManager/OptionsModel";
+import {FilesManager} from "../FilesManager/FilesMenager";
 
 export class TelegramControllerService {
     private Bot: TelegramBot;
     client: Binance;
     private TradingAccess: boolean = true;
-    private dataPath = './data/TelegramUsers.json';
+    private TelegramUsersFilePath = './data/TelegramUsers.json';
 
     private _state: string;
     static ignoreCommands: boolean = false;
@@ -136,6 +137,7 @@ export class TelegramControllerService {
     }
 
     private onStart = (msg: Message) => {
+        FilesManager.CheckAndCreateFiles(this.TelegramUsersFilePath, "[]");
         const chatId = msg.chat.id;
         this.Bot.sendMessage(chatId, 'Hello! Now you subscribed for live trades!', {
             reply_markup:  {
@@ -146,17 +148,17 @@ export class TelegramControllerService {
     }
 
     private AddSubscriber = (id: number) => {
-        const subscribedUsersJson = fs.readFileSync(this.dataPath, 'utf-8');
+        const subscribedUsersJson = fs.readFileSync(this.TelegramUsersFilePath, 'utf-8');
         const subscribedUsers: number[] = JSON.parse(subscribedUsersJson);
 
-        fs.writeFileSync(this.dataPath, JSON.stringify([ ...subscribedUsers, id ]), 'utf-8');
+        fs.writeFileSync(this.TelegramUsersFilePath, JSON.stringify([ ...subscribedUsers, id ]), 'utf-8');
     }
 
     private DeleteSubscriber = (id: number) => {
-        const subscribedUsersJson = fs.readFileSync(this.dataPath, 'utf-8');
+        const subscribedUsersJson = fs.readFileSync(this.TelegramUsersFilePath, 'utf-8');
         const subscribedUsers: number[] = JSON.parse(subscribedUsersJson);
 
-        fs.writeFileSync(this.dataPath, JSON.stringify(subscribedUsers.filter(userId => userId !== id)), 'utf-8');
+        fs.writeFileSync(this.TelegramUsersFilePath, JSON.stringify(subscribedUsers.filter(userId => userId !== id)), 'utf-8');
     }
 
     private onMessage = async (msg: Message) => {
@@ -434,8 +436,8 @@ export class TelegramControllerService {
     SendMessage = (message: string, sendingUser?: number) => {
         try {
             if (!TelegramControllerService.ignoreCommands) {
-                const subscribedUsersJson = fs.readFileSync(this.dataPath, 'utf-8');
-                const subscribedUsers: number[] = JSON.parse(subscribedUsersJson);
+                FilesManager.CheckAndCreateFiles(this.TelegramUsersFilePath, "[]");
+                const subscribedUsers: number[] = FilesManager.ReadFile<number[]>(this.TelegramUsersFilePath);
 
                 subscribedUsers.filter(user => user !== sendingUser).forEach(userId => {
                     this.Bot.sendMessage(userId, message, { reply_markup: this.CreateKeyBoard() }).catch((e) => {
