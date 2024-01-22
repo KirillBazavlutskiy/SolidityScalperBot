@@ -17,7 +17,7 @@ class TradingPairsService {
                         `${TradingPair.Symbol}\n` +
                         `Up to price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(TradingPair.Solidity.UpToPrice, TradingPair.Solidity.Type, 6)}\n` +
                         `Trade type: ${TradingPair.Solidity.Type === 'asks' ? 'Long' : 'Short'}\n` +
-                        `Solidity ratio: ${TradingPair.Solidity.Ratio}` +
+                        `Solidity ratio: ${TradingPair.Solidity.Ratio}\n` +
                         `Solidity price: ${TradingPair.Solidity.Price}$\n` + 
                         `Last price: ${TradingPair.Price}$`
                     );
