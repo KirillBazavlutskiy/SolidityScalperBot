@@ -7,6 +7,7 @@ import {FontColor} from "./services/FontStyleObjects";
 import {TelegramControllerService} from "./services/TelegramControlerService/TelegramControlerService";
 import {OptionsManager} from "./services/OptionsManager/OptionsManager";
 import {ApiKeysService} from "./services/ApiKeysService/ApiKeysService";
+import {CandleAnalyzeService} from "./services/SolidityFinderService/CandleAnalyzeService/CandleAnalyzeService";
 
 let client;
 export let tcs;
@@ -27,7 +28,9 @@ tcs = new TelegramControllerService(ApiKeys?.TelegramBotKey || '', client);
 
 export const sfs = new SolidityFinderService(client);
 export const dls = new DocumentLogger('./Logs/Logs.txt');
-export const tls = new DocumentLogger('./Logs/TradeLogs.txt')
+export const tls = new DocumentLogger('./Logs/TradeLogs.txt');
+
+CandleAnalyzeService.SetBinanceClient(client);
 
 DocumentLogService.MadeTheNewLog([FontColor.FgGreen], `The bot was launched! | Version: ${process.env.npm_package_version}`,
     [dls], true, false);
