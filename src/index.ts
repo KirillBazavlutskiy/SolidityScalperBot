@@ -33,7 +33,7 @@ export const tls = new DocumentLogger('./Logs/TradeLogs.txt');
 CandleAnalyzeService.SetBinanceClient(client);
 
 DocumentLogService.MadeTheNewLog([FontColor.FgGreen], `The bot was launched! | Version: ${process.env.npm_package_version}`,
-    [dls], true, false);
+    [dls], true, true);
 
 const fetchSolidity = async (): Promise<void> => {
     if (tcs.GetTradeStatus()) {
