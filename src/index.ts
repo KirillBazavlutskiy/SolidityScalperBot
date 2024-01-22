@@ -27,7 +27,12 @@ tcs = new TelegramControllerService(ApiKeys?.TelegramBotKey || '', client);
 
 export const sfs = new SolidityFinderService(client);
 export const dls = new DocumentLogger('./Logs/Logs.txt');
-export const tls = new DocumentLogger('./Logs/TradeLogs.txt')
+export const tls = new DocumentLogger('./Logs/TradeLogs.txt');
+
+process.on('uncaughtException', function (err) {
+  DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Unhandled error! | ${err.message}`, [ dls ], true, true);
+});
+
 
 DocumentLogService.MadeTheNewLog([FontColor.FgGreen], `The bot was launched! | Version: ${process.env.npm_package_version}`,
     [dls], true, true);
