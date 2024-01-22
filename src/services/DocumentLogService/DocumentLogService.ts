@@ -1,10 +1,12 @@
 import * as fs from "fs";
 import {tcs} from "../../index";
+import {FilesManager} from "../FilesManager/FilesMenager";
 
 export class DocumentLogger {
     documentPath: string;
 
     constructor(path: string) {
+        FilesManager.CheckAndCreateFiles(path);
         this.documentPath = path;
     }
 
