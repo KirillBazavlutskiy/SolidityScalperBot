@@ -191,7 +191,7 @@ export class BinanceTradesService {
                             this.CloseWatching();
                         }
                     } else if (BinanceOrdersCalculatingKit.CalcSimplifiedRatio(this.UpToPriceSpot, this.TradingPairWithSolidity.Solidity.Type) > this.UpToPriceAccessSpotThreshold) {
-                        DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${this.TradingPairWithSolidity.Symbol} is too far! | Up To price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(this.UpToPriceSpot, this.TradingPairWithSolidity.Solidity.Type, 4)}`,
+                        DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${this.TradingPairWithSolidity.Symbol} | Price is too far! | Up To price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(this.UpToPriceSpot, this.TradingPairWithSolidity.Solidity.Type, 4)}`,
                             [dls], true, true);
                         this.CloseWatching();
                     }
