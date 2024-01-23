@@ -233,7 +233,7 @@ export class BinanceTradesService {
                 if (this.SolidityStatus === 'removed') {
                     this.CloseWatching();
                     DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${this.TradingPairWithSolidity.Symbol} Solidity on ${this.TradingPairWithSolidity.Solidity.Price}$ has been removed. The quantity on ${SolidityPrice}$ is ${SolidityQuantity.toFixed()} | Max quantity was ${this.TradingPairWithSolidity.Solidity.MaxQuantity.toFixed()} | Up to price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(this.UpToPriceSpot, this.TradingPairWithSolidity.Solidity.Type, 6)}`,
-                        [ dls ], true, this.TradeStatus === 'reached');
+                        [ dls ], true, this.TradeStatus == 'reached');
                 } else if (this.SolidityStatus === 'ends') {
                     const CheckForSharpBreakoutResult = await this.CheckForSharpBreakout();
                     if (CheckForSharpBreakoutResult.access) {
@@ -246,7 +246,7 @@ export class BinanceTradesService {
                     }
                 } else if (this.SolidityStatus === 'moved') {
                     DocumentLogService.MadeTheNewLog([FontColor.FgBlue], `${this.TradingPairWithSolidity.Symbol}\nSolidity has been moved to ${this.TradingPairWithSolidity.Solidity.Price}$\nUp to price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(this.TradingPairWithSolidity.Solidity.UpToPrice, this.TradingPairWithSolidity.Solidity.Type, 4)}`,
-                        [dls], true, this.TradeStatus === 'reached');
+                        [dls], true, this.TradeStatus == 'reached');
                     this.TradeStatus = 'watching';
                 }
 
@@ -330,7 +330,7 @@ export class BinanceTradesService {
                 access: true,
                 priceChange: null
             } :
-            await CandleAnalyzeService.CheckForAcceptablePriceChange(
+            await CandleAnalyzeService.CheckForAcceptableAveragePriceChange(
                 this.TradingPairWithSolidity.Symbol,
                 this.Options.SolidityWatchingOptions.AcceptablePriceChange.Period,
                 this.Options.SolidityWatchingOptions.AcceptablePriceChange.PriceChange

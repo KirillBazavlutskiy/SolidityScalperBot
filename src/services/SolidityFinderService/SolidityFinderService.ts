@@ -6,6 +6,7 @@ import {
     BinanceOrdersCalculatingKit
 } from "../BinanceTradesService/BinanceOrdersCalculatingKit/BinanceOrdersCalculatingKit";
 import {CandleAnalyzeService} from "./CandleAnalyzeService/CandleAnalyzeService";
+import TradingPairsService from "../TradingPairsListService/TradingPairsService";
 
 class SolidityFinderService {
     client: Binance;
@@ -26,7 +27,7 @@ class SolidityFinderService {
             const tickersFixed: DailyStatsResult[] = JSON.parse(JSON.stringify(tickers));
 
             let filteredTickers = tickersFixed
-                .filter(tradingPair => !(tradingPair.symbol.includes('BTC') || tradingPair.symbol.includes('ETH') || tradingPair.symbol.includes('USDC') || tradingPair.symbol.includes('FTT') || tradingPair.symbol.includes('RAY')))
+                .filter(tradingPair => !TradingPairsService.BanListStatic.some(coin => tradingPair.symbol.includes(coin)))
                 .filter(tradingPair => futuresSymbols.includes(tradingPair.symbol))
                 .filter(tradingPair => {
                     return tradingPair.symbol.substring(tradingPair.symbol.length - 4, tradingPair.symbol.length) === "USDT"
