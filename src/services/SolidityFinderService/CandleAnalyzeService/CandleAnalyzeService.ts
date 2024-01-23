@@ -28,26 +28,6 @@ export class CandleAnalyzeService {
         }
     }
 
-    static CheckForAcceptablePriceChange = async (symbol: string, durationMinutes: number, acceptablePriceChange: number) => {
-        const priceChange = await this.GetPriceChange(symbol, durationMinutes);
-        return ({ access: Math.abs(priceChange)  <= acceptablePriceChange, priceChange: priceChange });
-    }
-
-    static GetPriceChange = async (symbol: string, durationMinutes: number): Promise<number> =>  {
-        const candles = await this.client.candles({
-            symbol,
-            interval: CandleChartInterval.ONE_MINUTE,
-            limit: durationMinutes
-        });
-
-        const lastCandles = candles.slice(-durationMinutes);
-
-        const firstCandle = lastCandles[0];
-        const lastCandle = lastCandles[lastCandles.length - 1];
-
-        return ((parseFloat(lastCandle.close) - parseFloat(firstCandle.open)) / parseFloat(firstCandle.open)) * 100;
-    }
-
     static CheckForAcceptableAveragePriceChange = async (symbol: string, durationMinutes: number, acceptablePriceChange: number) => {
         const priceChange = await this.GetAveragePriceChange(symbol, durationMinutes);
         return ({ access: Math.abs(priceChange)  <= acceptablePriceChange, priceChange: priceChange });

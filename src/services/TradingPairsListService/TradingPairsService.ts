@@ -6,6 +6,9 @@ class TradingPairsService {
     static TPWithSolidity: SolidityModel[] = [];
     private static TPWithSolidityInTrade: BinanceTradesService[] = [];
 
+    static BanListStatic: string[] = ['BTC', 'ETH', 'USDC', 'FTT', 'RAY'];
+    static BanListDynamic: string[] = [];
+
     static LogTradingPairs = (): string => {
         let result;
 
