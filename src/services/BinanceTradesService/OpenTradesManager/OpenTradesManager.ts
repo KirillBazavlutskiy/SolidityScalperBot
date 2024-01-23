@@ -56,6 +56,11 @@ export class OpenTradesManager {
 
             this.OrderQuantity = BinanceOrdersCalculatingKit.RoundUp(parseFloat(this.OrderQuantityNominal) / LastPrice, QuantityPrecisionFutures).toString();
 
+            await this.client.futuresLeverage({
+                symbol: this.Symbol,
+                leverage: 20
+            })
+
             const order = await this.client.futuresOrder({
                 symbol: this.Symbol,
                 side: this.TradeType === 'long' ? 'BUY' : 'SELL',
