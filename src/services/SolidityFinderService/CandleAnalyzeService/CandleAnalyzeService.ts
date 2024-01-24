@@ -7,7 +7,7 @@ import {
 
 export class CandleAnalyzeService {
     private static client: Binance;
-    private static coefficient: number;
+    private static coefficient: number = 0.5;
 
     static SetBinanceClient = (client: Binance) => {
         this.client = client;
@@ -80,8 +80,10 @@ export class CandleAnalyzeService {
 
         const priceChange = [];
         for (let i = 0; i < closePrice_array.length; i++) {
-            const tempPrice_change = ((closePrice_array[i + 1] - closePrice_array[i]) / closePrice_array[i]) * 100;
-            priceChange.push(tempPrice_change)
+            if (i < (closePrice_array.length) - 1) {
+                const tempPrice_change = ((closePrice_array[i + 1] - closePrice_array[i]) / closePrice_array[i]) * 100;
+                priceChange.push(tempPrice_change)
+            }
         }
 
         const volatility = priceChange.reduce((a, b) => a + b, 0)
@@ -94,12 +96,12 @@ export class CandleAnalyzeService {
         return resultObject
     }
 
-    static calcCoefficient = async (symbol: string, interval: CandleChartInterval_LT = "1h", limit: number = 24) => {
+    static calcCoefficient = async (symbol: string, radioAccess:number, interval: CandleChartInterval_LT = "1h", limit: number = 24) => {
         const SymbolVolatilityObject = await this.getVolatility(symbol, interval, limit);
 
         const resultObject: SymbolDensityCoefficientInterface = {
             symbol: symbol,
-            coefficient: (SymbolVolatilityObject.volatility * this.coefficient) + 20,
+            coefficient: (SymbolVolatilityObject.volatility * this.coefficient) + radioAccess,
             volatility: SymbolVolatilityObject.volatility
         }
 

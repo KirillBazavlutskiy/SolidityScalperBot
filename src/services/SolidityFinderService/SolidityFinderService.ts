@@ -118,8 +118,9 @@ class SolidityFinderService {
                 await Promise.all(
                     symbolsGroup.map(async (symbol) => {
                         const solidityInfo = await this.FindSolidity(symbol);
+                        const symbolCoefficient = await CandleAnalyzeService.calcCoefficient(symbol, ratioAccess)
                         if (
-                            solidityInfo.Solidity.Ratio > ratioAccess &&
+                            solidityInfo.Solidity.Ratio > symbolCoefficient.coefficient &&
                             BinanceOrdersCalculatingKit.CalcSimplifiedRatio(solidityInfo.Solidity.UpToPrice, solidityInfo.Solidity.Type) < upToPriceAccess / 100
                         ) {
                             symbolsWithSolidity.push(solidityInfo);
