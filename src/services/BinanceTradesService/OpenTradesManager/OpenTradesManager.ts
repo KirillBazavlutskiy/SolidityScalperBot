@@ -3,7 +3,7 @@ import {TradeType} from "../BinanceTradesModels";
 import {dls, tcs, tls} from "../../../index";
 import {BinanceOrdersCalculatingKit} from "../BinanceOrdersCalculatingKit/BinanceOrdersCalculatingKit";
 import {LimitType} from "../../SolidityFinderService/SolidityFinderModels";
-import DocumentLogService from "../../DocumentLogService/DocumentLogService";
+import DocumentLogService, {DocumentLogger} from "../../DocumentLogService/DocumentLogService";
 import {FontColor} from "../../FontStyleObjects";
 import {TradeStatus} from "./OpenTradesManagerModels";
 import {TradingOptionsModel} from "../../OptionsManager/OptionsModel";
@@ -62,11 +62,15 @@ export class OpenTradesManager {
                 leverage: 20
             })
 
-            await this.client.futuresMarginType({
-                symbol: this.Symbol,
-                //TODO: Add marginType in .json
-                marginType: "ISOLATED"
-            })
+            try {
+                await this.client.futuresMarginType({
+                    symbol: this.Symbol,
+                    //TODO: Add marginType in .json
+                    marginType: "ISOLATED"
+                })
+            } catch (error) {
+                DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Error with changing margin type | ${error.message}`, [dls, tls], true, true)
+            }
 
             const order = await this.client.futuresOrder({
                 symbol: this.Symbol,
