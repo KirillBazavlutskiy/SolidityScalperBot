@@ -69,7 +69,7 @@ export class OpenTradesManager {
                     marginType: "ISOLATED"
                 })
             } catch (error) {
-                DocumentLogService.MadeTheNewLog([FontColor.FgMagenta], `${this.Symbol} | Error with changing margin type | ${error.message}`, [dls, tls], true, true)
+                DocumentLogService.MadeTheNewLog([FontColor.FgGray], `${this.Symbol} | Error with changing margin type | ${error.message}`, [dls, tls], true, true)
             }
 
             const order = await this.client.futuresOrder({
