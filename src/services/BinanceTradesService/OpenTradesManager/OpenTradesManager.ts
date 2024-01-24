@@ -58,7 +58,14 @@ export class OpenTradesManager {
 
             await this.client.futuresLeverage({
                 symbol: this.Symbol,
+                //TODO: Add leverage in .json
                 leverage: 20
+            })
+
+            await this.client.futuresMarginType({
+                symbol: this.Symbol,
+                //TODO: Add marginType in .json
+                marginType: "ISOLATED"
             })
 
             const order = await this.client.futuresOrder({

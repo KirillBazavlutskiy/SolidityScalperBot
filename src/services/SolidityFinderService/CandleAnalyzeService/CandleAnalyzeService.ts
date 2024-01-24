@@ -1,4 +1,5 @@
 import {Binance, CandleChartInterval, CandleChartInterval_LT} from "binance-api-node";
+
 import {
     SymbolDensityCoefficientInterface,
     SymbolVolatilityInterface
@@ -6,7 +7,6 @@ import {
 
 export class CandleAnalyzeService {
     private static client: Binance;
-
     private static coefficient: number;
 
     static SetBinanceClient = (client: Binance) => {
