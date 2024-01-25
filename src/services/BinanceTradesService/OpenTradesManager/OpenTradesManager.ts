@@ -162,11 +162,13 @@ export class OpenTradesManager {
                 }
             }
 
-            const CleanOrdersStatusRequestsInterval =  setInterval(async () => {
-                await Promise.all([
-                    CheckOrdersStatus('TakeProfit'),
-                    CheckOrdersStatus('StopLoss')
-                ]);
+            const CleanOrdersStatusRequestsInterval = setInterval(async () => {
+                try {
+                    await CheckOrdersStatus('TakeProfit');
+                    await CheckOrdersStatus('StopLoss');
+                } catch (e) {
+                    DocumentLogService.MadeTheNewLog([FontColor.FgRed],`${this.Symbol} | Error with checking position status! | ${e.message}`);
+                }
             }, 20000);
 
             const CleanFuturesPingInterval = setInterval(async () => {

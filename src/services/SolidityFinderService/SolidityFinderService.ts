@@ -1,5 +1,13 @@
 import {LimitType, SolidityModel, SolidityTicket} from "./SolidityFinderModels";
-import {Bid, Binance, CandleChartInterval, DailyStatsResult, OrderBook} from "binance-api-node";
+import {
+    Bid,
+    Binance,
+    CandleChartInterval,
+    DailyStatsResult,
+    ExchangeInfo,
+    FuturesOrderType_LT,
+    OrderBook
+} from "binance-api-node";
 import DocumentLogService from "../DocumentLogService/DocumentLogService";
 import {FontColor} from "../FontStyleObjects";
 import {
@@ -20,7 +28,7 @@ class SolidityFinderService {
                 throw new Error('Failed to fetch daily stats');
             });
 
-            const futuresSymbolsInfo = await this.client.futuresExchangeInfo().catch(error => {
+            const futuresSymbolsInfo: ExchangeInfo<FuturesOrderType_LT> = await this.client.futuresExchangeInfo().catch(error => {
                 throw new Error('Failed to fetch futures exchange info');
             });
             const futuresSymbols = futuresSymbolsInfo.symbols.map(symbolInfo => symbolInfo.symbol);
@@ -32,11 +40,11 @@ class SolidityFinderService {
                 .filter(tradingPair => {
                     return tradingPair.symbol.substring(tradingPair.symbol.length - 4, tradingPair.symbol.length) === "USDT"
                 })
-                .filter(tradingPair => parseFloat(tradingPair.quoteVolume) > minVolume)
-                .sort((a, b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent))
+                .filter(tradingPair => Number(tradingPair.quoteVolume) > minVolume)
+                .sort((a, b) => Number(b.priceChangePercent) - Number(a.priceChangePercent))
 
             if (topPriceChangePercent !== 0) {
-                filteredTickers.filter(ticker => parseFloat(ticker.priceChangePercent) > 0);
+                filteredTickers.filter(ticker => Number(ticker.priceChangePercent) > 0);
                 if (filteredTickers.length > topPriceChangePercent) filteredTickers = filteredTickers.slice(0, topPriceChangePercent);
             }
 
@@ -48,45 +56,31 @@ class SolidityFinderService {
 
     FindSolidity = async (symbol: string, orderBookParams?: OrderBook, lastPriceParams?: number, quoteVolumeParams?: number): Promise<SolidityModel | null> => {
         try {
-            let orderBook: OrderBook;
-            let lastPrice: number;
-            let quoteVolume: number;
-
-            if (orderBookParams && lastPriceParams && quoteVolumeParams) {
-                orderBook = orderBookParams;
-                lastPrice = lastPriceParams;
-                quoteVolume = quoteVolumeParams;
-            } else {
-                orderBook = await this.client.book({ symbol });
-                const ticker = await this.client.dailyStats({ symbol });
-
-                lastPrice = "lastPrice" in ticker ? parseFloat(ticker.lastPrice) : 0;
-                quoteVolume = "quoteVolume" in ticker ? parseFloat(ticker.quoteVolume) : 0;
-            }
+            const orderBook: OrderBook = orderBookParams || await this.client.book({ symbol });
+            const ticker = await this.client.dailyStats({ symbol });
+            const lastPrice = "lastPrice" in ticker ? Number(ticker.lastPrice) : 0;
+            const quoteVolume = "quoteVolume" in ticker ? Number(ticker.quoteVolume) : 0;
 
             const calculateMaxValue = (orders: Bid[]) => {
+                const initialValue = { sum: 0, max: 0, maxPrice: 0 };
                 return orders.reduce((acc, order) => {
-                    const volume = parseFloat(order.quantity);
+                    const volume = Number(order.quantity);
                     acc.sum += volume;
                     if (acc.max < volume) {
                         acc.max = volume;
-                        acc.maxPrice = parseFloat(order.price);
+                        acc.maxPrice = Number(order.price);
                     }
                     return acc;
-                }, { sum: 0, max: 0, maxPrice: 0 });
+                }, initialValue);
             };
 
             const bindNAsks = [ ...orderBook.asks, ...orderBook.bids ];
-
             const { sum: sumOrders, max: maxOrder, maxPrice: maxOrderPrice } = calculateMaxValue(bindNAsks);
-
             const upToPrice = lastPrice / maxOrderPrice;
-
             const solidityRatio = maxOrder / (sumOrders / 100);
 
             let solidityType: LimitType = 'bids';
-
-            if (orderBook.asks.findIndex(bid => parseFloat(bid.price) === maxOrderPrice) !== -1) {
+            if (orderBook.asks.some(bid =>Number(bid.price) === maxOrderPrice)) {
                 solidityType = 'asks';
             }
 
@@ -97,7 +91,7 @@ class SolidityFinderService {
                 Price: lastPrice,
                 QuoteVolume: quoteVolume,
                 Solidity: solidityTicket
-            }
+            };
         } catch (e) {
             DocumentLogService.MadeTheNewLog([FontColor.FgGray], `Error with ${symbol}! ${e.message}`, [], true, false);
             return null;
@@ -109,7 +103,7 @@ class SolidityFinderService {
 
         try {
             const symbols = await this.FetchAllSymbols(minVolume, topPriceChangePercent);
-            const symbolsGroupLength = 30;
+            const symbolsGroupLength = 15;
 
             for (let i = 0; i < symbols.length; i += symbolsGroupLength) {
                 const symbolsGroup =
