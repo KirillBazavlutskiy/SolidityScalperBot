@@ -10,11 +10,9 @@ import TradingPairsService from "../TradingPairsListService/TradingPairsService"
 
 class SolidityFinderService {
     client: Binance;
-    private isCalcCoefficientIncluded: boolean;
 
     constructor(client: Binance, isCalcCoefficientIncluded:boolean = false) {
         this.client = client;
-        this.isCalcCoefficientIncluded = isCalcCoefficientIncluded;
     }
 
     FetchAllSymbols = async (minVolume: number, topPriceChangePercent: number) => {
