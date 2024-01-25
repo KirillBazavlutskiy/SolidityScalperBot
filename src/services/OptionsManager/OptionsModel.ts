@@ -1,5 +1,6 @@
 export interface GeneraOptionsModel {
     ScreenerMode: boolean;
+    UseTelegramBot: boolean;
 }
 
 export interface SolidityFinderOptionsModel {
@@ -44,6 +45,7 @@ export interface OptionsModel {
 export const DefaultOptionsValues: OptionsModel = {
     GeneralOptions: {
         ScreenerMode: false,
+        UseTelegramBot: false
     },
     SolidityFinderOptions: {
         MinimalVolume: 1000000,

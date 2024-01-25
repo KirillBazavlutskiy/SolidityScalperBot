@@ -124,8 +124,8 @@ export class BinanceTradesService {
 
     private ProcessSpotTrade = async (Trade: WSTrade) => {
         try {
-            this.SpotLastPrice = parseFloat(Trade.price);
-            const TradeQuantity = parseFloat(Trade.quantity);
+            this.SpotLastPrice = Number(Trade.price);
+            const TradeQuantity = Number(Trade.quantity);
             this.UpToPriceSpot = this.SpotLastPrice / this.TradingPairWithSolidity.Solidity.Price;
             this.TradingPairWithSolidity.Solidity.UpToPrice = this.UpToPriceSpot;
             this.TradingPairWithSolidity.Price = this.SpotLastPrice;
@@ -209,12 +209,12 @@ export class BinanceTradesService {
 
             const SoliditySideBids: Bid[] = this.TradingPairWithSolidity.Solidity.Type === 'asks' ? BookDepth.asks : BookDepth.bids;
 
-            const solidityChangeIndex = SoliditySideBids.findIndex(Bid => parseFloat(Bid.price) == this.TradingPairWithSolidity.Solidity.Price);
+            const solidityChangeIndex = SoliditySideBids.findIndex(Bid =>Number(Bid.price) == this.TradingPairWithSolidity.Solidity.Price);
 
             if (solidityChangeIndex !== -1 && this.SolidityStatus !== 'removed' && this.TradeStatus !== 'inTrade') {
                 const SolidityBid = SoliditySideBids[solidityChangeIndex];
-                const SolidityQuantity = parseFloat(SolidityBid.quantity);
-                const SolidityPrice = parseFloat(SolidityBid.price);
+                const SolidityQuantity = Number(SolidityBid.quantity);
+                const SolidityPrice = Number(SolidityBid.price);
 
                 this.SolidityStatus = await BinanceTradesService.CheckSolidity(
                     this.TradingPairWithSolidity,
@@ -355,8 +355,8 @@ export class BinanceTradesService {
             let SolidityStatus: SolidityStatus = "ready";
 
             try {
-                const SolidityQuantityChange = parseFloat(SolidityBid.quantity) / SolidityModel.Solidity.Quantity - 1;
-                const SolidityQuantity =  parseFloat(SolidityBid.quantity)
+                const SolidityQuantityChange = Number(SolidityBid.quantity) / SolidityModel.Solidity.Quantity - 1;
+                const SolidityQuantity =  Number(SolidityBid.quantity)
 
                 if (UpToPriceSpot === 1) {
                     SolidityModel.Solidity.Quantity = SolidityQuantity;
@@ -416,32 +416,49 @@ export class BinanceTradesService {
         }
 
     static UpdateBookDepth = (OrderBook: OrderBook, PartialBookDepth: PartialDepth) => {
-        PartialBookDepth.bids.forEach(({ price, quantity }) => {
-            const bidIndex = OrderBook.bids.findIndex(bid => bid.price === price);
+        const bidsToUpdate = new Map();
+        const asksToUpdate = new Map();
 
-            if (bidIndex !== -1) {
-                if (parseFloat(quantity) === 0) {
-                    OrderBook.bids.splice(bidIndex, 1);
-                } else {
-                    OrderBook.bids[bidIndex].quantity = quantity;
-                }
-            } else {
-                OrderBook.bids.push({ price: price, quantity: quantity });
-            }
+        PartialBookDepth.bids.forEach(({ price, quantity }) => {
+            bidsToUpdate.set(price, quantity);
         });
 
         PartialBookDepth.asks.forEach(({ price, quantity }) => {
-            const askIndex = OrderBook.asks.findIndex(ask => ask.price === price);
+            asksToUpdate.set(price, quantity);
+        });
 
-            if (askIndex !== -1) {
-                if (parseFloat(quantity) === 0) {
-                    OrderBook.asks.splice(askIndex, 1);
+        OrderBook.bids = OrderBook.bids.filter(bid => {
+            const quantity = bidsToUpdate.get(bid.price);
+            if (quantity !== undefined) {
+                if (Number(quantity) === 0) {
+                    return false;
                 } else {
-                    OrderBook.asks[askIndex].quantity = quantity;
+                    bid.quantity = quantity;
                 }
-            } else {
-                OrderBook.asks.push({ price: price, quantity: quantity });
+                bidsToUpdate.delete(bid.price);
             }
+            return true;
+        });
+
+        OrderBook.asks = OrderBook.asks.filter(ask => {
+            const quantity = asksToUpdate.get(ask.price);
+            if (quantity !== undefined) {
+                if (Number(quantity) === 0) {
+                    return false;
+                } else {
+                    ask.quantity = quantity;
+                }
+                asksToUpdate.delete(ask.price);
+            }
+            return true;
+        });
+
+        bidsToUpdate.forEach((quantity, price) => {
+            OrderBook.bids.push({ price, quantity });
+        });
+
+        asksToUpdate.forEach((quantity, price) => {
+            OrderBook.asks.push({ price, quantity });
         });
     }
 
@@ -456,7 +473,7 @@ export class BinanceTradesService {
             if (pair.symbol === symbol) {
                 for (const filter of pair.filters) {
                     if (filter.filterType === 'PRICE_FILTER') {
-                        return parseFloat(filter.tickSize);
+                        return Number(filter.tickSize);
                     }
                 }
             }

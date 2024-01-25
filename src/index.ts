@@ -24,7 +24,9 @@ try {
     DocumentLogService.MadeTheNewLog([FontColor.FgRed], `Binance client wasn't authenticated!`);
 }
 
-tcs = new TelegramControllerService(ApiKeys?.TelegramBotKey || '', client);
+tcs = new TelegramControllerService(
+    OptionsManager.GetOptions().GeneralOptions.UseTelegramBot ? ApiKeys?.TelegramBotKey || '' : '', client
+);
 
 export const sfs = new SolidityFinderService(client);
 export const dls = new DocumentLogger('./Logs/Logs.txt');
