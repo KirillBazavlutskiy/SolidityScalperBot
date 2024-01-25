@@ -141,6 +141,7 @@ class SolidityFinderService {
             DocumentLogService.MadeTheNewLog([FontColor.FgWhite], `${e.message}`, [], true);
         }
         return symbolsWithSolidity;
-    };Number}
+    };
+}
 
 export default SolidityFinderService;
