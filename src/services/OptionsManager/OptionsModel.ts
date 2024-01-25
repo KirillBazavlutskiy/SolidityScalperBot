@@ -1,3 +1,4 @@
+
 export interface GeneraOptionsModel {
     ScreenerMode: boolean;
 }
@@ -8,6 +9,7 @@ export interface SolidityFinderOptionsModel {
     UpToPriceAccess: number;
     PriceUninterruptedDuration: number;
     TopGainersCount: number;
+    isCalcCoefficientIncluded: boolean;
 }
 
 export interface SolidityWatchingOptionsModel {
@@ -39,6 +41,7 @@ export interface OptionsModel {
     SolidityFinderOptions: SolidityFinderOptionsModel;
     SolidityWatchingOptions: SolidityWatchingOptionsModel;
     TradingOptions: TradingOptionsModel;
+
 }
 
 export const DefaultOptionsValues: OptionsModel = {
@@ -51,6 +54,7 @@ export const DefaultOptionsValues: OptionsModel = {
         UpToPriceAccess: 1.2,
         PriceUninterruptedDuration: 15,
         TopGainersCount: 20,
+        isCalcCoefficientIncluded: false,
     },
     SolidityWatchingOptions: {
         SolidityRemainderForTrade: 0.45,

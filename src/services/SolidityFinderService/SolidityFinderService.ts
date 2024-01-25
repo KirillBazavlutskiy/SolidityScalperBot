@@ -10,8 +10,11 @@ import TradingPairsService from "../TradingPairsListService/TradingPairsService"
 
 class SolidityFinderService {
     client: Binance;
-    constructor(client: Binance) {
+    private isCalcCoefficientIncluded: boolean;
+
+    constructor(client: Binance, isCalcCoefficientIncluded:boolean = false) {
         this.client = client;
+        this.isCalcCoefficientIncluded = isCalcCoefficientIncluded;
     }
 
     FetchAllSymbols = async (minVolume: number, topPriceChangePercent: number) => {
@@ -23,7 +26,9 @@ class SolidityFinderService {
             const futuresSymbolsInfo = await this.client.futuresExchangeInfo().catch(error => {
                 throw new Error('Failed to fetch futures exchange info');
             });
-            const futuresSymbols = futuresSymbolsInfo.symbols.map(symbolInfo => symbolInfo.symbol);
+            const statusFilteredFuturesSymbolsInfo = futuresSymbolsInfo.symbols
+                .filter(ticker => ticker.status == 'TRADING')
+            const futuresSymbols = statusFilteredFuturesSymbolsInfo.map(symbolInfo => symbolInfo.symbol);
             const tickersFixed: DailyStatsResult[] = JSON.parse(JSON.stringify(tickers));
 
             let filteredTickers = tickersFixed
@@ -104,7 +109,7 @@ class SolidityFinderService {
         }
     };
 
-    FindAllSolidity = async (minVolume: number, ratioAccess: number, upToPriceAccess: number, checkReachingPriceDuration: number, topPriceChangePercent: number):  Promise<SolidityModel[]> => {
+    FindAllSolidity = async (minVolume: number, ratioAccess: number, upToPriceAccess: number, checkReachingPriceDuration: number, topPriceChangePercent: number, isCalcCoefficientIncluded: boolean):  Promise<SolidityModel[]> => {
         let symbolsWithSolidity: SolidityModel[] = [];
 
         try {
@@ -118,9 +123,8 @@ class SolidityFinderService {
                 await Promise.all(
                     symbolsGroup.map(async (symbol) => {
                         const solidityInfo = await this.FindSolidity(symbol);
-                        const symbolCoefficient = await CandleAnalyzeService.calcCoefficient(symbol, ratioAccess)
                         if (
-                            solidityInfo.Solidity.Ratio > symbolCoefficient.coefficient &&
+                            solidityInfo.Solidity.Ratio > (this.isCalcCoefficientIncluded ? (await CandleAnalyzeService.calcCoefficient(symbol, ratioAccess)).coefficient : ratioAccess) &&
                             BinanceOrdersCalculatingKit.CalcSimplifiedRatio(solidityInfo.Solidity.UpToPrice, solidityInfo.Solidity.Type) < upToPriceAccess / 100
                         ) {
                             symbolsWithSolidity.push(solidityInfo);

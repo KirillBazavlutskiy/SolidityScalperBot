@@ -42,7 +42,7 @@ DocumentLogService.MadeTheNewLog([FontColor.FgGreen], `The bot was launched! | V
 const fetchSolidity = async (): Promise<void> => {
     if (tcs.GetTradeStatus()) {
         const Options = OptionsManager.GetOptions();
-        TradingPairsService.TPWithSolidity = await sfs.FindAllSolidity(Options.SolidityFinderOptions.MinimalVolume, Options.SolidityFinderOptions.RatioAccess, Options.SolidityFinderOptions.UpToPriceAccess, Options.SolidityFinderOptions.PriceUninterruptedDuration, Options.SolidityFinderOptions.TopGainersCount);
+        TradingPairsService.TPWithSolidity = await sfs.FindAllSolidity(Options.SolidityFinderOptions.MinimalVolume, Options.SolidityFinderOptions.RatioAccess, Options.SolidityFinderOptions.UpToPriceAccess, Options.SolidityFinderOptions.PriceUninterruptedDuration, Options.SolidityFinderOptions.TopGainersCount, Options.SolidityFinderOptions.isCalcCoefficientIncluded);
         TradingPairsService.TPWithSolidity.forEach(tp => {
             if (!TradingPairsService.CheckTPInTrade(tp.Symbol)) {
                 const BinanceTrader = new BinanceTradesService(client, tp, Options);

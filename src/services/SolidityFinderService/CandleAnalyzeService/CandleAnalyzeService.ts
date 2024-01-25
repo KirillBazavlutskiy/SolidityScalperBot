@@ -74,7 +74,7 @@ export class CandleAnalyzeService {
         }
     }
 
-    static getVolatility = async (symbol: string, interval: CandleChartInterval_LT = "1h", limit: number = 24) => {
+    static getVolatility = async (symbol: string, interval: CandleChartInterval_LT = "1h", limit: number = 25) => {
         const candlesData = await this.client.candles({symbol: symbol, interval: interval, limit: limit});
         const closePrice_array = candlesData.map(candle => parseFloat(candle.close));
 
@@ -97,7 +97,7 @@ export class CandleAnalyzeService {
     }
 
     static calcCoefficient = async (symbol: string, radioAccess:number, interval: CandleChartInterval_LT = "1h", limit: number = 24) => {
-        const SymbolVolatilityObject = await this.getVolatility(symbol, interval, limit);
+        const SymbolVolatilityObject = await this.getVolatility(symbol, interval, limit + 1);
 
         const resultObject: SymbolDensityCoefficientInterface = {
             symbol: symbol,

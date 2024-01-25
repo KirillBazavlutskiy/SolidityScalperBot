@@ -1,4 +1,4 @@
-import {Binance} from "binance-api-node";
+import {Binance, MarginType_LT} from "binance-api-node";
 import {TradeType} from "../BinanceTradesModels";
 import {dls, tcs, tls} from "../../../index";
 import {BinanceOrdersCalculatingKit} from "../BinanceOrdersCalculatingKit/BinanceOrdersCalculatingKit";
@@ -18,6 +18,9 @@ export class OpenTradesManager {
     private LimitType: LimitType;
     private OrderQuantity: string;
     private OrderQuantityNominal: string;
+
+    private margin_type: MarginType_LT = "ISOLATED";
+    private leverage: number = 20;
 
     private TickSizeFutures: number;
 
@@ -56,21 +59,27 @@ export class OpenTradesManager {
 
             this.OrderQuantity = BinanceOrdersCalculatingKit.RoundUp(parseFloat(this.OrderQuantityNominal) / LastPrice, QuantityPrecisionFutures).toString();
 
-            await this.client.futuresLeverage({
-                symbol: this.Symbol,
-                //TODO: Add leverage in .json
-                leverage: 20
-            })
-
-            try {
-                await this.client.futuresMarginType({
-                    symbol: this.Symbol,
-                    //TODO: Add marginType in .json
-                    marginType: "ISOLATED"
-                })
-            } catch (error) {
-                DocumentLogService.MadeTheNewLog([FontColor.FgGray], `${this.Symbol} | Error with changing margin type | ${error.message}`, [dls, tls], true, true)
-            }
+            // try {
+            //     await this.client.futuresLeverage({
+            //         symbol: this.Symbol,
+            //         //TODO: Add leverage in .json
+            //         leverage: this.leverage
+            //     })
+            //     DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${this.Symbol} | Futures leverage was successfully replaced to ${this.leverage}`, [dls, tls], true, true)
+            // } catch (error) {
+            //     DocumentLogService.MadeTheNewLog([FontColor.FgGray], `${this.Symbol} | Error with changing futures leverage | ${error.message}`, [dls, tls], true, true)
+            // }
+            //
+            // try {
+            //     await this.client.futuresMarginType({
+            //         symbol: this.Symbol,
+            //         //TODO: Add marginType in .json
+            //         marginType: this.margin_type
+            //     })
+            //     DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${this.Symbol} | Margin type was successfully replaced to ${this.margin_type}`, [dls, tls], true, true)
+            // } catch (error) {
+            //     DocumentLogService.MadeTheNewLog([FontColor.FgGray], `${this.Symbol} | Error with changing margin type | ${error.message}`, [dls, tls], true, true)
+            // }
 
             const order = await this.client.futuresOrder({
                 symbol: this.Symbol,
