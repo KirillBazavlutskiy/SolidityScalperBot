@@ -74,7 +74,7 @@ export class BinanceTradesService {
         this.SolidityStatus = 'ready';
         this.VolumeToDestroyTheSolidity = 0;
 
-        this.UpToPriceAccessSpotThreshold = this.Options.SolidityFinderOptions.UpToPriceAccess / 100 + 0.001;
+        this.UpToPriceAccessSpotThreshold = (this.Options.SolidityFinderOptions.UpToPriceAccess + 0.2) / 100;
         this.TradeType =  this.TradingPairWithSolidity.Solidity.Type === 'asks' ? 'long' : 'short';
 
         this.SpotLastPrice = this.TradingPairWithSolidity.Price;
