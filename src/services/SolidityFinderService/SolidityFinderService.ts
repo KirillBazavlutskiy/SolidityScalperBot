@@ -103,7 +103,7 @@ class SolidityFinderService {
 
         try {
             const symbols = await this.FetchAllSymbols(minVolume, topPriceChangePercent);
-            const symbolsGroupLength = 15;
+            const symbolsGroupLength = 10;
 
             for (let i = 0; i < symbols.length; i += symbolsGroupLength) {
                 const symbolsGroup =

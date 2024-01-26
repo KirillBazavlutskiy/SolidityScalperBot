@@ -61,4 +61,4 @@ fetchSolidity()
 
 setInterval(async () => {
     await fetchSolidity();
-}, 60000);
+}, 120000);
