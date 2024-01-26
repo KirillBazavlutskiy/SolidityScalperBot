@@ -231,9 +231,9 @@ export class BinanceTradesService {
                 if (SolidityQuantity > this.TradingPairWithSolidity.Solidity.MaxQuantity) this.TradingPairWithSolidity.Solidity.MaxQuantity = SolidityQuantity;
 
                 if (this.SolidityStatus === 'removed') {
-                    this.CloseWatching();
                     DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${this.TradingPairWithSolidity.Symbol} Solidity on ${this.TradingPairWithSolidity.Solidity.Price}$ has been removed. The quantity on ${SolidityPrice}$ is ${SolidityQuantity.toFixed()} | Max quantity was ${this.TradingPairWithSolidity.Solidity.MaxQuantity.toFixed()} | Up to price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(this.UpToPriceSpot, this.TradingPairWithSolidity.Solidity.Type, 6)}`,
                         [ dls ], true, this.TradeStatus == 'reached');
+                    this.CloseWatching();
                 } else if (this.SolidityStatus === 'ends') {
                     const CheckForSharpBreakoutResult = await this.CheckForSharpBreakout();
                     if (CheckForSharpBreakoutResult.access) {
@@ -243,6 +243,7 @@ export class BinanceTradesService {
                     } else {
                         DocumentLogService.MadeTheNewLog([FontColor.FgYellow], `${this.TradingPairWithSolidity.Symbol} | The price approached too quickly! |  Price change for ${this.Options.SolidityWatchingOptions.AcceptablePriceChange.Period}m: ${BinanceOrdersCalculatingKit.RoundUp(CheckForSharpBreakoutResult.priceChange, 4)}%`,
                             [dls, tls], true, true);
+                        this.CloseWatching();
                     }
                 } else if (this.SolidityStatus === 'moved') {
                     DocumentLogService.MadeTheNewLog([FontColor.FgBlue], `${this.TradingPairWithSolidity.Symbol}\nSolidity has been moved to ${this.TradingPairWithSolidity.Solidity.Price}$\nUp to price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(this.TradingPairWithSolidity.Solidity.UpToPrice, this.TradingPairWithSolidity.Solidity.Type, 4)}`,
