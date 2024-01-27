@@ -114,7 +114,7 @@ class SolidityFinderService {
                         const solidityInfo = await this.FindSolidity(symbol);
                         if (
                             solidityInfo.Solidity.Ratio > ratioAccess &&
-                            BinanceOrdersCalculatingKit.CalcSimplifiedRatio(solidityInfo.Solidity.UpToPrice, solidityInfo.Solidity.Type) < upToPriceAccess / 100
+                            BinanceOrdersCalculatingKit.CalcSimplifiedRatio(solidityInfo.Solidity.UpToPrice, 0, solidityInfo.Solidity.Type) < upToPriceAccess / 100
                         ) {
                             symbolsWithSolidity.push(solidityInfo);
                         }

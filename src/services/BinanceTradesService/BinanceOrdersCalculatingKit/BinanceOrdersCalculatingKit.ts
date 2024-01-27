@@ -14,12 +14,20 @@ export class BinanceOrdersCalculatingKit {
         return this.FindClosestLimitOrder(price * realRatio, tickSize);
     }
 
-    static CalcSimplifiedRatio = (UpToPrice: number, LimitType: LimitType, fractionDigits: number = 0): number => {
+    static CalcSimplifiedRatio = (UpToPrice: number, fractionDigits: number = 0,  LimitType?: LimitType, ): number => {
         let ratio;
-        if (LimitType === 'asks') {
-            ratio = 1 - UpToPrice;
-        } else if (LimitType === 'bids') {
-            ratio = UpToPrice - 1;
+        if (LimitType) {
+            if (LimitType === 'asks') {
+                ratio = 1 - UpToPrice;
+            } else if (LimitType === 'bids') {
+                ratio = UpToPrice - 1;
+            }
+        } else {
+            if (UpToPrice < 1) {
+                ratio = 1 - UpToPrice;
+            } else {
+                ratio = UpToPrice - 1;
+            }
         }
 
         if (fractionDigits !== 0) ratio = this.RoundUp(ratio, fractionDigits);
@@ -27,7 +35,7 @@ export class BinanceOrdersCalculatingKit {
     }
 
     static ShowUptoPrice = (UpToPrice: number, LimitType: LimitType, fractionDigits: number = 0) => {
-        return `${LimitType === 'asks' ? '+' : '-'}${this.RoundUp(this.CalcSimplifiedRatio(UpToPrice, LimitType, fractionDigits) * 100, fractionDigits)}%`;
+        return `${LimitType === 'asks' ? '+' : '-'}${this.RoundUp(this.CalcSimplifiedRatio(UpToPrice, fractionDigits, LimitType) * 100, fractionDigits)}%`;
     }
 
     static CalcRealRatio = (UpToPrice: number, LimitType: LimitType): number => {

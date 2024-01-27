@@ -164,7 +164,7 @@ export class BinanceTradesService {
                                 [dls], true, this.Options.GeneralOptions.ScreenerMode);
                             this.CloseWatching();
                         }
-                    } else if (BinanceOrdersCalculatingKit.CalcSimplifiedRatio(this.UpToPriceSpot, this.TradingPairWithSolidity.Solidity.Type) > this.UpToPriceAccessSpotThreshold) {
+                    } else if (BinanceOrdersCalculatingKit.CalcSimplifiedRatio(this.UpToPriceSpot, 0, this.TradingPairWithSolidity.Solidity.Type) > this.UpToPriceAccessSpotThreshold) {
                         DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${this.TradingPairWithSolidity.Symbol} | Price is too far! | Up to price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(this.UpToPriceSpot, this.TradingPairWithSolidity.Solidity.Type, 4)}`,
                             [dls], true, this.Options.GeneralOptions.ScreenerMode);
                         this.CloseWatching();
@@ -172,7 +172,7 @@ export class BinanceTradesService {
                     break;
                 case "reached":
                     if ((this.SpotLastPrice >= this.OpenOrderPrice && this.TradingPairWithSolidity.Solidity.Type === 'asks') || (this.SpotLastPrice <= this.OpenOrderPrice && this.TradingPairWithSolidity.Solidity.Type === 'bids')) {
-                        const Slippage = Math.abs(BinanceOrdersCalculatingKit.CalcSimplifiedRatio(this.UpToPriceSpot, this.TradingPairWithSolidity.Solidity.Type)) * 100;
+                        const Slippage = Math.abs(BinanceOrdersCalculatingKit.CalcSimplifiedRatio(this.UpToPriceSpot, 0, this.TradingPairWithSolidity.Solidity.Type)) * 100;
                         if (Slippage <= this.Options.SolidityWatchingOptions.AllowableSlippageDuringPenetration) {
                             this.VolumeToDestroyTheSolidity += TradeQuantity;
                             if (this.VolumeToDestroyTheSolidity >= this.TradingPairWithSolidity.Solidity.Quantity) {
@@ -190,7 +190,7 @@ export class BinanceTradesService {
                                 [dls], true, true);
                             this.CloseWatching();
                         }
-                    } else if (BinanceOrdersCalculatingKit.CalcSimplifiedRatio(this.UpToPriceSpot, this.TradingPairWithSolidity.Solidity.Type) > this.UpToPriceAccessSpotThreshold) {
+                    } else if (BinanceOrdersCalculatingKit.CalcSimplifiedRatio(this.UpToPriceSpot, 0, this.TradingPairWithSolidity.Solidity.Type) > this.UpToPriceAccessSpotThreshold) {
                         DocumentLogService.MadeTheNewLog([FontColor.FgRed], `${this.TradingPairWithSolidity.Symbol} | Price is too far! | Up To price: ${BinanceOrdersCalculatingKit.ShowUptoPrice(this.UpToPriceSpot, this.TradingPairWithSolidity.Solidity.Type, 4)}`,
                             [dls], true, true);
                         this.CloseWatching();

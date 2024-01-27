@@ -1,4 +1,8 @@
 import {Binance, CandleChartInterval} from "binance-api-node";
+import {BinanceTradesService} from "../../BinanceTradesService/BinanceTradesService";
+import {
+    BinanceOrdersCalculatingKit
+} from "../../BinanceTradesService/BinanceOrdersCalculatingKit/BinanceOrdersCalculatingKit";
 
 export class CandleAnalyzeService {
     private static client: Binance;
@@ -47,7 +51,7 @@ export class CandleAnalyzeService {
         const averageOpenPrice = sumOpenPrice / durationMinutes;
         const lastCandle = candles[0];
 
-        return ((parseFloat(lastCandle.close) - averageOpenPrice) / averageOpenPrice) * 100;
+        return BinanceOrdersCalculatingKit.CalcSimplifiedRatio(averageOpenPrice / Number(lastCandle.close));
     }
 
 
