@@ -49,9 +49,12 @@ export class CandleAnalyzeService {
             0
         )
         const averageOpenPrice = sumOpenPrice / durationMinutes;
-        const lastCandle = candles[0];
+        const lastCandle = candles[candles.length - 1];
 
-        return BinanceOrdersCalculatingKit.CalcSimplifiedRatio(averageOpenPrice / Number(lastCandle.close));
+        return BinanceOrdersCalculatingKit.RoundUp(
+            BinanceOrdersCalculatingKit.CalcSimplifiedRatio(averageOpenPrice / Number(lastCandle.close)) * 100,
+            6
+        );;
     }
 
 
