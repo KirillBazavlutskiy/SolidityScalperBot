@@ -74,35 +74,31 @@ export class CandleAnalyzeService {
         }
     }
 
-    static getVolatility = async (symbol: string, interval: CandleChartInterval_LT = "1h", limit: number = 25) => {
+    static getVolume = async (symbol: string, interval: CandleChartInterval_LT = "1h", limit: number = 25) => {
         const candlesData = await this.client.candles({symbol: symbol, interval: interval, limit: limit});
-        const closePrice_array = candlesData.map(candle => parseFloat(candle.close));
 
-        const priceChange = [];
-        for (let i = 0; i < closePrice_array.length; i++) {
-            if (i < (closePrice_array.length) - 1) {
-                const tempPrice_change = ((closePrice_array[i + 1] - closePrice_array[i]) / closePrice_array[i]) * 100;
-                priceChange.push(tempPrice_change)
-            }
-        }
+        let tickerVolume:number = 0;
+        candlesData.forEach(candle => tickerVolume += parseFloat(candle.volume));
 
-        const volatility = priceChange.reduce((a, b) => a + b, 0)
+        const lastCandleData = candlesData[candlesData.length - 1];
+        const volume:number = parseFloat(lastCandleData.close) * tickerVolume
 
         const resultObject: SymbolVolatilityInterface = {
             symbol: symbol,
-            volatility: volatility
+            volume: volume,
+            current_price: parseFloat(lastCandleData.close)
         }
 
         return resultObject
     }
 
     static calcCoefficient = async (symbol: string, radioAccess:number, interval: CandleChartInterval_LT = "1h", limit: number = 24) => {
-        const SymbolVolatilityObject = await this.getVolatility(symbol, interval, limit + 1);
+        const SymbolVolatilityObject = await this.getVolume(symbol, interval, limit + 1);
 
         const resultObject: SymbolDensityCoefficientInterface = {
             symbol: symbol,
-            coefficient: (SymbolVolatilityObject.volatility * this.coefficient) + radioAccess,
-            volatility: SymbolVolatilityObject.volatility
+            coefficient: (SymbolVolatilityObject.volume * this.coefficient) + radioAccess,
+            volume: SymbolVolatilityObject.volume
         }
 
         return resultObject

@@ -1,10 +1,11 @@
 export interface SymbolVolatilityInterface {
     symbol: string,
-    volatility: number
+    volume: number,
+    current_price: number
 }
 
 export interface SymbolDensityCoefficientInterface {
     symbol: string,
     coefficient: number,
-    volatility: number
+    volume: number
 }
