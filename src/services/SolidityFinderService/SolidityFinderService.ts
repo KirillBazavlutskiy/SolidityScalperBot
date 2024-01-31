@@ -77,7 +77,7 @@ class SolidityFinderService {
             const bindNAsks = [ ...orderBook.asks, ...orderBook.bids ];
             const { sum: sumOrders, max: maxOrder, maxPrice: maxOrderPrice } = calculateMaxValue(bindNAsks);
             const upToPrice = lastPrice / maxOrderPrice;
-            const solidityRatio = maxOrder / (sumOrders / 100);
+            const solidityRatio = maxOrder / (sumOrders / bindNAsks.length);
 
             let solidityType: LimitType = 'bids';
             if (orderBook.asks.some(bid =>Number(bid.price) === maxOrderPrice)) {

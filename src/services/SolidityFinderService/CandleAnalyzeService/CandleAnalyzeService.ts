@@ -54,7 +54,7 @@ export class CandleAnalyzeService {
         return BinanceOrdersCalculatingKit.RoundUp(
             BinanceOrdersCalculatingKit.CalcSimplifiedRatio(averageOpenPrice / Number(lastCandle.close)) * 100,
             6
-        );;
+        );
     }
 
 
